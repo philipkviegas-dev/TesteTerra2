@@ -676,6 +676,7 @@ function setTask(n,task,place,action,bubble){
 }
 function decide(n){
   if(n.isChild)return childDecide(n);
+  if(n.preso){n.cmd=null;return setTask(n,'dormir',n.home,'preso(a) por '+n.preso.motivo,'⛓️');}
   if(n.cmd&&AI_RECUSA&&refuses(n))n.cmd=null;
   if(n.cmd&&!isNight()&&!n.hurt)return setTask(n,'comando',n.cmd.place,n.cmd.label,'✨');
   const nd=n.needs;
@@ -2030,6 +2031,7 @@ async function fabulaCommand(n,text,isMeta){
   startCommand(n,p,text,false);
 }
 function startCommand(n,p,text,auto){
+  if(n.preso){if(!auto)setFabOut(`⛓️ ${n.name} está preso(a) por ${n.preso.motivo} e não pode cumprir ordens.`);return;}
   const A=FAB[p.acao],{chance,parts}=fabulaChance(n,p);
   const cmd={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,chance,parts,possivel:p.possivel,falta:p.falta,auto,motivo:p.motivo,ia:p.ia,efeito:p.efeito,nome:p.nome};
   if(n.cmd){n.cmdQueue=(n.cmdQueue||[]).slice(0,2);n.cmdQueue.push(cmd);if(!auto)setFabOut(`⏳ ${n.name} ainda está ocupado(a). O comando entrou na fila (${n.cmdQueue.length}).`);return;}
@@ -2063,7 +2065,7 @@ function fabulaResolve(n){
     case 'desculpas':if(ok){relate(t,n,25);relate(n,t,10);delete t['foe_'+n.id];shape(n,'bondade',4,'pediu desculpas');res=`${n.name} pediu desculpas a ${t.name}, que aceitou. Fizeram as pazes.`;pos(`fiz as pazes com ${t.name}`);}else{relate(t,n,-3);res=`${n.name} pediu desculpas, mas ${t.name} ainda não perdoou.`;neg(`${t.name} não aceitou minhas desculpas`,7);}break;
     case 'presentear':{const g=Math.min(2,n.food);if(ok){n.food-=g;t.food+=g;relate(t,n,15);shape(n,'bondade',4,'ajudou alguém');res=`${n.name} ajudou ${t.name}${g?` e dividiu ${g} porções de comida`:''}. ${t.name} ficou muito grato(a).`;pos(`ajudei ${t.name}`);remember(t,`${n.name} me ajudou`,8,n.id);}else{relate(t,n,2);res=`${n.name} tentou ajudar ${t.name}, que preferiu se virar sozinho(a).`;neg(`${t.name} recusou minha ajuda`,5);}break;}
     case 'ensinar':{const k=Object.entries(n.skill).filter(([k])=>k!=='conversar').sort((a,b)=>b[1]-a[1])[0][0];if(ok){t.skill[k]=clamp(t.skill[k]+10);t.liking[k]=clamp(t.liking[k]+10,-100,100);relate(t,n,10);world.kp+=2;res=`${n.name} ensinou ${t.name} a ${TEACH[k]}.`;pos(`ensinei ${t.name}`);}else{res=`${n.name} tentou ensinar ${t.name}, mas ninguém entendeu nada.`;neg(`não consegui ensinar ${t.name}`,4);}break;}
-    case 'roubar':if(ok){const g=Math.min(3,t.food);t.food-=g;n.food+=g;shape(n,'bondade',-6,'roubou');res=`${n.name} pegou escondido ${g} porções de ${t.name}. Ninguém viu… por enquanto.`;pos(`peguei coisas de ${t.name} e ninguém viu`,7);remember(t,'sumiu comida do meu estoque',6);}else{NPCS.forEach(o=>{if(o!==n)relate(o,n,-8);});relate(t,n,-20);shape(n,'coragem',-3,'foi pego(a) roubando');if(has('leis'))n.accused=true;res=`${n.name} foi pego(a) tentando roubar ${t.name}. A tribo inteira ficou sabendo.`;neg(`fui pego(a) roubando ${t.name}`,9);}break;
+    case 'roubar':if(ok){const g=Math.min(3,t.food);t.food-=g;n.food+=g;shape(n,'bondade',-6,'roubou');res=`${n.name} pegou escondido ${g} porções de ${t.name}. Ninguém viu… por enquanto.`;pos(`peguei coisas de ${t.name} e ninguém viu`,7);remember(t,'sumiu comida do meu estoque',6);crime(n,'roubo',null,`roubou comida de ${t.name}`,false,{ordem:1});}else{NPCS.forEach(o=>{if(o!==n)relate(o,n,-8);});relate(t,n,-20);shape(n,'coragem',-3,'foi pego(a) roubando');crime(n,'roubo',t,`foi pego(a) roubando ${t.name}`,false,{ordem:1,flagrante:1});res=`${n.name} foi pego(a) tentando roubar ${t.name}. A tribo inteira ficou sabendo.`;neg(`fui pego(a) roubando ${t.name}`,9);}break;
     case 'filho':{const p=byId(n.partner);if(ok&&p&&totalPop()<POP_CAP){const mom=n.sex==='F'?n:p;mom.expecting=2;res=`${n.name} e ${p.name} vão ter um bebê! 🍼`;pos(`vamos ter um bebê`,10);}else{res=p?`${n.name} e ${p.name} querem um filho, mas não foi dessa vez.`:`${n.name} quer um filho, mas ainda não tem com quem.`;neg('o filho não veio',6);}break;}
     case 'liderar':if(ok){const old=byId(world.gov.leader);const wantsCrown=/\brei\b|rainha|reinar|coroa/.test(norm(cmd.text+' '+((n.meta&&n.meta.text)||'')));setLeader(n,wantsCrown?'rei':world.gov.type==='nenhum'?(world.era<2?'lider':world.era<4?'chefe':'conselho'):null);if(old&&old!==n){relate(old,n,-25);remember(old,`${n.name} tomou a liderança de mim`,10,n.id);}shape(n,'ambicao',6,'assumiu a liderança');res=`${n.name} reuniu o povo e convenceu todos. Agora é ${govTitle().toLowerCase()}! 👑`;pos('assumi a liderança da tribo',10);}else{shape(n,'confianca',-5,'ninguém o(a) seguiu');NPCS.forEach(o=>{if(o!==n&&Math.random()<.4)relate(o,n,-3);});res=`${n.name} tentou liderar, mas o povo riu e foi embora.`;neg('tentei liderar e ninguém me seguiu',9);}break;
     case 'descobrir':{const cands=DISC.filter(d=>!has(d.id)&&d.era<=world.era&&d.pre.every(has));if(ok&&cands.length&&world.kp>=costOf(cands[0])*0.4){const d=cands.sort((a,b)=>a.cost-b.cost)[0];world.kp=Math.max(world.kp,costOf(d));discover(d,n);res=`${n.name} passou horas experimentando e descobriu ${d.name}!`;pos(`descobri ${d.name}`,10);}else if(ok){world.kp+=15;shape(n,'curiosidade',4,'aprendeu muito');res=`${n.name} não inventou nada novo ainda, mas a tribo aprendeu muito com as tentativas.`;pos('aprendi muito tentando inventar algo');}else{world.kp+=4;res=`${n.name} tentou inventar algo e tudo deu errado (mas foi engraçado).`;neg('minha invenção deu errado',6);}break;}
@@ -2931,14 +2933,44 @@ function inventionYear(){world.praticas=world.praticas||[];const ad=NPCS.filter(
 function livroInvencoes(){const L=world.praticas||[];if(!L.length)return '<div class="hint">Ninguém inventou nada ainda. Os curiosos e corajosos vão inventar coisas que nenhuma regra previa.</div>';
   return L.slice().sort((a,b)=>b.ad.length-a.ad.length).slice(0,60).map(p=>`<div class="box"><b>${p.e} ${String(p.nome).replace(/</g,'&lt;')}</b> <span class="hint">· ${p.autorNome}, ano ${p.dia} · ${p.fim?'esquecida':p.ad.length+' praticante(s)'} · traz ${p.ev}</span></div>`).join('');}
 // ---------- livre-arbítrio: qualquer um pode fazer o mal, e tudo deixa marcas ----------
-function crime(n,tipo,v,txt,grave){world.crimes=world.crimes||[];world.crimes.push({n:n.name,id:n.id,tipo,v:v?v.name:'',txt,dia:day,reg:n.region,grave:!!grave});if(world.crimes.length>150)world.crimes.shift();
+function crime(n,tipo,v,txt,grave,op){world.crimes=world.crimes||[];world.crimes.push({n:n.name,id:n.id,tipo,v:v?v.name:'',txt,dia:day,reg:n.region,grave:!!grave});if(world.crimes.length>150)world.crimes.shift();
   const r=regionOf(n),m=members(n.region).filter(x=>x!==n&&x!==v&&!x.isChild);let visto=0;
   m.forEach(w=>{if(Math.random()<(grave?0.6:0.25)/Math.max(1,Math.sqrt(m.length/4))){visto++;relate(w,n,grave?-35:-15);remember(w,`vi ${n.name} ${txt}`,grave?9:6,n.id);}});
   n.crimes=(n.crimes||0)+1;shape(n,'bondade',-2,'cometeu '+tipo);if(n.crimes>=3&&!n.fame)n.fame='criminoso(a) conhecido(a)';
   if(v){relate(v,n,grave?-60:-30);shape(v,'confianca',-3,'foi vítima de '+tipo);v.rancor=n.id;remember(v,`${n.name} ${txt}`,9,n.id);}
   if(visto&&grave&&canKill()&&Math.random()<0.3&&!n.hurt)hurt(n,12,'foi espancado(a) pelo povo revoltado');
-  weekNote('crime',`${n.name} ${txt}`);if(grave||visto)log(grave?'big':'',`😈 ${N(n)} ${txt}${visto?' — e o povo viu':''}.`,[n.id].concat(v?[v.id]:[]));}
-function maldadeYear(){NPCS.forEach(n=>{if(n._dead||n.isChild||n.ageDays<18||n.hurt)return;const rancor=n.rancor&&byId(n.rancor)&&!byId(n.rancor)._dead?byId(n.rancor):null;
+  weekNote('crime',`${n.name} ${txt}`);if(grave||visto)log(grave?'big':'',`😈 ${N(n)} ${txt}${visto?' — e o povo viu':''}.`,[n.id].concat(v?[v.id]:[]));
+  try{justica(n,tipo,v,grave,visto,op||{},world.crimes[world.crimes.length-1]);}catch(e){console.error(e);}}
+// ---------- justiça: quem desobedece à lei sofre a pena da lei ou a que o líder decidir, mesmo a pedido do jogador ----------
+const PENAS=['advertência','multa','açoites','prisão','prisão perpétua','execução'];
+function justica(n,tipo,v,grave,visto,op,reg){
+  if(n._dead)return;const f=facOf(n),g=f?facGov(f):world.gov,lider=g&&byId(g.leader);
+  if(lider===n){world.tension=clamp((world.tension||0)+(grave?8:3));return;} // ninguém julga o próprio líder; o povo só murmura
+  if(!lider&&!has('leis')&&!(f&&f.laws&&f.laws.length))return; // sem lei nem chefe, só resta a vingança do povo
+  if(tipo==='heresia'&&hasLaw(f,'crenca'))return; // liberdade de crença: não é crime
+  const reg_=(f&&f.regime)||'';
+  const det=op.flagrante?1:(v?0.55:0.15)+(visto?0.3:0)+(grave?0.25:0)+(hasLaw(f,'roubo')&&tipo==='roubo'?0.15:0);
+  if(Math.random()>det)return;
+  let sev=grave?3:1;if(hasLaw(f,'castigo'))sev++;if(/ditadura|imperio|teocracia/.test(reg_))sev++;if((n.crimes||0)>=3)sev++;
+  if(tipo==='heresia'&&!hasLaw(f,'culto')&&!/teocracia/.test(reg_))sev--;
+  if(lider){const b=T(lider,'bondade');if(b>0.3)sev--;else if(b<-0.25)sev++;if((lider.rel[n.id]||0)>50&&sev<=2)sev--;}
+  sev=clamp(Math.round(sev),0,5);if(sev>=5&&(tipo!=='assassinato'||!canKill()))sev=4;
+  const lei=hasLaw(f,'castigo')?'pela lei dos castigos duros':(hasLaw(f,'roubo')&&tipo==='roubo')?'pela lei contra o roubo':lider?`por decisão de ${lider.name}`:'pelo costume do povo';
+  const ordem=op.ordem?' (cumpria uma ordem, mas a lei não perdoa)':'';let pena=PENAS[sev];
+  const multa=()=>{const q=has('moeda')?Math.min(n.coins||0,15):Math.min(n.food,3);if(has('moeda'))n.coins-=q;else n.food-=q;if(v&&!v._dead){if(has('moeda'))v.coins=(v.coins||0)+q;else v.food+=q;}world.reserva=Math.min(resCap(),world.reserva+(v?0:q));return q+(has('moeda')?'🪙':'🍖');};
+  let txt;
+  if(sev===0)txt=`recebeu uma advertência`;
+  else if(sev===1)txt=`pagou multa de ${multa()}`;
+  else if(sev===2){hurt(n,6,'foi castigado(a) em praça pública');txt=`foi açoitado(a) e pagou multa de ${multa()}`;}
+  else if(sev===5){txt='foi executado(a)';}
+  else{const anos=sev===4?9999:1+(grave?2:0)+(hasLaw(f,'castigo')?1:0);n.preso={ate:day+anos,motivo:tipo};txt=sev===4?'foi condenado(a) à prisão perpétua':`foi preso(a) por ${anos} ano(s)`;}
+  if(reg)reg.pena=pena;
+  log('big',`⚖️ ${N(n)} ${txt} por ${tipo}, ${lei}${ordem}.`,[n.id].concat(v?[v.id]:[]));weekNote('lei',`${n.name} ${txt} por ${tipo} (${lei})`);
+  if(sev<5){remember(n,`fui punido(a) por ${tipo}: ${txt}`,9);shape(n,'confianca',-3,'foi punido(a)');if(sev>=3)shape(n,'coragem',-2,'foi preso(a)');if(lider)relate(n,lider,-10);}
+  if(v&&!v._dead){relate(v,lider||n,5);}
+  if(sev===5)die(n,`executado(a) ${lei}`,(regionOf(n)||{}).name);
+}
+function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.ate){log('',`🔓 ${N(n)} cumpriu a pena e foi solto(a).`,[n.id]);remember(n,'saí da prisão',8);n.preso=null;}return;}if(n._dead||n.isChild||n.ageDays<18||n.hurt)return;const rancor=n.rancor&&byId(n.rancor)&&!byId(n.rancor)._dead?byId(n.rancor):null;
   const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'));
   if(Math.random()>p)return;const m=members(n.region).filter(x=>x!==n&&!x._dead),r=regionOf(n);if(!m.length||!r)return;
   const v=rancor&&m.includes(rancor)?rancor:R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
@@ -2959,7 +2991,7 @@ function maldadeYear(){NPCS.forEach(n=>{if(n._dead||n.isChild||n.ageDays<18||n.h
    case 'assassinato':crime(n,'assassinato',v,`matou ${v.name}`,true);die(v,'assassinado(a) por '+n.name,r.name);m.filter(w=>w.parents&&v.kids&&(v.kids.includes(w.id)||v.partner===w.id)).forEach(w=>{w.rancor=n.id;});break;}
   });}
 function livroCrimes(){const L=world.crimes||[];if(!L.length)return '<div class="hint">Ninguém fez nada de mau ainda. Mas qualquer um pode, por livre-arbítrio.</div>';
-  return L.slice().reverse().slice(0,80).map(c=>`<div class="box"><b>😈 ${String(c.n).replace(/</g,'&lt;')}</b> ${String(c.txt).replace(/</g,'&lt;')} <span class="hint">· ${c.tipo}, ano ${c.dia}${c.grave?' · grave':''}</span></div>`).join('');}
+  return L.slice().reverse().slice(0,80).map(c=>`<div class="box"><b>😈 ${String(c.n).replace(/</g,'&lt;')}</b> ${String(c.txt).replace(/</g,'&lt;')} <span class="hint">· ${c.tipo}, ano ${c.dia}${c.grave?' · grave':''}${c.pena?' · pena: '+c.pena:''}</span></div>`).join('');}
 function livroSaberes(){const esc=x=>String(x).replace(/</g,'&lt;');const h={};NPCS.forEach(n=>{if(!n._dead)(n.poderes||[]).forEach(id=>{(h[id]=h[id]||[]).push(n);});});
   const L=world.livros||{},ids=new Set([...Object.keys(h),...Object.keys(L).map(k=>k.split(':')[1])]);
   if(!ids.size)return '<div class="hint">Ninguém domina nenhum poder ainda. O saber precisa ser descoberto e depois ensinado.</div>';
@@ -3273,7 +3305,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou)this.extra.set(id,{ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso)this.extra.set(id,{preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3289,7 +3321,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
