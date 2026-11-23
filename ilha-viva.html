@@ -3266,7 +3266,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes)this.extra.set(id,{poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou)this.extra.set(id,{ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3282,7 +3282,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
