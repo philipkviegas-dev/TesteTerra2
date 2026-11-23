@@ -1,0 +1,32 @@
+ILHA VIVA — TREINO DE TODAS AS IAs NA SUA RTX 4050
+==================================================
+
+O que este kit faz
+1. Retreina na GPU os 7 modelos que rodam DENTRO do jogo (navegador, sem internet):
+   Deuz (acasos), Arquiteto (obras/objetos), Fábula (comandos), Estoria (peso das lembranças),
+   Chronos (manchetes), Fantasy (magia e supertecnologia) e a mente dos habitantes.
+   Rede maior, 3 cópias aumentadas de cada frase, 25 rodadas, guarda a melhor rodada.
+   Depois coloca os modelos novos dentro do ilha-viva.html (guarda uma cópia do original).
+2. Treina um modelo de linguagem próprio (Qwen2.5-1.5B + QLoRA) para escrever em português:
+   falas dos habitantes, diário da Estoria, crônica do Chronos, narração da Fábula/Fantasy
+   e interpretação de comandos em JSON. 29 mil exemplos (dados_linguagem.jsonl).
+3. Converte esse modelo para o Ollama com o nome "ilhaviva".
+
+Passo a passo (Windows)
+- Precisa: Python 3.11, Git, Ollama, driver da NVIDIA atualizado. ~15 GB livres.
+- 1_instalar.bat        → cria o ambiente e instala PyTorch com CUDA (confere se achou a GPU)
+- 2_treinar_tudo.bat    → modelos pequenos (~10-20 min) + modelo de linguagem (~1-2 h)
+- 3_exportar_ollama.bat → gera ilhaviva.gguf e registra no Ollama
+- Abra o ilha-viva.html desta pasta, no painel de IA escolha "Ollama": ele acha o "ilhaviva" sozinho.
+
+Ajustes
+- EPOCAS=2 (variável de ambiente) dá mais qualidade ao modelo de linguagem, dobrando o tempo.
+- BASE=Qwen/Qwen2.5-3B-Instruct usa um modelo maior (cabe em 6 GB, mas fica no limite e mais lento).
+- Para melhorar as IAs: acrescente frases nos dados (pasta dados/) ou mundos novos na pasta dados/mente.
+- Os testes com frases novas ficam em testes/ — o treino mostra quantas o modelo acerta.
+
+Aviso honesto
+- Os textos de treino do modelo de linguagem foram montados a partir de modelos de frase do jogo.
+  Ele aprende o tom e o formato; para ficar realmente criativo, vale acrescentar textos escritos à mão.
+- Estes scripts foram testados aqui só no processador (modo rápido). Na sua GPU podem aparecer
+  avisos de versão de biblioteca; se algo falhar, me mande a mensagem de erro.

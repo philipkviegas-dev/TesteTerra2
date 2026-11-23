@@ -1,0 +1,6 @@
+HAND=[('quero que o Zé solte chamas pelas mãos','fogo_maos'),('cura a Lia só tocando nela','cura'),('ela entende o que os lobos falam','animais'),('ele enxerga o que vai acontecer amanhã','futuro'),
+('faz o céu obedecer e chover agora','clima'),('some no ar sem ninguém ver','invisivel'),('sai flutuando por cima da aldeia','voar'),('prepara um elixir que dá força','pocao'),('arruma um cajado com poder','varinha'),
+('invoca uma fera alada que cospe fogo','dragao'),('traz o avô de volta da morte','ressuscitar'),('nunca mais envelhecer','imortal'),('rasga o véu entre os mundos','portal'),('dá vida a um boneco de barro gigante','golem'),
+('transforma pedra em ouro','transmutar'),('veste um traje de metal que voa','armadura_voadora'),('um robô do tamanho de um prédio','robo_gigante'),('uma arma que dispara luz','laser'),('aparece do outro lado do mundo num piscar de olhos','teletransporte'),
+('volta cem anos no passado','tempo'),('uma nave para colonizar as estrelas','nave'),('um cérebro de máquina que pensa sozinho','ia'),('uma cúpula de energia sobre a cidade','escudo'),('faz uma cópia idêntica da Nina','clonar'),
+('leva nossos soldados até o planeta dos insetos','contra_insetos'),('faz uma cabana de palha','nada'),('oi, tudo bem?','nada')]

@@ -1,0 +1,8 @@
+Ilha Viva - pasta para publicar
+O jogo inteiro e o arquivo index.html (nao renomeie).
+
+NETLIFY DROP (mais facil): abra https://app.netlify.com/drop e arraste ESTA PASTA inteira. O link sai na hora.
+ITCH.IO: compacte index.html em um .zip, crie um projeto "HTML", marque "This file will be played in the browser" e deixe a visibilidade em Restricted/Draft para so quem tem o link.
+GITHUB PAGES: suba index.html num repositorio e ative Settings > Pages.
+
+Observacoes: o jogo e completo no navegador, sem baixar nada: as IAs de fala, diario e cronica ja vao dentro do index.html. O save fica no navegador de cada pessoa; os botoes (setas para baixo/cima) exportam e importam a partida em arquivo .ivsave. O Ollama e opcional.

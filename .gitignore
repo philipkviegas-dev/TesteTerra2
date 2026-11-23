@@ -1,0 +1,12 @@
+venv/
+llama.cpp/
+ilhaviva-merged/
+ilhaviva-lora/
+ilhaviva.gguf
+saida/
+.claude/
+__pycache__/
+*.log
+*.bak
+ilha-viva_antes_*.html
+publicar/*_antes_*
