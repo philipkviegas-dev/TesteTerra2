@@ -3,11 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ilha Viva — versão de teste</title>
-<meta name="description" content="Ilha Viva: um simulador de vida em que tudo é possível e cada habitante decide a própria vida.">
-<meta property="og:title" content="Ilha Viva">
-<meta property="og:description" content="Simulador de vida estilo Tomodachi Life. Versão de teste.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🏝️</text></svg>">
+<title>Ilha Viva — Protótipo</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Lilita+One&display=swap" rel="stylesheet">
 <style>
   :root{--bg:#fff7e8;--ink:#3b2f2a;--card:#fff;--line:#eadbc4;--accent:#ff7a59}
@@ -1439,6 +1435,20 @@ const ERA_MIN=[0,10,20,45,120,400,1500,6000,25000,80000];
 // anos (dias de jogo) mínimos em cada era antes da seguinte: a história leva uns 5 mil anos até os dias de hoje
 const ERA_ANOS=[400,600,800,700,700,600,250,120,100,0];
 function eraBlocked(d){const nx=ERAS[world.era+1];return nx&&nx.keys.includes(d.id)&&(totalPop()<ERA_MIN[world.era+1]||day-(world.eraStart||1)<ERA_ANOS[world.era]);}
+// Evento de era: a cada nova era acontece algo marcante que empurra a cultura de todos os povos
+const ERA_EVENTO=[null,
+ {t:'A Noite do Fogo Grande: o bando inteiro se reuniu em volta de uma única fogueira e ninguém dormiu',cult:{coletivismo:1,tradicao:1}},
+ {t:'A Primeira Colheita Farta: pela primeira vez sobrou comida para guardar',cult:{tradicao:1,comercio:1}},
+ {t:'A Feira dos Mil Passos: viajantes de longe trouxeram moedas, histórias e doenças',cult:{comercio:2,liberdade:1}},
+ {t:'O Julgamento Famoso: um caso decidido por lei, e não pela força, que todos comentaram por gerações',cult:{tradicao:1,guerra:-1,liberdade:1}},
+ {t:'A Grande Procissão: milhares caminharam juntos até o templo mais alto do reino',cult:{fe:2,tradicao:1}},
+ {t:'A Biblioteca Queimada: um incêndio destruiu séculos de livros, e a pressa de copiar tudo de novo mudou o saber',cult:{tradicao:-1,liberdade:1,fe:-1}},
+ {t:'A Greve das Fábricas: operários cruzaram os braços e o mundo aprendeu que o povo também tem voz',cult:{coletivismo:2,liberdade:2,tradicao:-1}},
+ {t:'A Grande Pane: a luz elétrica falhou por uma noite inteira e todos viram como dependiam dela',cult:{comercio:1,coletivismo:1,tradicao:-1}},
+ {t:'O Primeiro Apagão Digital: a rede caiu por um dia e as pessoas se reencontraram nas praças',cult:{liberdade:1,coletivismo:1,fe:1}}];
+function eraEvento(i){const E=ERA_EVENTO[i];if(!E)return;
+  facs().filter(f=>f.alive).forEach(f=>{const v=facCult(f).v;for(const k in E.cult)v[k]=clamp(v[k]+E.cult[k]*10,-100,100);});
+  const txt='Acontecimento da era: '+E.t+'.';log('big','🎭 '+txt);worldSay('Esta era começou com um marco: '+E.t+'.','chronos');}
 function tryDiscovery(){
   const cands=DISC.filter(d=>!has(d.id)&&d.era<=world.era&&d.pre.every(has)&&!eraBlocked(d));if(!cands.length)return;
   const scored=cands.map(d=>[d,1+d.lines.reduce((s,l)=>s+(world.heat[l]||0),0)]);
@@ -1466,6 +1476,7 @@ function discover(d,forced){
   if(newEra>world.era){try{eraFecha(world.era);}catch(e){console.error(e);}world.era=newEra;world.eraStart=day;world.paceMul=1;const E=ERAS[newEra];
     log('big',`${E.e} <b>NOVA ERA: ${E.name}</b> (${E.sub}). ${ERA_STORY[newEra]}`);worldSay(ERA_STORY[newEra]);
     try{curAI='chronos';if(addLugar(activeRegion(),`Marco: ${E.name}`,'🗿','Chronos mandou erguer um marco para lembrar o começo desta era'))worldSay(`Ergui um marco para lembrar: ${E.name}. Quem passar por aqui vai saber de onde veio.`,'chronos');}catch(e){console.error(e);}
+    try{eraEvento(newEra);}catch(e){console.error(e);}
     if(newEra===ERAS.length-1)worldSay('O mundo chegou aos tempos de hoje, partindo do nada. Daqui pra frente, o futuro é deles.');}
 }
 
