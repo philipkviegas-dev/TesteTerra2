@@ -1290,6 +1290,11 @@ function die(n,cause,where){
   else world.reserva=Math.min(resCap(),world.reserva+n.food);
   n._dead=true;SWEEP=true;IDX.delete(n.id);RC.dirty=true;
   log('big',`🕊️ ${N(n)} morreu ${cause}${where?` (${where.toLowerCase().startsWith('a')||where.toLowerCase().startsWith('o')?'em ':'em '}${where})`:''} aos ${n.ageDays} anos${n.kids.length?`, deixando ${n.kids.length} filho(s)`:''}.${n.fame?` Será lembrado(a) como ${n.fame}.`:''}`,[n.id,...n.kids]);
+  // relíquias passam adiante: o herdeiro é um filho vivo (ou o cônjuge); sem ninguém, ela fica enterrada com o dono
+  if(n.relic){try{const R_=(world.relics||[]).find(x=>x.nome===n.relic),herd=n.kids.map(byId).find(k=>k&&!k._dead&&k!==n)||byId(n.partner);
+    if(herd&&!herd._dead){herd.relic=herd.relic||n.relic;if(herd.relic===n.relic){herd.fame=herd.fame||`herdeiro(a) de ${n.relic}`;if(R_){R_.dono=herd.id;R_.donoNome=herd.name;}
+      log('big',`🏺 ${N(herd)} herdou <b>${n.relic}</b> de ${n.name}.`,[herd.id]);remember(herd,`herdei ${n.relic} de ${n.name}`,9,n.id);}}
+    else{if(R_){R_.dono=null;R_.donoNome='enterrada';}log('big',`🏺 <b>${n.relic}</b> foi enterrada com ${n.name}, sem herdeiros.`,[]);}}catch(e){console.error(e);}}
   const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));
   close.forEach(o=>{
     if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);}
