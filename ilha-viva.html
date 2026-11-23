@@ -2317,7 +2317,7 @@ function resLabel(r){const L={mar:'🐟 mar',floresta:'🌲 floresta',pedra:'�
 // ---------------------------------------------------------------------
 // começar: o jogador escolhe a região dos 10 primeiros
 // ---------------------------------------------------------------------
-function startAt(r){
+function startAt(r){try{if(!localStorage.getItem('iv_tom')){const b=document.getElementById('tomBox');if(b){b.style.display='block';setTimeout(()=>{try{tomUI();}catch(e){}},100);}}}catch(e){}
   world.active=r.id;syncPlaces();r.founded=day;r.reserva=12;initFactions(r);
   const _nf=sorteiaNomes('F',FOUNDERS.filter(f=>f[4]==='F').length),_nm=sorteiaNomes('M',FOUNDERS.filter(f=>f[4]==='M').length);
   FOUNDERS.forEach(([name0,color,hair,home,sex])=>{const name=(sex==='F'?_nf:_nm).shift()||name0;const n=makeNPC({name,color,hair,home,sex,age:Math.round(rnd(17,24))});n.region=r.id;addNPC(n);});
@@ -3699,7 +3699,7 @@ function tom(){if(!world.tom){let p=null;try{p=JSON.parse(localStorage.getItem('
 function tomK(tipo){const t=tom();return clamp((tipo==='magia'?t.magia:t.ficcao)/100,0,1);}
 function tomNome(){const t=tom(),m=t.magia,f=t.ficcao;if(m<=0&&f<=0)return '🌍 Realista';if(m>=70&&f<=30)return '🧙 Fantasia';if(f>=70&&m<=30)return '🔬 Ficção científica';if(m>=70&&f>=70)return '🌌 Tudo é possível';if(m<=25&&f<=25)return '🌍 Quase realista';return '⚖️ Equilibrado';}
 function setTom(m,f){const t=tom();t.magia=clamp(Math.round(m),0,100);t.ficcao=clamp(Math.round(f),0,100);try{localStorage.setItem('iv_tom',JSON.stringify(t));}catch(e){}tomUI();}
-function tomUI(){const b=document.getElementById('tomBox');if(!b)return;const t=tom();b.querySelector('#tomM').value=t.magia;b.querySelector('#tomF').value=t.ficcao;b.querySelector('#tomMv').textContent=t.magia+'%';b.querySelector('#tomFv').textContent=t.ficcao+'%';b.querySelector('#tomNome').textContent=tomNome();}
+function tomUI(){const b=document.getElementById('tomBox');if(!b)return;const t=tom();b.querySelector('#tomM').value=t.magia;b.querySelector('#tomF').value=t.ficcao;b.querySelector('#tomMv').textContent=t.magia+'%';b.querySelector('#tomFv').textContent=t.ficcao+'%';b.querySelector('#tomNome').textContent=tomNome();const bt=document.getElementById('tomBtn');if(bt)bt.title='Tom do mundo: '+tomNome()+' (clique para mudar)';}
 function fantasyChance(n,f){const a=world.arcano||0;let c=0.3-f.dif*0.04+Math.min(0.3,(a-f.arc)/150);if(a<f.arc)c*=0.35;
   if(n){c+=0.15*T(n,'curiosidade')+0.1*T(n,'coragem')+0.05*T(n,'confianca');if(n.belief)c+=0.05;}
   if(f.tipo==='supertec'){c+=Math.min(0.2,(world.era-f.era)*0.12);if(world.era<f.era)c*=0.3;}
