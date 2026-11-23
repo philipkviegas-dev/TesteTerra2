@@ -1645,7 +1645,7 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   const night=isNight();
   if(wasNight&&!night){
     world.hasHealer=NPCS.some(o=>roleOf(o)&&roleOf(o).out==='heal');if(day%10===0)pruneRelations();
-    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
+    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{magiaYear();portalYear();inventionYear();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
     [...NPCS].forEach(n=>{if(!byId(n.id))return;n.workedToday=false;morningLife(n);});
     NPCS.forEach(n=>{estoriaCompress(n);morningReflection(n);metaMorning(n);if(!n.cmd)decide(n);});
     if(has('troca'))NPCS.forEach(n=>{if(n.isChild)return;const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=pickW(ks.map(k=>{let v=10;for(const tr in ITEMS[k].aff)v+=25*ITEMS[k].aff[tr]*T(n,tr);return [k,v];}));n.wants[k]=clamp(n.wants[k]+rnd(6,16));}});
@@ -2509,17 +2509,17 @@ function renderMapInfo(){
 // =====================================================================
 // mesma regra de filhos para quem está na tela e para quem está no Livro: olhar não muda o destino de ninguém
 function familyYear(){NPCS.forEach(a=>{if(a.sex!=='F'||a.isChild||a.expecting||a.ageDays>=FERT_MAX)return;const b=byId(a.partner);if(!b||b.region!==a.region||b.isChild)return;
-  const full=regionPop(a.region)>=REGION_CAP;let p=0.42*(a.ageDays<35?1:0.45)*(a.kids.length>=6?0.3:1)*(full?0.08:1)*((a.food+b.food>1||a.needs.fome>40)?1:0.4);
+  const full=regionPop(a.region)>=REGION_CAP;let p=0.62*(a.ageDays<38?1:0.55)*(a.kids.length>=9?0.3:1)*(full?0.3:1)*((a.food+b.food>1||a.needs.fome>40)?1:0.6);
   if(a.hurt||b.hurt)p*=0.5;if(totalPop()>=POP_CAP)p=0;
   if(Math.random()<p){a.expecting=1;log(here(a)?'big':'',`🍼 ${N(a)} está esperando um bebê de ${N(b)}${here(a)?'':` (em ${regionOf(a).name})`}. O bebê nasce no próximo ano.`,[a.id,b.id]);if(here(a)){think(a,'Vamos ter um bebê!!','🥹');think(b,'Vou ter um filho!','🥹');}}});}
 function fertility(f,m){
   if(f.isChild||m.isChild||f.expecting||f.ageDays>=FERT_MAX||m.ageDays>=ELDER_AGE+10)return 0;
-  let c=0.08; // a maior parte da chance anual vem de familyYear(), a mesma regra do Livro do Mundo
+  let c=0.14; // a maior parte da chance anual vem de familyYear(), a mesma regra do Livro do Mundo
   if(f.ageDays>ELDER_AGE-12)c*=0.5;
   if(f.needs.fome<30||regionOf(f).reserva<1&&f.food<1)c*=0.5;
   if(f.hurt||m.hurt)c*=0.3;
-  if(f.kids.length>=5)c*=0.3;
-  if(has('medicina')&&f.family<40&&m.family<40)c*=0.15; // planejamento familiar com a medicina moderna
+  if(f.kids.length>=8)c*=0.3;
+  if(has('medicina')&&f.family<40&&m.family<40)c*=0.6; // planejamento familiar com a medicina moderna
   if(totalPop()>=POP_CAP)c=0;
   return c;
 }
@@ -2860,6 +2860,48 @@ function poligamiaYear(){
     const nome=(a.sex==='M'&&b.sex==='F')?'segunda esposa':(a.sex==='F'?'outro marido':'outra esposa');
     remember(a,`escolhi ter também ${b.name} ao meu lado`,6,b.id);
     log('big',`💞 ${N(a)} passou a viver também com ${N(b)} (${nome}): em ${(facOf(a)||{name:'seu povo'}).name} a poligamia é ${po>=65?'costume aceito':po>=40?'uma escolha possível':'malvista, mas permitida'}.`,[a.id,b.id]);}}
+// ---------- poderes mágicos, portais e invenções livres ----------
+function darPoder(n,f){n.poderes=n.poderes||[];if(!n.poderes.includes(f.id))n.poderes.push(f.id);const m=members(n.region);let txt='';
+  if(f.id==='cura'||f.id==='pocao'){const h=m.filter(x=>x.hurt>0);h.forEach(x=>{x.hurt=0;remember(x,`${n.name} me curou com magia`,9,n.id);relate(x,n,15);});txt=h.length?`curou ${h.length} ferido(s) na hora`:'';}
+  else if(f.id==='imortal'){n.life=(n.life||70)+60;txt='sua vida se estendeu por décadas';}
+  else if(f.id==='clima'||f.id==='animais'||f.id==='fogo_maos'){world.reserva=Math.min(resCap(),world.reserva+10);txt='a comida do povo aumentou';}
+  else if(f.id==='futuro'||f.id==='varinha'){world.kp+=15;txt='o saber do povo cresceu';}
+  else if(f.id==='portal')txt=criaPortal(n);
+  else if(f.id==='golem'||f.id==='dragao'){regionOf(n).guarda=f.id;txt='agora protege a região';}
+  if(txt)log('',`✨ O poder de ${N(n)} mudou algo: ${txt}.`,[n.id]);}
+function criaPortal(n){const r=regionOf(n);if(!r)return '';r.portal=true;addLugar(r,'Portal de '+n.name,'🌀',`${n.name} abriu um portal`,n);return `um portal agora existe em ${r.name}`;}
+function magiaYear(){NPCS.forEach(n=>{if(!n.poderes||!n.poderes.length||n.isChild)return;const m=members(n.region);
+  n.poderes.forEach(id=>{if(id==='cura'||id==='pocao'){m.filter(x=>x.hurt>0).slice(0,3).forEach(x=>{x.hurt=0;remember(x,`${n.name} me curou com magia`,8,n.id);relate(x,n,10);});}
+    else if(id==='clima'||id==='animais'||id==='fogo_maos')world.reserva=Math.min(resCap(),world.reserva+2);
+    else if(id==='futuro'||id==='varinha')world.kp+=1;});
+  if(Math.random()<0.1&&m.length>1){const o=R(m);if(o!==n)relate(o,n,3);}});}
+function portalYear(){const P=MAP.regions.filter(r=>r.portal&&members(r.id).length);if(!P.length)return;
+  P.forEach(r=>{const ms=members(r.id).filter(x=>!x.isChild&&x.ageDays>=18&&!x.cmd);if(!ms.length)return;
+    if(P.length>1&&Math.random()<0.5){const o=R(P.filter(x=>x!==r)),dest=members(o.id);if(dest.length){const a=R(ms);a.region=o.id;a.home=R(dest).home;RC.dirty=true;if(!here(a)){a.x=-9999;a.y=-9999;}remember(a,`atravessei o portal até ${o.name}`,8);log('',`🌀 ${N(a)} atravessou o portal de ${r.name} e apareceu em ${o.name}.`,[a.id]);}}
+    if(Math.random()<0.4){const a=R(ms);const g=R(['frutas que brilham no escuro','sementes de outro mundo','um livro de símbolos','água que cura','uma pedra que canta']);
+      if(Math.random()<0.06&&canKill()){die(a,'perdido(a) do outro lado do portal',r.name);}
+      else{world.arcano=(world.arcano||0)+4;world.kp+=8;world.reserva=Math.min(resCap(),world.reserva+4);ms.filter(x=>x.hurt>0).forEach(x=>{x.hurt=0;});remember(a,`fui à Dimensão pelo portal e voltei com ${g}`,9);shape(a,'curiosidade',3,'viajou por um portal');log('',`🌀 ${N(a)} cruzou o portal de ${r.name} e voltou com ${g}.`,[a.id]);}}});}
+const INV_V=['cantar para','dançar com','pintar','coletar','enterrar','plantar','conversar com','escutar','esculpir','empilhar','colecionar','trocar segredos com','apostar corrida com','navegar sobre','contar histórias para','dar nomes a','imitar','dormir sob','dar presentes a','contar','abraçar','assobiar para','desenhar','pesar','provar'];
+const INV_O=['as nuvens','as pedras do rio','as estrelas','os pássaros','a própria sombra','as conchas','o vento','as formigas','as folhas caídas','a chuva','o fogo','as ondas','os antepassados','as sementes','a lua','os bebês','o barro','as montanhas','o eco','os sonhos','as árvores','a neve','o próprio nome','os vizinhos'];
+const INV_M=['ao amanhecer','em silêncio','de cabeça para baixo','em roda, de mãos dadas','uma vez por lua','com o corpo pintado','sem falar uma palavra','rindo alto','à beira da água','de olhos fechados','em dupla','descalço','à meia-noite','em procissão','todo dia ao meio-dia'];
+const INV_E=[['diversão','😄','diversao'],['união','🤝','social'],['fé','🙏','fe'],['saber','💡','kp'],['fartura','🍞','comida'],['calma','🧘','diversao']];
+function inventionYear(){world.praticas=world.praticas||[];const ad=NPCS.filter(n=>!n.isChild&&n.ageDays>=18);if(!ad.length)return;
+  const K=Math.min(3,1+Math.floor(ad.length/60));
+  for(let k=0;k<K;k++){const a=R(ad);if(Math.random()>0.06+0.25*Math.max(0,T(a,'curiosidade'))+0.1*Math.max(0,T(a,'coragem')))continue;
+    const nome=`${R(INV_V)} ${R(INV_O)} ${R(INV_M)}`;if(world.praticas.some(p=>p.nome===nome))continue;const ef=R(INV_E);
+    world.praticas.push({nome,ef:ef[2],e:ef[1],ev:ef[0],autor:a.id,autorNome:a.name,dia:day,reg:a.region,ad:[a.id]});if(world.praticas.length>120)world.praticas.shift();
+    a.fame=a.fame||`inventor(a) de “${nome}”`;remember(a,`tive uma ideia que ninguém tinha tido: ${nome}`,9);shape(a,'curiosidade',3,'inventou algo novo');world.kp+=2;
+    log('big',`💡 <b>${N(a)} inventou algo que ninguém pensara antes:</b> ${nome}. ${ef[1]}`,[a.id]);weekNote('disc',`${a.name} inventou: ${nome}`);}
+  world.praticas.forEach(p=>{if(p.fim)return;p.ad=p.ad.filter(id=>!world.deadNames[id]);
+    if(!p.ad.length){p.fim=day;return;}
+    const pool=members(p.reg).filter(o=>!o.isChild&&!p.ad.includes(o.id));
+    for(let i=0;i<Math.min(3,pool.length);i++){const o=R(pool);if(Math.random()<0.12+0.2*Math.max(0,T(o,'curiosidade'))+0.1*Math.max(0,T(o,'sociabilidade'))&&!p.ad.includes(o.id)){p.ad.push(o.id);remember(o,`aprendi a ${p.nome}`,5);}}
+    const ms=p.ad.map(byId).filter(Boolean);ms.forEach(o=>{o.needs.diversao=clamp(o.needs.diversao+4);});
+    if(p.ef==='kp')world.kp+=ms.length*0.3;else if(p.ef==='comida')world.reserva=Math.min(resCap(),world.reserva+ms.length*0.15);else if(p.ef==='fe'){const f=facOf(ms[0]||{});if(f)facCult(f).v.fe=clamp(facCult(f).v.fe+0.3,-100,100);}
+    else if(p.ef==='social')ms.forEach(o=>{o.needs.social=clamp(o.needs.social+4);});
+    if(p.ad.length>=10&&!p.costume){const a=byId(p.autor)||ms[0],f=a&&facOf(a);if(f){const c=facCult(f);p.costume=true;const cn='o costume de '+p.nome;if(!c.customs.includes(cn)){c.customs.push(cn);log('big',`🎭 Em ${f.name} virou costume: <b>${p.nome}</b> (${p.ad.length} praticantes).`,[]);}}}});}
+function livroInvencoes(){const L=world.praticas||[];if(!L.length)return '<div class="hint">Ninguém inventou nada ainda. Os curiosos e corajosos vão inventar coisas que nenhuma regra previa.</div>';
+  return L.slice().sort((a,b)=>b.ad.length-a.ad.length).slice(0,60).map(p=>`<div class="box"><b>${p.e} ${String(p.nome).replace(/</g,'&lt;')}</b> <span class="hint">· ${p.autorNome}, ano ${p.dia} · ${p.fim?'esquecida':p.ad.length+' praticante(s)'} · traz ${p.ev}</span></div>`).join('');}
 function cultName(f){const c=facCult(f);return c.name;}
 function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.regions[f.capital],v=c.v;
   const push=(k,d)=>{v[k]=clamp(v[k]+d,-100,100);};
@@ -3051,6 +3093,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    ${n.goals&&n.goals.length?`<div>🎯 <b>Desejos:</b> ${n.goals.map(g=>g.text).join(' · ')}</div>`:''}
    <div>🌟 <b>Sonho:</b> ${n.dream?n.dream.text+(n.meta?' <span class="hint">(em pausa: a meta do jogador vem primeiro)</span>':''):'<span class="hint">ainda não sabe</span>'}</div>
    <div>${n.isChild?`👪 pais: ${n.parents.map(nameOf).join(' e ')}`:`💕 ${n.partner&&byId(n.partner)?'junto com '+N(byId(n.partner))+(conjuges(n).length>1?' (+'+(conjuges(n).length-1)+' cônjuge(s))':''):n.crush&&byId(n.crush)?'apaixonado(a) por '+N(byId(n.crush)):'solteiro(a)'}${n.kids.length?' · 👶 '+n.kids.map(nameOf).join(', '):''} · 🧬 desejo de família ${Math.round(n.family)}%`}</div>
+   ${n.poderes&&n.poderes.length?`<div>✨ poderes: ${n.poderes.map(id=>{const f=FEITO[id];return f?(f.emoji||'')+' '+(f.nome||f.name||id):id;}).join(', ')}</div>`:''}
    ${has('troca')?`<div>🎒 ${n.items.map(k=>ITEMS[k].e).join(' ')||'<span class="hint">nada</span>'} · ✨ ${wants||'<span class="hint">sem desejos</span>'}</div>`:''}
    <div style="margin:4px 0">${labels}</div>
    <div class="cols"><div><b style="font-size:13px">Personalidade</b>${Object.keys(TRAITS).map(k=>tbar(n,k)).join('')}</div>
@@ -3218,7 +3261,7 @@ const DORM={
           this.remember(i,3,10,this.id[j]);this.remember(j,3,10,this.id[i]);this.relate(i,this.id[j],20);this.relate(j,this.id[i],20);this.stats.couples++;
           if(this.stats.stories.length<2&&Math.random()<.02)this.stories(`💕 Em ${R0.name}, ${this.name[i]} e ${this.name[j]} viraram um casal.`);break;}}}
     // filhos: o desejo vem junto com o prazer; a fertilização é só uma chance
-    else if(ps>=0&&this.live[ps]&&this.sex[i]===1&&ag<FERT_MAX&&this.reg[ps]===r){const full=regionPop(r)>=REGION_CAP;const p=0.42*(ag<35?1:0.45)*(this.kids[i]>=6?0.3:1)*(this.food[i]+this.food[ps]>1?1:0.4)*(full?0.08:1)*fertMul();
+    else if(ps>=0&&this.live[ps]&&this.sex[i]===1&&ag<FERT_MAX&&this.reg[ps]===r){const full=regionPop(r)>=REGION_CAP;const p=0.62*(ag<38?1:0.55)*(this.kids[i]>=9?0.3:1)*(this.food[i]+this.food[ps]>1?1:0.6)*(full?0.3:1)*fertMul();
       if(Math.random()<p&&totalPop()<POP_CAP)this.born(i,ps);}
     // migração: a região tem área para 60; cheia, alguém parte
     const pr=regionPop(r);if(pr>=REGION_CAP*0.6&&ag<45){const push=pr>REGION_CAP?0.6:pr>=REGION_CAP?0.25:(pr/REGION_CAP-0.6)*0.2;if(Math.random()<push)this.move(i,R0);}
@@ -3257,7 +3300,7 @@ const DORM={
     this.name=o.name;this.sur=o.sur;this.marcos=new Map(o.marcos);this.extra=new Map(o.extra||[]);o.pal.col.forEach(c=>this.palIdx('col',c));o.pal.hair.forEach(h=>this.palIdx('hair',h));
     this.ensureRegions();for(let i=0;i<this.n;i++)if(this.live[i]){this.slot.set(this.id[i],i);this.count(i,1);}}
 };
-function fertMul(){return 1;}
+function fertMul(){return 1.15;}
 function dormName(sex,cult){const tg=Math.random()<.75?teaGen(sex,cult?String(cult.id):''):null;if(tg)return tg;const a=cult?cult.syl.a:['Ka','Lu','Mo','Ti','Na','Ru','Ze','Bo','Ia','Ko','Ma','Te','Su','Ri','An','Do','Ya','Pi','Ce','Ju','Le','Vi','Ga','Fe','Ra','Ne','Lo','Ba','Mi','Ta'];
   const b=cult?cult.syl.b:['ra','lo','mi','na','ru','te','ba','ki','so','va','li','do','ne','ma','ri','sa','to','la'];const e=sex?['a','ia','ina','ara','ela','e']:['o','an','el','ur','io','im'];
   const r=x=>x[(Math.random()*x.length)|0];return Math.random()<.5?r(a)+r(e):r(a)+r(b)+r(e);}
@@ -3563,7 +3606,7 @@ function fantasyChance(n,f){const a=world.arcano||0;let c=0.3-f.dif*0.04+Math.mi
 function regionMagic(r,f){r.magic=r.magic||{};r.magic[f.id]=(r.magic[f.id]||0)+1;if(typeof calcBfx==='function')calcBfx(r);}
 function fantasyAttempt(n,fid,byPlayer){const f=FEITO[fid];if(!f||!n)return null;curAI='fantasy';
   try{const r=regionOf(n),p=fantasyChance(n,f),ok=Math.random()<p;world.fantasyTries=(world.fantasyTries||0)+1;
-  if(ok){regionMagic(r,f);world.arcano=(world.arcano||0)+1+f.dif*0.3;n.fame=n.fame||`${f.tipo==='magia'?'quem conseguiu':'quem inventou'} ${f.nome}`;world.famous=world.famous||{};world.famous[n.id]=1;
+  if(ok){regionMagic(r,f);try{darPoder(n,f);}catch(e){console.error(e);}world.arcano=(world.arcano||0)+1+f.dif*0.3;n.fame=n.fame||`${f.tipo==='magia'?'quem conseguiu':'quem inventou'} ${f.nome}`;world.famous=world.famous||{};world.famous[n.id]=1;
     remember(n,`consegui ${f.nome}`,10);shape(n,'confianca',6,'fez o impossível');shape(n,'curiosidade',4,'fez o impossível');
     members(n.region).forEach(o=>{if(o!==n){remember(o,`vi ${n.name} ${f.nome}`,9,n.id);relate(o,n,8);}});
     const fc=facOf(n);if(fc){const v=facCult(fc).v;if(f.tipo==='magia')v.fe=clamp(v.fe+6,-100,100);else v.liberdade=clamp(v.liberdade+3,-100,100);}
@@ -3937,8 +3980,8 @@ let livroTab='tempo',livroEra=-1;
 function livroAbre(t){if(t)livroTab=t;let el=document.getElementById('livro');if(!el){el=document.createElement('div');el.id='livro';document.body.appendChild(el);}el.style.display='flex';livroRender();}
 function livroFecha(){const el=document.getElementById('livro');if(el)el.style.display='none';}
 function livroRender(){const el=document.getElementById('livro');if(!el||el.style.display==='none')return;
-  const tabs=[['tempo','📜 Linha do tempo'],['casas','🏰 Casas'],['eras','🗿 Eras'],['povos','🌍 Povos e culturas'],['reliq','🏺 Relíquias'],['busca','🔎 Buscar'],['teste','🧪 Autoteste e pular anos']];
-  let body='';try{body=livroTab==='casas'?livroCasas():livroTab==='eras'?livroEras():livroTab==='povos'?livroPovos():livroTab==='reliq'?livroReliquias():livroTab==='busca'?livroBuscaTab():livroTab==='teste'?livroTeste():livroTempo();}catch(e){console.error(e);body='<div class="hint">Não foi possível montar esta aba.</div>';}
+  const tabs=[['tempo','📜 Linha do tempo'],['casas','🏰 Casas'],['eras','🗿 Eras'],['povos','🌍 Povos e culturas'],['reliq','🏺 Relíquias'],['inv','💡 Invenções'],['busca','🔎 Buscar'],['teste','🧪 Autoteste e pular anos']];
+  let body='';try{body=livroTab==='casas'?livroCasas():livroTab==='eras'?livroEras():livroTab==='povos'?livroPovos():livroTab==='reliq'?livroReliquias():livroTab==='inv'?livroInvencoes():livroTab==='busca'?livroBuscaTab():livroTab==='teste'?livroTeste():livroTempo();}catch(e){console.error(e);body='<div class="hint">Não foi possível montar esta aba.</div>';}
   el.innerHTML=`<div class="livroBox"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:20px">📖 Livro do Mundo <span class="hint">· ano ${day}</span></b><button onclick="livroFecha()">✕ Fechar</button></div><div class="tabs">${tabs.map(([k,l])=>`<button class="${livroTab===k?'on':''}" onclick="livroAbre('${k}')">${l}</button>`).join('')}</div><div class="livroCorpo">${body}</div></div>`;}
 function livroTempo(){casasInit();const L=world.timeline;const opt=[`<option value="-1">Todas as eras</option>`].concat(ERAS.map((E,i)=>i<=world.era?`<option value="${i}" ${livroEra===i?'selected':''}>${E.e} ${E.name}</option>`:'')).join('');
   const f=(livroEra<0?L:L.filter(x=>x.e===livroEra)).slice(-400).reverse();
