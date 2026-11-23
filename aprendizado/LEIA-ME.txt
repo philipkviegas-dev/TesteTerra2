@@ -1,0 +1,7 @@
+Pasta do aprendizado coletado dos jogadores.
+
+1. No jogo, abra o painel 🧠 e clique em "Exportar aprendizado": baixa um arquivo aprendizado_*.json.
+2. Coloque os arquivos recebidos aqui nesta pasta.
+3. Rode consolidar_aprendizado.bat (ou: python consolidar_aprendizado.py ilha-viva.html docs/index.html publicar/index.html).
+   Isso soma tudo, grava aprendizado/base.json e embute a base no jogo: todo jogo novo ja comeca com as IAs evoluidas.
+Arquivos ja somados vao para aprendizado/processados/ e nao sao contados duas vezes.

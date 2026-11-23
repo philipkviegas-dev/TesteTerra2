@@ -160,7 +160,7 @@
     <div class="panel" id="lrnBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🧠 IAs aprendendo</b><button onclick="document.getElementById('lrnBox').style.display='none'">✖</button></div>
       <div class="hint" style="margin:4px 0">Todas as IAs do jogo aprendem enquanto você joga e guardam o que aprenderam neste navegador, para o próximo jogo começar mais esperto.</div>
       <div id="lrnList"></div>
-      <div style="margin-top:6px"><button onclick="LEARN.reset()">🗑 Voltar às IAs de fábrica</button></div></div>
+      <div style="margin-top:6px"><button onclick="LEARN.exportar()" title="Baixa um arquivo com o que as IAs aprenderam aqui, para juntar ao das outras pessoas e evoluir o jogo">⬇ Exportar aprendizado</button> <button onclick="LEARN.reset()">🗑 Voltar às IAs de fábrica</button></div></div>
     <div class="panel" id="tomBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🎭 Tom do mundo: <span id="tomNome"></span></b><button onclick="document.getElementById('tomBox').style.display='none'">✖</button></div>
       <div class="hint" style="margin:4px 0">Você escolhe o equilíbrio entre realidade, ficção e fantasia. Com tudo em 0% o mundo é realista: só a história, a ciência e o acaso comuns.</div>
       <label>🧙 Fantasia (magia, dragões, outros mundos) <b id="tomMv"></b><input id="tomM" type="range" min="0" max="100" step="5" style="width:100%" oninput="setTom(+this.value,+document.getElementById('tomF').value)"></label>
@@ -3738,7 +3738,10 @@ const FAN_NET=makeNet({"classes": ["fogo_maos", "cura", "animais", "futuro", "cl
 // Mente: ajuste online da última camada pelo quanto a vida da pessoa melhorou depois de cada escolha.
 // Tea: nomes de líderes entram nas estatísticas de trigramas. Tudo versionado em localStorage ('iv_aprende').
 // =====================================================================
+// Base de aprendizado de todos os jogadores (gerada por consolidar_aprendizado.py; null = IAs de fábrica)
+const LEARN_BASE=null;//FIM_LEARN_BASE
 const LEARN=(()=>{
+  const B=(typeof LEARN_BASE==='object'&&LEARN_BASE&&LEARN_BASE.v===1)?LEARN_BASE:null;
   const KEY='iv_aprende',L={v:1,jogos:0,anos:0,nets:{},mente:{n:0,base:0,dW:null},tea:{F:[],M:[]}};
   try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(o&&o.v===1){L.jogos=o.jogos||0;L.anos=o.anos||0;L.nets=o.nets||{};Object.assign(L.mente,o.mente||{});Object.assign(L.tea,o.tea||{});}}catch(e){}
   const NETS={FAB:FAB_NET,FAN:FAN_NET,EST:EST_NET,CHR:CHR_NET,DEUZ:DEUZ_NET,ARQ:ARQ_NET};
@@ -3748,8 +3751,8 @@ const LEARN=(()=>{
   const st=nm=>L.nets[nm]||(L.nets[nm]={w:{},n:0,ok:0,acc:0.5});
   const feats=(N_,text)=>{const t=deuzNorm(text),f=new Set();for(const n of [2,3,4])for(let i=0;i<=t.length-n;i++)f.add(fnv(t.slice(i,i+n))%N_.H);
     const ws=t.trim().split(' ');ws.forEach(w=>f.add(fnv('w:'+w)%N_.H));for(let i=0;i+1<ws.length;i++)f.add(fnv('b:'+ws[i]+'_'+ws[i+1])%N_.H);return f;};
-  function adj(N_,f,sc,pc){const S=L.nets[N_.nm];if(!S||!S.n)return pc;let z=null;
-    f.forEach(i=>{const e=S.w[i];if(e){if(!z)z=pc.map(p=>Math.log(p+1e-9));for(const c in e)z[c]+=e[c]*sc;}});
+  function adj(N_,f,sc,pc){const S=L.nets[N_.nm],Bn=B&&B.nets&&B.nets[N_.nm];if((!S||!S.n)&&!Bn)return pc;let z=null;
+    f.forEach(i=>{const e=S&&S.w[i],b=Bn&&Bn.w[i];if(e||b){if(!z)z=pc.map(p=>Math.log(p+1e-9));if(b)for(const c in b)z[c]+=b[c]*sc;if(e)for(const c in e)z[c]+=e[c]*sc;}});
     if(!z)return pc;const m=Math.max(...z),ex=z.map(x=>Math.exp(x-m)),su=ex.reduce((a,b)=>a+b,0);return ex.map(x=>x/su);}
   function teach(nm,text,cls,w){try{const N_=NETS[nm],y=N_.C.indexOf(cls);if(y<0||!text)return;
     const r=nm==='DEUZ'?deuzPredict(text):nm==='ARQ'?arqPredict(text):netPredict(N_,text),pc=r.pc,S=st(nm),hit=r.cls===cls;
@@ -3764,6 +3767,7 @@ const LEARN=(()=>{
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400;
   if(L.mente.dW&&L.mente.dW.length===MENTE.H*MENTE.NA)for(let i=0;i<L.mente.dW.length;i++)MENTE.W3[i]+=L.mente.dW[i];else L.mente.dW=null;
+  if(B&&B.mente&&B.mente.dW&&B.mente.dW.length===MENTE.H*MENTE.NA)for(let i=0;i<B.mente.dW.length;i++)MENTE.W3[i]+=B.mente.dW[i];
   function menteSettle(n){try{const p=ML.get(n);if(!p)return;ML.delete(n);const M=MENTE,Ls=L.mente,r=avgNeeds(n)-p.s,adv=r-Ls.base;Ls.base+=(r-Ls.base)*0.02;
     const G=Math.max(-1,Math.min(1,adv*6));let nn=1;for(let i=0;i<M.H;i++)nn+=p.h[i]*p.h[i];if(!Ls.dW)Ls.dW=new Array(M.H*M.NA).fill(0);
     for(let i=0;i<M.H;i++){const d=0.08*G*p.h[i]/nn;if(!d)continue;const ix=i*M.NA+p.a,nv=Math.max(-1.5,Math.min(1.5,Ls.dW[ix]+d));M.W3[ix]+=nv-Ls.dW[ix];Ls.dW[ix]=nv;}
@@ -3774,6 +3778,7 @@ const LEARN=(()=>{
   function applyTea(x,nm){const m=TEA_MODEL[x],s='^^'+nm+'$';for(let i=2;i<s.length;i++){const k=s.slice(i-2,i),c=s[i],d=m[k]||(m[k]={});d[c]=(d[c]||0)+2;}}
   function teaAdd(sex,name){const x=sx(sex),nm=limpa(String(name).split(' ')[0]);if(nm.length<3||nm.length>9||L.tea[x].includes(nm))return;L.tea[x].push(nm);if(L.tea[x].length>400)L.tea[x].shift();applyTea(x,nm);dirty=true;}
   for(const x of ['F','M'])(L.tea[x]||[]).forEach(nm=>applyTea(x,nm));
+  if(B&&B.tea)for(const x of ['F','M'])(B.tea[x]||[]).forEach(nm=>applyTea(x,nm));
   function save(force){if(!dirty&&!force)return;const t=Date.now();if(!force&&t-lastSave<4000)return;lastSave=t;
     for(const k in L.nets){const S=L.nets[k],ks=Object.keys(S.w);if(ks.length>6000){ks.map(i=>[i,Math.max(...Object.values(S.w[i]).map(Math.abs))]).sort((a,b)=>a[1]-b[1]).slice(0,ks.length-5000).forEach(([i])=>delete S.w[i]);}}
     try{const o=JSON.parse(JSON.stringify(L));if(o.mente.dW)o.mente.dW=o.mente.dW.map(v=>Math.round(v*1000)/1000);localStorage.setItem(KEY,JSON.stringify(o));dirty=false;}catch(e){}}
@@ -3782,11 +3787,13 @@ const LEARN=(()=>{
     let h=row('🎮 Jogos / anos vividos',`${L.jogos} / ${L.anos}`);
     for(const k in NOME){const S=L.nets[k]||{n:0,acc:0.5,w:{}};h+=row(NOME[k],`${S.n} lições · acerto recente ${Math.round(S.acc*100)}% · ${Object.keys(S.w).length} marcas`);}
     h+=row('Mente dos habitantes',`${L.mente.n} experiências`);h+=row('Tea (nomes)',`${L.tea.F.length+L.tea.M.length} nomes de líderes aprendidos`);
+    if(B)h+=row('Base de todos os jogadores',`${B.jogos||0} jogos · ${Object.values(B.nets||{}).reduce((a,v)=>a+(v.n||0),0)} lições já embutidas no jogo`);
     h+=row('Voz embutida','segue as regras (ainda não aprende sozinha)');el.innerHTML=h;}
+  function exportar(){save(true);try{const o=JSON.parse(JSON.stringify(L));o.exportado=new Date().toISOString();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:'application/json'}));a.download=`aprendizado_${L.jogos}jogos_${o.exportado.slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}catch(e){}}
   function reset(){if(!confirm('Apagar tudo o que as IAs aprenderam e voltar às IAs de fábrica?'))return;try{localStorage.removeItem(KEY);}catch(e){}dirty=false;location.reload();}
   function novoJogo(){L.jogos++;dirty=true;save(true);}
   try{addEventListener('beforeunload',()=>save(true));document.addEventListener('visibilitychange',()=>{if(document.hidden)save(true);});}catch(e){}
-  return {adj,teach,teachE,chr,menteSettle,menteMark,teaAdd,year,ui,reset,novoJogo,save,L};
+  return {exportar,adj,teach,teachE,chr,menteSettle,menteMark,teaAdd,year,ui,reset,novoJogo,save,L};
 })();
 const MUNDOS={dimensao:{e:'🌀',nome:'a Dimensão Mágica',a:'alcançada'},planeta:{e:'🪐',nome:'o Planeta Novo',a:'alcançado'},insetos:{e:'🪲',nome:'o Mundo dos Insetos',a:'alcançado'}};
 // palavras-chave com variações de verbo, para quando a rede está insegura
