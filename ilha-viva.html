@@ -142,6 +142,7 @@
   <span class="hg" data-t="Tempo"><button id="pause">⏸ Pausar</button>
   <button data-speed="1" class="on">1×</button><button data-speed="3">3×</button><button data-speed="8">8×</button><button data-speed="20">20×</button><button data-speed="50">50×</button></span>
   <span class="hg" data-t="Visão"><button id="viewMapa" class="on">🗺️ Mapa</button><button id="viewRegiao">🔍 Região</button><button id="zIn" title="Aproximar o mapa" onclick="mzZoom(1.5)">➕</button><button id="zOut" title="Afastar o mapa" onclick="mzZoom(1/1.5)">➖</button><button id="zRst" title="Mapa inteiro" onclick="mzReset()">⌖</button></span>
+  <span class="hg" data-t="Camadas"><button class="on" id="lyFac" title="Mostrar/ocultar as cores dos países" onclick="toggleLayer('fac')">🏳️</button><button class="on" id="lyWar" title="Mostrar/ocultar guerras e catástrofes" onclick="toggleLayer('war')">⚔️</button><button class="on" id="lyNom" title="Mostrar/ocultar os nomes" onclick="toggleLayer('nom')">🔤</button><button class="on" id="lyDec" title="Mostrar/ocultar construções e decoração" onclick="toggleLayer('dec')">🏰</button></span>
   <span class="hg" data-t="Poderes"><button id="event" title="Um acaso qualquer da Deuz">🎲 Evento</button><span class="deuzbox"><select id="aiPick" title="Para quem é o pedido"><option value="deuz">🎲 Deuz</option><option value="arq">🏗️ Arquiteto</option><option value="fan">🔮 Fantasy</option></select><input id="deuzIn" placeholder="🎲 Peça à Deuz: &quot;meteoro em Kaloor&quot;, &quot;uma peste leve&quot;…" autocomplete="off"><button id="deuzGo">Pedir</button></span></span>
   <span class="hg" data-t="Jogo"><button id="saveBtn" title="Salvar a partida">💾</button><button id="loadBtn" title="Continuar a partida salva">📂</button><button id="expBtn" title="Baixar a partida como arquivo .ivsave">⬇️</button><button id="impBtn" title="Carregar uma partida de arquivo .ivsave">⬆️</button><input type="file" id="impFile" accept=".ivsave" style="display:none"><button id="livroBtn" title="Livro do Mundo: linha do tempo, Casas, eras e povos" onclick="livroAbre()">📖 Livro</button>
   <button id="reportBtn" title="Copiar relatório da sessão">📋</button>
@@ -2397,29 +2398,31 @@ const MZ={z:1,x:0,y:0,drag:null,moved:false};
 function mzClamp(){MZ.z=Math.max(1,Math.min(10,MZ.z));MZ.x=Math.min(0,Math.max(W-W*MZ.z,MZ.x));MZ.y=Math.min(0,Math.max(H-H*MZ.z,MZ.y));}
 function mzZoom(f,cx,cy){cx=cx==null?W/2:cx;cy=cy==null?H/2:cy;const z0=MZ.z;MZ.z=Math.max(1,Math.min(10,MZ.z*f));const k=MZ.z/z0;MZ.x=cx-(cx-MZ.x)*k;MZ.y=cy-(cy-MZ.y)*k;mzClamp();}
 function mzReset(){MZ.z=1;MZ.x=0;MZ.y=0;}
+const MLAY={fac:true,war:true,nom:true,dec:true};
+function toggleLayer(k){MLAY[k]=!MLAY[k];const b=document.getElementById({fac:'lyFac',war:'lyWar',nom:'lyNom',dec:'lyDec'}[k]);if(b)b.classList.toggle('on',MLAY[k]);}
 function drawMap(){
   ctx.save();ctx.translate(MZ.x,MZ.y);ctx.scale(MZ.z,MZ.z);
   ctx.imageSmoothingEnabled=false;
   if(mapImg){ctx.drawImage(mapImg,0,0,MW*CELL,MH*CELL);try{drawSea();}catch(e){}}else{ctx.fillStyle='#66aae6';ctx.fillRect(0,0,W,H);}
-  if(world.factions){if(world.facDirty||!facLayer)renderFacLayer();if(facLayer)ctx.drawImage(facLayer,0,0,MW*CELL,MH*CELL);}
-  if(world.factions)drawDecor();
+  if(world.factions){if(world.facDirty||!facLayer)renderFacLayer();if(facLayer&&MLAY.fac)ctx.drawImage(facLayer,0,0,MW*CELL,MH*CELL);}
+  if(world.factions&&MLAY.dec)drawDecor();
   // fronteiras das regiões
   if(borderImg){ctx.imageSmoothingEnabled=true;ctx.drawImage(borderImg,0,0,MW*CELL,MH*CELL);ctx.imageSmoothingEnabled=false;}
   const sel=mapSel||mapHover;const ZK=1/MZ.z; // marcadores e textos mantêm o tamanho na tela, sem crescer com o zoom
   if(sel){if(!sel._c){sel._c=[];for(let y=Math.max(0,sel.y-8);y<Math.min(MH,sel.y+9);y++)for(let x=Math.max(0,sel.x-8);x<Math.min(MW,sel.x+9);x++)if(MAP.reg[y*MW+x]===sel.id)sel._c.push(y*MW+x);}
     ctx.fillStyle='rgba(255,255,255,.75)';sel._c.forEach(i=>ctx.fillRect((i%MW)*CELL,((i/MW)|0)*CELL,CELL+.5,CELL+.5));ctx.strokeStyle='#fff';ctx.lineWidth=2*ZK;ctx.beginPath();ctx.arc(sel.x*CELL,sel.y*CELL,9*ZK,0,7);ctx.stroke();}
   // catástrofes no mapa
-  if(activeDisasters().length){activeDisasters().forEach(d=>{const col=d.type==='insetos'?'rgba(120,20,160,.85)':d.type==='peste'?'rgba(20,20,20,.55)':'rgba(140,90,20,.6)';ctx.fillStyle=col;d.regions.forEach(id=>{const r=MAP.regions[id];ctx.fillRect(r.x*CELL-3*ZK,r.y*CELL-3*ZK,6*ZK,6*ZK);});});}
+  if(MLAY.war&&activeDisasters().length){activeDisasters().forEach(d=>{const col=d.type==='insetos'?'rgba(120,20,160,.85)':d.type==='peste'?'rgba(20,20,20,.55)':'rgba(140,90,20,.6)';ctx.fillStyle=col;d.regions.forEach(id=>{const r=MAP.regions[id];ctx.fillRect(r.x*CELL-3*ZK,r.y*CELL-3*ZK,6*ZK,6*ZK);});});}
   // migrações recentes
   world.migrations.filter(m=>day-m.day<=4).forEach(m=>{const a=MAP.regions[m.from],b=MAP.regions[m.to];ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2*ZK;ctx.setLineDash([6*ZK,5*ZK]);ctx.beginPath();ctx.moveTo(a.x*CELL,a.y*CELL);ctx.lineTo(b.x*CELL,b.y*CELL);ctx.stroke();ctx.setLineDash([]);});
   // guerras em andamento
-  if(world.factions)facs().forEach(a=>{for(const bid in a.wars){if(+bid<a.id)continue;const b=facById(+bid);if(!b)continue;const ca=MAP.regions[a.capital],cb=MAP.regions[b.capital];ctx.font=(22*ZK)+'px serif';ctx.textAlign='center';ctx.fillText('⚔️',(ca.x+cb.x)/2*CELL,(ca.y+cb.y)/2*CELL);}});
+  if(world.factions&&MLAY.war)facs().forEach(a=>{for(const bid in a.wars){if(+bid<a.id)continue;const b=facById(+bid);if(!b)continue;const ca=MAP.regions[a.capital],cb=MAP.regions[b.capital];ctx.font=(22*ZK)+'px serif';ctx.textAlign='center';ctx.fillText('⚔️',(ca.x+cb.x)/2*CELL,(ca.y+cb.y)/2*CELL);}});
   // povoados
   const occR=occupied();const showAll=occR.length<=25;const big=new Set([...occR].sort((a,b)=>regionPop(b.id)-regionPop(a.id)).slice(0,12).map(r=>r.id));
   occR.concat(sel&&!regionPop(sel.id)?[sel]:[]).forEach(r=>{const p=regionPop(r.id);
     const x=r.x*CELL,y=r.y*CELL,rad=(p?(occR.length>400?1.6:[10,13,17,22][p<10?0:p<50?1:p<250?2:3]):4)*ZK;
     if(p){const fc=regionFac(r);ctx.fillStyle=r.id===world.active?'#ffffff':(fc?fc.color:'#3b2f2a');if(occR.length>400&&r.id!==world.active){ctx.fillRect(x-rad,y-rad,rad*2,rad*2);}else{drawCity(x,y,p,ZK,ctx.fillStyle);}}
-    ctx.font='700 '+(13*ZK)+'px "Baloo 2"';ctx.textAlign='center';ctx.lineWidth=3*ZK;ctx.strokeStyle='rgba(255,255,255,.85)';if(MZ.z<2.5&&!showAll&&!big.has(r.id)&&!(sel&&sel.id===r.id)&&r.id!==world.active)return;if(MZ.z>=2.5&&!(sel&&sel.id===r.id)){const sx=x*MZ.z+MZ.x,sy=y*MZ.z+MZ.y;if(sx<-40||sx>W+40||sy<-20||sy>H+20)return;}const label=p?`${r.name} · ${p}`:r.name;ctx.strokeText(label,x,y-rad-6*ZK);ctx.fillStyle='#3b2f2a';ctx.fillText(label,x,y-rad-6*ZK);});
+    ctx.font='700 '+(13*ZK)+'px "Baloo 2"';ctx.textAlign='center';ctx.lineWidth=3*ZK;ctx.strokeStyle='rgba(255,255,255,.85)';if(!MLAY.nom&&!(sel&&sel.id===r.id))return;if(MZ.z<2.5&&!showAll&&!big.has(r.id)&&!(sel&&sel.id===r.id)&&r.id!==world.active)return;if(MZ.z>=2.5&&!(sel&&sel.id===r.id)){const sx=x*MZ.z+MZ.x,sy=y*MZ.z+MZ.y;if(sx<-40||sx>W+40||sy<-20||sy>H+20)return;}const label=p?`${r.name} · ${p}`:r.name;ctx.strokeText(label,x,y-rad-6*ZK);ctx.fillStyle='#3b2f2a';ctx.fillText(label,x,y-rad-6*ZK);});
   ctx.restore();
   if(MZ.z>1){ctx.font='700 12px "Baloo 2"';ctx.textAlign='left';ctx.fillStyle='rgba(255,247,232,.9)';rr(8,H-30,150,22,8);ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText('🔎 zoom '+MZ.z.toFixed(1)+'× · arraste para mover',16,H-14);}
   if(!started){ctx.fillStyle='rgba(255,247,232,.92)';rr(250,16,500,58,16);ctx.fill();ctx.fillStyle='#3b2f2a';ctx.font='700 18px "Baloo 2"';ctx.textAlign='center';ctx.fillText('Clique numa região de terra para começar a história',500,42);ctx.font='13px "Baloo 2"';ctx.fillText(mapHover?`${mapHover.name}: ${resLabel(mapHover)}`:'O terreno define o que seus nativos vão encontrar por perto',500,62);}
