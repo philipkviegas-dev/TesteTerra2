@@ -586,8 +586,8 @@ function worldSay(text,ai){aiSay(ai||curAI,text);}
 // =====================================================================
 let mode='ilha',typeFilter='destaques';
 const TYPES=[['destaques','⭐ Destaques'],['todos','Tudo'],['world','🤖 IAs'],['fabula','✨ Fábula'],['big','🎉 Acontecimentos'],['dna','🧬 Personalidade'],['think','💭 Pensamentos'],['talk','💬 Conversas']];
-// Tela de título: aparece ao abrir o jogo (sempre que a página carrega) e some com o botão ou qualquer tecla
-(function(){try{const d=document.createElement('div');d.id='titulo';
+// Tela de título: aparece só na primeira visita neste navegador e some com o botão ou qualquer tecla
+(function(){try{let vi=false;try{vi=localStorage.getItem('iv_intro')==='1';localStorage.setItem('iv_intro','1');}catch(e){}if(vi)return;const d=document.createElement('div');d.id='titulo';
  d.style.cssText='position:fixed;inset:0;z-index:10000;background:radial-gradient(circle at 50% 40%,#1d3b5c,#0a1220);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;font-family:inherit;transition:opacity .5s';
  d.innerHTML='<div style="font-size:54px">🏝️</div><div style="font-size:38px;font-weight:700;letter-spacing:1px">Ilha Viva</div><div style="max-width:480px;opacity:.85;line-height:1.5">Dez nativos acordam sem saber nada. Cada um decide a própria vida; culturas, leis, guerras e eras nascem das escolhas deles. Tudo é possível.</div><button id="tituloGo" style="font-size:18px;padding:10px 28px;border-radius:10px;border:0;background:#8ab4ff;color:#0a1220;cursor:pointer;font-weight:700">▶ Jogar</button><div style="font-size:12px;opacity:.55">Escolha um lugar no mapa para começar · 🔊 liga os sons · 💾 salva a partida</div>';
  document.body.appendChild(d);const fecha=()=>{d.style.opacity='0';d.style.pointerEvents='none';setTimeout(()=>d.remove(),600);removeEventListener('keydown',fecha);};
