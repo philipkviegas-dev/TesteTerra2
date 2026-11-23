@@ -1288,7 +1288,7 @@ function die(n,cause,where){
   else world.reserva=Math.min(resCap(),world.reserva+n.food);
   n._dead=true;SWEEP=true;IDX.delete(n.id);RC.dirty=true;
   log('big',`🕊️ ${N(n)} morreu ${cause}${where?` (${where.toLowerCase().startsWith('a')||where.toLowerCase().startsWith('o')?'em ':'em '}${where})`:''} aos ${n.ageDays} anos${n.kids.length?`, deixando ${n.kids.length} filho(s)`:''}.${n.fame?` Será lembrado(a) como ${n.fame}.`:''}`,[n.id,...n.kids]);
-  const close=new Set([n.partner,...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));
+  const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));
   close.forEach(o=>{
     if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);}
     else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);}
@@ -1635,7 +1635,7 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   const night=isNight();
   if(wasNight&&!night){
     world.hasHealer=NPCS.some(o=>roleOf(o)&&roleOf(o).out==='heal');if(day%10===0)pruneRelations();
-    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
+    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
     [...NPCS].forEach(n=>{if(!byId(n.id))return;n.workedToday=false;morningLife(n);});
     NPCS.forEach(n=>{estoriaCompress(n);morningReflection(n);metaMorning(n);if(!n.cmd)decide(n);});
     if(has('troca'))NPCS.forEach(n=>{if(n.isChild)return;const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=pickW(ks.map(k=>{let v=10;for(const tr in ITEMS[k].aff)v+=25*ITEMS[k].aff[tr]*T(n,tr);return [k,v];}));n.wants[k]=clamp(n.wants[k]+rnd(6,16));}});
@@ -2826,12 +2826,30 @@ const REGIMES={teocracia:'teocracia',imperio:'império',bando:'bando com líder'
 let CULT_SEQ=0;
 function newCulture(parent,where){const c={id:CULT_SEQ++,name:parent?parent.name:'Cultura dos Primeiros',v:{},customs:[],born:day,parent:parent?parent.id:null,root:parent?(parent.root||parent.v):null,
   syl:parent?{a:[...parent.syl.a],b:[...parent.syl.b]}:{a:['Ka','Lu','Mo','Ti','Na','Ru','Ze','Bo','Ia','Ko','Ma','Te','Su','Ri','An','Do','Ya','Pi'],b:['ra','lo','mi','na','ru','te','ba','ki','so','va']}};
-  CULT_K.forEach(k=>c.v[k]=parent?parent.v[k]:0);c.bias={};CULT_K.forEach(k=>c.bias[k]=parent?(Math.random()-0.5)*2.6:0);if(parent)c.customs=[...parent.customs];c.root={...(parent?parent.v:c.v)};
+  CULT_K.forEach(k=>c.v[k]=parent?parent.v[k]:0);c.bias={};CULT_K.forEach(k=>c.bias[k]=parent?(Math.random()-0.5)*2.6:0);if(parent)c.customs=[...parent.customs];c.root={...(parent?parent.v:c.v)};c.poli=parent?clamp((parent.poli??40)+(Math.random()-0.5)*30,0,100):40;
   // um povo que se separa leva a cultura de origem, mas o jeito de dar nomes começa a mudar
   if(parent){const C='bcdfghjklmnprstvz',V='aeiou',mk=()=>C[(Math.random()*C.length)|0].toUpperCase()+V[(Math.random()*5)|0];for(let q=0;q<3;q++)c.syl.a[(Math.random()*c.syl.a.length)|0]=mk();c.syl.b[(Math.random()*c.syl.b.length)|0]=mk().toLowerCase();}
   return c;}
 function facCult(f){if(!f.culture)f.culture=newCulture(null);return f.culture;}
 function cultDist(a,b){return Math.sqrt(CULT_K.reduce((s,k)=>s+(a[k]-b[k])**2,0));}
+// Poligamia: desde o início ela é permitida como escolha. Quem já tem par pode, por vontade própria, ganhar mais um(a) cônjuge
+// se a cultura do povo aceita (c.poli). Os cônjuges extras guardam partner = a pessoa principal.
+function poliAceita(n){const f=facOf(n);return f?(facCult(f).poli??40):40;}
+function conjuges(n){return NPCS.filter(x=>!x._dead&&(x.partner===n.id||n.partner===x.id));}
+function poligamiaYear(){
+  const cnt=new Map();NPCS.forEach(x=>{if(x.partner&&!x._dead)cnt.set(x.partner,(cnt.get(x.partner)||0)+1);});
+  let feitos=0;
+  for(const a of NPCS){if(feitos>=3)break;
+    if(a._dead||a.isChild||!a.partner||a.ageDays>=ELDER_AGE-5||(cnt.get(a.id)||0)>=3)continue;
+    const po=poliAceita(a);if(Math.random()>po/100*0.02*(1+Math.max(0,T(a,"sociabilidade")+T(a,"ambicao"))))continue;
+    const pool=members(a.region).filter(o=>!o.isChild&&!o.partner&&o.sex!==a.sex&&!related(a,o)&&o.ageDays<ELDER_AGE-5&&(o.rel[a.id]||0)>10&&poliAceita(o)>=25);
+    const b=pool[(Math.random()*pool.length)|0];if(!b)continue;
+    const ant=byId(a.partner);
+    b.partner=a.id;b.crush=null;b.home=a.home;relate(a,b,15);relate(b,a,15);feitos++;
+    if(ant){const ciume=po<50?-14:-4;relate(ant,a,ciume);relate(ant,b,ciume);shape(ant,'confianca',po<50?-3:0,'ganhou outro(a) cônjuge na família');}
+    const nome=(a.sex==='M'&&b.sex==='F')?'segunda esposa':(a.sex==='F'?'outro marido':'outra esposa');
+    remember(a,`escolhi ter também ${b.name} ao meu lado`,6,b.id);
+    log('big',`💞 ${N(a)} passou a viver também com ${N(b)} (${nome}): em ${(facOf(a)||{name:'seu povo'}).name} a poligamia é ${po>=65?'costume aceito':po>=40?'uma escolha possível':'malvista, mas permitida'}.`,[a.id,b.id]);}}
 function cultName(f){const c=facCult(f);return c.name;}
 function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.regions[f.capital],v=c.v;
   const push=(k,d)=>{v[k]=clamp(v[k]+d,-100,100);};
@@ -2842,6 +2860,12 @@ function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.
   if(facRegions(f).some(r=>r.hunger))push('fe',1),push('coletivismo',0.8);
   (f.laws||[]).forEach(id=>{const L=lawFind(id);if(L)for(const k in L.fav)push(k,L.fav[k]*0.12);});
   CULT_K.forEach(k=>push(k,(Math.random()-0.5)*4-v[k]*0.035+((c.bias&&c.bias[k])||0)));
+  // poligamia: escolha cultural; a aceitação muda com a liberdade e a tradição, e vira costume quando firma
+  c.poli=clamp((c.poli??40)+(Math.random()-0.5)*5+v.liberdade*0.02-v.tradicao*0.015,0,100);
+  {const A='poligamia aceita entre o povo',B='casamento de um só par (monogamia)';
+   if(c.poli>=65&&!c.customs.includes(A)){c.customs=c.customs.filter(x=>x!==B);c.customs.push(A);log('big',`🎭 Em ${f.name} a <b>poligamia</b> virou costume aceito.`,[]);weekNote('gov',`${f.name}: poligamia aceita`);}
+   else if(c.poli<=20&&!c.customs.includes(B)){c.customs=c.customs.filter(x=>x!==A);c.customs.push(B);log('big',`🎭 Em ${f.name} firmou-se o costume do <b>casamento de um só par</b>.`,[]);weekNote('gov',`${f.name}: monogamia firmada`);}
+   else if(c.poli<65&&c.poli>25){c.customs=c.customs.filter(x=>x!==A&&x!==B);}}
   // costumes nascem e morrem com os valores
   CUSTOMS.forEach(cu=>{const has_=c.customs.includes(cu.name),val=v[cu.k]*cu.s;
     if(!has_&&val>=35){c.customs.push(cu.name);log('big',`🎭 Em ${f.name} surgiu um costume: <b>${cu.name}</b>.`,[]);weekNote('gov',`${f.name}: novo costume, ${cu.name}`);}
@@ -3016,7 +3040,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    ${n.isChild?'':`<div>💭 <b>Por quê:</b> ${whyNow(n)}</div>`}
    ${n.goals&&n.goals.length?`<div>🎯 <b>Desejos:</b> ${n.goals.map(g=>g.text).join(' · ')}</div>`:''}
    <div>🌟 <b>Sonho:</b> ${n.dream?n.dream.text+(n.meta?' <span class="hint">(em pausa: a meta do jogador vem primeiro)</span>':''):'<span class="hint">ainda não sabe</span>'}</div>
-   <div>${n.isChild?`👪 pais: ${n.parents.map(nameOf).join(' e ')}`:`💕 ${n.partner&&byId(n.partner)?'junto com '+N(byId(n.partner)):n.crush&&byId(n.crush)?'apaixonado(a) por '+N(byId(n.crush)):'solteiro(a)'}${n.kids.length?' · 👶 '+n.kids.map(nameOf).join(', '):''} · 🧬 desejo de família ${Math.round(n.family)}%`}</div>
+   <div>${n.isChild?`👪 pais: ${n.parents.map(nameOf).join(' e ')}`:`💕 ${n.partner&&byId(n.partner)?'junto com '+N(byId(n.partner))+(conjuges(n).length>1?' (+'+(conjuges(n).length-1)+' cônjuge(s))':''):n.crush&&byId(n.crush)?'apaixonado(a) por '+N(byId(n.crush)):'solteiro(a)'}${n.kids.length?' · 👶 '+n.kids.map(nameOf).join(', '):''} · 🧬 desejo de família ${Math.round(n.family)}%`}</div>
    ${has('troca')?`<div>🎒 ${n.items.map(k=>ITEMS[k].e).join(' ')||'<span class="hint">nada</span>'} · ✨ ${wants||'<span class="hint">sem desejos</span>'}</div>`:''}
    <div style="margin:4px 0">${labels}</div>
    <div class="cols"><div><b style="font-size:13px">Personalidade</b>${Object.keys(TRAITS).map(k=>tbar(n,k)).join('')}</div>
