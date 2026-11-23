@@ -146,6 +146,7 @@
   <span class="hg" data-t="Poderes"><button id="event" title="Um acaso qualquer da Deuz">🎲 Evento</button><span class="deuzbox"><select id="aiPick" title="Para quem é o pedido"><option value="deuz">🎲 Deuz</option><option value="arq">🏗️ Arquiteto</option><option value="fan">🔮 Fantasy</option></select><input id="deuzIn" placeholder="🎲 Peça à Deuz: &quot;meteoro em Kaloor&quot;, &quot;uma peste leve&quot;…" autocomplete="off"><button id="deuzGo">Pedir</button></span></span>
   <span class="hg" data-t="Jogo"><button id="saveBtn" title="Salvar a partida">💾</button><button id="loadBtn" title="Continuar a partida salva">📂</button><button id="expBtn" title="Baixar a partida como arquivo .ivsave">⬇️</button><button id="impBtn" title="Carregar uma partida de arquivo .ivsave">⬆️</button><input type="file" id="impFile" accept=".ivsave" style="display:none"><button id="livroBtn" title="Livro do Mundo: linha do tempo, Casas, eras e povos" onclick="livroAbre()">📖 Livro</button>
   <button id="reportBtn" title="Copiar relatório da sessão">📋</button>
+  <button id="tomBtn" title="Tom do mundo: realidade, ficção ou fantasia">🎭</button>
   <button id="reset" title="Gerar um mundo novo">↺</button></span><span id="saveMsg" class="hint"></span>
 </header>
 <main>
@@ -155,6 +156,11 @@
       <div class="seg"><button id="modeIlha" class="on">🌍 Mundo inteiro</button><button id="modeMorador">👤 Acompanhar um morador</button></div>
       <div id="who" class="avatars"></div>
     </div>
+    <div class="panel" id="tomBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🎭 Tom do mundo: <span id="tomNome"></span></b><button onclick="document.getElementById('tomBox').style.display='none'">✖</button></div>
+      <div class="hint" style="margin:4px 0">Você escolhe o equilíbrio entre realidade, ficção e fantasia. Com tudo em 0% o mundo é realista: só a história, a ciência e o acaso comuns.</div>
+      <label>🧙 Fantasia (magia, dragões, outros mundos) <b id="tomMv"></b><input id="tomM" type="range" min="0" max="100" step="5" style="width:100%" oninput="setTom(+this.value,+document.getElementById('tomF').value)"></label>
+      <label>🔬 Ficção (supertecnologia: robôs, lasers, naves, IA) <b id="tomFv"></b><input id="tomF" type="range" min="0" max="100" step="5" style="width:100%" oninput="setTom(+document.getElementById('tomM').value,+this.value)"></label>
+      <div style="margin-top:4px"><button onclick="setTom(0,0)">🌍 Realista</button> <button onclick="setTom(50,50)">⚖️ Equilibrado</button> <button onclick="setTom(100,15)">🧙 Fantasia</button> <button onclick="setTom(15,100)">🔬 Ficção</button> <button onclick="setTom(100,100)">🌌 Tudo</button></div></div>
     <div class="panel" id="reportBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>📋 Relatório da sessão</b><button onclick="document.getElementById('reportBox').style.display='none'">Fechar</button></div><div id="reportMsg" class="hint"></div><textarea id="reportText" style="width:100%;height:180px;font-size:12px;margin-top:6px"></textarea></div>
     <div class="panel" id="info"></div>
     <div class="panel" id="fabPanel" style="display:none">
@@ -2075,7 +2081,7 @@ function fabulaResolve(n){
       if(!enemies.length){setRelF(mf,R(facs().filter(f=>f.alive&&f!==mf))||mf,30);res=`${n.name} fez acordos de amizade com os vizinhos.`;pos('fiz amizade com outros povos');break;}
       const e=enemies[0];if(ok){makePeace(mf,e,`${n.name} negociou a paz`);shape(n,'bondade',5,'fez a paz');res=`${n.name} negociou a paz com ${e.name}. 🕊️`;pos(`fiz a paz com ${e.name}`,10);}
       else{res=`${n.name} propôs a paz, mas ${e.name} recusou.`;neg(`${e.name} recusou a paz`,8);}break;}
-    case 'magia':{const q=netPredict(FAN_NET,cmd.text);const fid=q.cls!=='nada'?q.cls:R(FANT.feitos.filter(f=>f.dif<=5)).id;const mest=members(n.region).find(m=>m!==n&&!m._dead&&(m.poderes||[]).includes(fid));if((n.poderes||[]).includes(fid)){res=`${n.name} já sabe ${FEITO[fid].nome}.`;break;}if(mest&&!n.aprende){comecaEnsino(mest,n,fid);res=`${n.name} começou a aprender ${FEITO[fid].nome} com ${mest.name} (leva anos).`;pos('arranjei um mestre');break;}if(!n.aprende&&world.livros&&world.livros[n.region+':'+fid]){n.aprende={id:fid,mestre:null,livro:true,anos:0,dur:Math.max(4,Math.round((FEITO[fid].dif||2)*2.5))};res=`${n.name} começou a estudar o livro de ${world.livros[n.region+':'+fid].autor} sobre ${FEITO[fid].nome} (leva anos).`;pos('achei um livro para estudar');break;}const r2=fantasyAttempt(n,fid,true);res=r2?`${n.name} conseguiu ${FEITO[fid].nome}!`:`${n.name} tentou ${FEITO[fid].nome}, mas não deu certo desta vez.`;if(r2)pos(`consegui ${FEITO[fid].nome}`);else neg(`falhei tentando ${FEITO[fid].nome}`,6);break;}
+    case 'magia':{const q=netPredict(FAN_NET,cmd.text);const fid=q.cls!=='nada'?q.cls:R(FANT.feitos.filter(f=>f.dif<=5)).id;if(tomK(FEITO[fid].tipo)<=0){res=`${n.name} quis ${FEITO[fid].nome}, mas neste mundo isso simplesmente não existe.`;break;}const mest=members(n.region).find(m=>m!==n&&!m._dead&&(m.poderes||[]).includes(fid));if((n.poderes||[]).includes(fid)){res=`${n.name} já sabe ${FEITO[fid].nome}.`;break;}if(mest&&!n.aprende){comecaEnsino(mest,n,fid);res=`${n.name} começou a aprender ${FEITO[fid].nome} com ${mest.name} (leva anos).`;pos('arranjei um mestre');break;}if(!n.aprende&&world.livros&&world.livros[n.region+':'+fid]){n.aprende={id:fid,mestre:null,livro:true,anos:0,dur:Math.max(4,Math.round((FEITO[fid].dif||2)*2.5))};res=`${n.name} começou a estudar o livro de ${world.livros[n.region+':'+fid].autor} sobre ${FEITO[fid].nome} (leva anos).`;pos('achei um livro para estudar');break;}const r2=fantasyAttempt(n,fid,true);res=r2?`${n.name} conseguiu ${FEITO[fid].nome}!`:`${n.name} tentou ${FEITO[fid].nome}, mas não deu certo desta vez.`;if(r2)pos(`consegui ${FEITO[fid].nome}`);else neg(`falhei tentando ${FEITO[fid].nome}`,6);break;}
     case 'transformar':{const r=regionOf(n),ti=transfInfo(cmd.text),ef=cmd.efeito||ti.efeito;let nome=(cmd.nome||ti.nome||'').trim();if(/^(fa[cç]a|fazer)$/i.test(nome)||nome.length<3)nome='';
       const por=(est)=>Object.keys(r.lug||{}).filter(id=>r.lug[id].est===est&&PLACES[id]);
       if(!ok){shape(n,'diligencia',-2,'a obra não saiu como planejado');if(Math.random()<.25)hurt(n,1,'se machucou na obra');res=`${n.name} tentou “${cmd.text}”, mas a obra desmoronou e a terra continua como estava.`;neg(`falhei ao tentar: ${cmd.text}`,6);break;}
@@ -3688,13 +3694,19 @@ const FAN_NET=makeNet({"classes": ["fogo_maos", "cura", "animais", "futuro", "cl
 const MUNDOS={dimensao:{e:'🌀',nome:'a Dimensão Mágica',a:'alcançada'},planeta:{e:'🪐',nome:'o Planeta Novo',a:'alcançado'},insetos:{e:'🪲',nome:'o Mundo dos Insetos',a:'alcançado'}};
 // palavras-chave com variações de verbo, para quando a rede está insegura
 const FAN_KEYS=[['voar',/\bvo(a|e|ar|ou|ando|em)\b|levit|flutu/],['fogo_maos',/fogo|chama|incendi/],['cura',/cur(a|e|ar)\b|sar(a|e|ar)\b/],['invisivel',/invis|sum(a|ir)\b|desaparec/],['animais',/anima|bicho|fera/],['futuro',/futur|previs|profe/],['clima',/chuv|clima|vento|tempestade/],['portal',/portal|dimens|veu/],['nave',/nave|estrela|planeta|coloni/],['dragao',/drag/],['ressuscitar',/ressusc|reviv|mort/],['imortal',/imortal|para sempre|eterna/],['teletransporte',/teleport/],['tempo',/tempo|passado/],['golem',/golem|gigante de (pedra|barro)/]];
+// ---------- tom do mundo: o jogador escolhe quanto de fantasia (magia) e de ficção (supertecnologia) existe; 0 e 0 = mundo realista ----------
+function tom(){if(!world.tom){let p=null;try{p=JSON.parse(localStorage.getItem('iv_tom')||'null');}catch(e){}world.tom=(p&&typeof p.magia==='number'&&typeof p.ficcao==='number')?{magia:p.magia,ficcao:p.ficcao}:{magia:50,ficcao:50};}return world.tom;}
+function tomK(tipo){const t=tom();return clamp((tipo==='magia'?t.magia:t.ficcao)/100,0,1);}
+function tomNome(){const t=tom(),m=t.magia,f=t.ficcao;if(m<=0&&f<=0)return '🌍 Realista';if(m>=70&&f<=30)return '🧙 Fantasia';if(f>=70&&m<=30)return '🔬 Ficção científica';if(m>=70&&f>=70)return '🌌 Tudo é possível';if(m<=25&&f<=25)return '🌍 Quase realista';return '⚖️ Equilibrado';}
+function setTom(m,f){const t=tom();t.magia=clamp(Math.round(m),0,100);t.ficcao=clamp(Math.round(f),0,100);try{localStorage.setItem('iv_tom',JSON.stringify(t));}catch(e){}tomUI();}
+function tomUI(){const b=document.getElementById('tomBox');if(!b)return;const t=tom();b.querySelector('#tomM').value=t.magia;b.querySelector('#tomF').value=t.ficcao;b.querySelector('#tomMv').textContent=t.magia+'%';b.querySelector('#tomFv').textContent=t.ficcao+'%';b.querySelector('#tomNome').textContent=tomNome();}
 function fantasyChance(n,f){const a=world.arcano||0;let c=0.3-f.dif*0.04+Math.min(0.3,(a-f.arc)/150);if(a<f.arc)c*=0.35;
   if(n){c+=0.15*T(n,'curiosidade')+0.1*T(n,'coragem')+0.05*T(n,'confianca');if(n.belief)c+=0.05;}
   if(f.tipo==='supertec'){c+=Math.min(0.2,(world.era-f.era)*0.12);if(world.era<f.era)c*=0.3;}
   if(world.mundos&&world.mundos.dimensao&&world.mundos.dimensao.aberto&&f.tipo==='magia')c+=0.1;
-  return Math.max(0.01,Math.min(0.8,c));}
+  const k=tomK(f.tipo);if(k<=0)return 0;return Math.max(0.01,Math.min(0.8,c*k*2));}
 function regionMagic(r,f){/* o efeito vem só de quem aprendeu: ver sincMagia */if(typeof calcBfx==='function')calcBfx(r);}
-function fantasyAttempt(n,fid,byPlayer){const f=FEITO[fid];if(!f||!n)return null;curAI='fantasy';
+function fantasyAttempt(n,fid,byPlayer){const f=FEITO[fid];if(!f||!n)return null;if(tomK(f.tipo)<=0){if(byPlayer)log('',`🌍 Neste mundo ${f.tipo==='magia'?'não existe magia':'não existe supertecnologia'}: ${N(n)} não pode ${f.nome}.`,[n.id]);return false;}curAI='fantasy';
   try{const r=regionOf(n),p=fantasyChance(n,f),ok=Math.random()<p;world.fantasyTries=(world.fantasyTries||0)+1;
   if(ok){regionMagic(r,f);try{darPoder(n,f);}catch(e){console.error(e);}world.arcano=(world.arcano||0)+1+f.dif*0.3;n.fame=n.fame||`${f.tipo==='magia'?'quem conseguiu':'quem inventou'} ${f.nome}`;world.famous=world.famous||{};world.famous[n.id]=1;
     remember(n,`consegui ${f.nome}`,10);shape(n,'confianca',6,'fez o impossível');shape(n,'curiosidade',4,'fez o impossível');
@@ -3720,13 +3732,13 @@ function fantasyYear(){if(!started||!MAP)return;world.arcano=world.arcano||0;wor
   const believers=NPCS.filter(n=>n.belief).length;world.arcano=world.arcano*0.985+seeds*0.02+believers*0.02+fe/300;
   // gente que sonha alto tenta sozinha
   NPCS.forEach(n=>{if(n.isChild||n._dead||Math.random()>0.015)return;if(T(n,'curiosidade')<0.3&&!n.belief)return;
-    const ok=FANT.feitos.filter(f=>f.era<=world.era+2);const f=pickW(ok.map(f=>[f,1/(f.dif)]));fantasyAttempt(n,f.id,false);});
+    const ok=FANT.feitos.filter(f=>f.era<=world.era+2&&tomK(f.tipo)>0);if(!ok.length)return;const f=pickW(ok.map(f=>[f,1/(f.dif)]));fantasyAttempt(n,f.id,false);});
   // boatos de feitos pelo mundo (fora da tela)
   const occ=occupied();const K=Math.min(3,Math.floor(occ.length*0.0015*(1+world.arcano/50)));
-  for(let k=0;k<K;k++){const r=R(occ);const f=R(FANT.feitos.filter(x=>x.era<=world.era&&x.dif<=6));if(Math.random()<fantasyChance(null,f)*0.5){const ad=members(r.id).filter(x=>!x.isChild&&!x._dead);if(ad.length){const q=R(ad);q.poderes=q.poderes||[];if(!q.poderes.includes(f.id)){q.poderes.push(f.id);sincMagia(r);world.arcano+=0.3;log('',`🔮 Dizem que em ${r.name} alguém conseguiu ${f.nome}.`,[]);}}}}
+  for(let k=0;k<K;k++){const r=R(occ);const fl=FANT.feitos.filter(x=>x.era<=world.era&&x.dif<=6&&tomK(x.tipo)>0);if(!fl.length)break;const f=R(fl);if(Math.random()<fantasyChance(null,f)*0.5){const ad=members(r.id).filter(x=>!x.isChild&&!x._dead);if(ad.length){const q=R(ad);q.poderes=q.poderes||[];if(!q.poderes.includes(f.id)){q.poderes.push(f.id);sincMagia(r);world.arcano+=0.3;log('',`🔮 Dizem que em ${r.name} alguém conseguiu ${f.nome}.`,[]);}}}}
   // os outros mundos nos alcançam
   const M=world.mundos;
-  if(!(M.dimensao&&M.dimensao.aberto)&&world.arcano>60&&Math.random()<0.004){log('big','🌀 Uma fenda de luz se abriu sozinha. Criaturas da Dimensão Mágica atravessaram!',[]);openWorld('dimensao',null);}
+  if(!(M.dimensao&&M.dimensao.aberto)&&world.arcano>60&&Math.random()<0.004*tomK('magia')*2){log('big','🌀 Uma fenda de luz se abriu sozinha. Criaturas da Dimensão Mágica atravessaram!',[]);openWorld('dimensao',null);}
   if(M.dimensao&&M.dimensao.aberto&&Math.random()<0.03){const r=R(occ);if(r){if(Math.random()<.5){world.arcano+=4;log('',`🌀 Seres luminosos da Dimensão Mágica visitaram ${r.name} e ensinaram segredos.`,[]);}else{const k=killIn(new Set([r.id]),0.05,'atacado(a) por uma criatura da Dimensão Mágica');log('big',`🌀 Uma fera da Dimensão Mágica atacou ${r.name}${k.dead?` e matou ${k.dead}`:''}.`,[]);}}}
   if(M.planeta&&M.planeta.aberto&&DORM.adults>200){const n0=Math.min(500,Math.floor(DORM.adults*0.002));let sent=0;for(let i=0;i<DORM.n&&sent<n0;i++){if(DORM.live[i]&&DORM.age[i]>=18&&DORM.age[i]<40&&Math.random()<.01){DORM.count(i,-1);DORM.live[i]=0;DORM.slot.delete(DORM.id[i]);sent++;}}
     M.planeta.colonos=Math.round((M.planeta.colonos||0)*1.02+sent);if(sent&&day%10===0)log('',`🪐 Colônia no Planeta Novo: ${M.planeta.colonos.toLocaleString('pt-BR')} pessoas (mais ${sent} partiram este ano).`,[]);}
@@ -4243,6 +4255,7 @@ document.getElementById('event').onclick=()=>worldEvent(true);
 document.getElementById('reset').onclick=()=>{init();renderInfo();document.getElementById('viewMapa').classList.add('on');document.getElementById('viewRegiao').classList.remove('on');};
 document.getElementById('viewMapa').onclick=()=>setView('mapa');
 document.getElementById('reportBtn').onclick=()=>{if(started)showReport();};
+document.getElementById('tomBtn').onclick=()=>{const b=document.getElementById('tomBox');b.style.display=b.style.display==='none'?'block':'none';if(started)tomUI();};
 document.getElementById('saveBtn').onclick=()=>saveGame(false);
 document.getElementById('loadBtn').onclick=()=>loadGame();
 document.getElementById('expBtn').onclick=()=>saveExport();
