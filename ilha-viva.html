@@ -3739,7 +3739,7 @@ function fantasyYear(){if(!started||!MAP)return;world.arcano=world.arcano||0;wor
   // os outros mundos nos alcançam
   const M=world.mundos;
   if(!(M.dimensao&&M.dimensao.aberto)&&world.arcano>60&&Math.random()<0.004*tomK('magia')*2){log('big','🌀 Uma fenda de luz se abriu sozinha. Criaturas da Dimensão Mágica atravessaram!',[]);openWorld('dimensao',null);}
-  if(M.dimensao&&M.dimensao.aberto&&Math.random()<0.03){const r=R(occ);if(r){if(Math.random()<.5){world.arcano+=4;log('',`🌀 Seres luminosos da Dimensão Mágica visitaram ${r.name} e ensinaram segredos.`,[]);}else{const k=killIn(new Set([r.id]),0.05,'atacado(a) por uma criatura da Dimensão Mágica');log('big',`🌀 Uma fera da Dimensão Mágica atacou ${r.name}${k.dead?` e matou ${k.dead}`:''}.`,[]);}}}
+  if(M.dimensao&&M.dimensao.aberto&&Math.random()<0.03*Math.min(1.5,tomK('magia')*2)){const r=R(occ);if(r){if(Math.random()<.5){world.arcano+=4;log('',`🌀 Seres luminosos da Dimensão Mágica visitaram ${r.name} e ensinaram segredos.`,[]);}else{const k=killIn(new Set([r.id]),0.05,'atacado(a) por uma criatura da Dimensão Mágica');log('big',`🌀 Uma fera da Dimensão Mágica atacou ${r.name}${k.dead?` e matou ${k.dead}`:''}.`,[]);}}}
   if(M.planeta&&M.planeta.aberto&&DORM.adults>200){const n0=Math.min(500,Math.floor(DORM.adults*0.002));let sent=0;for(let i=0;i<DORM.n&&sent<n0;i++){if(DORM.live[i]&&DORM.age[i]>=18&&DORM.age[i]<40&&Math.random()<.01){DORM.count(i,-1);DORM.live[i]=0;DORM.slot.delete(DORM.id[i]);sent++;}}
     M.planeta.colonos=Math.round((M.planeta.colonos||0)*1.02+sent);if(sent&&day%10===0)log('',`🪐 Colônia no Planeta Novo: ${M.planeta.colonos.toLocaleString('pt-BR')} pessoas (mais ${sent} partiram este ano).`,[]);}
   if(M.insetos&&M.insetos.aberto){const d=activeDisasters().find(x=>x.type==='insetos');if(d&&Math.random()<.2){d.regions=d.regions.slice(0,Math.floor(d.regions.length*0.7));log('big','🪲 Uma expedição atravessou até o Mundo dos Insetos e atacou a colmeia por dentro. A invasão recuou.',[]);}}
@@ -3848,8 +3848,8 @@ function desembarque(mundoId,sp,r){const E=ESPECIE[sp],W=world.mundos[mundoId],k
   weekNote('disc',`${quem} em ${r.name}`);aiSay('fantasy',hostil?`Eles não vieram visitar. Vieram ficar — e já têm um pé em ${r.name}.`:`Os mundos agora se tocam. Alguns vêm em paz.`);}
 const CRIA={unicornio:{e:'🦄',nome:'um unicórnio',bom:1,txt:'cura os feridos e faz a terra florescer'},fada:{e:'🧚',nome:'uma fada',bom:1,txt:'alegra o povo e espalha magia'},fenix:{e:'🦅',nome:'uma fênix',bom:1,txt:'inspira esperança e aquece a região'},ente:{e:'🌳',nome:'um ente guardião',bom:1,txt:'protege a floresta e abençoa a fé do povo'},
  dragao:{e:'🐉',nome:'um dragão',bom:0,txt:'queima tudo e devora gente'},lobo:{e:'🐺',nome:'um lobo espectral',bom:0,txt:'assombra as noites e aterroriza'},sombra:{e:'👻',nome:'uma sombra faminta',bom:0,txt:'rouba a coragem de quem a vê'},troll:{e:'👹',nome:'um troll',bom:0,txt:'destrói obras e ataca viajantes'}};
-function criaturasYear(){const M=world.mundos||{};if(!(M.dimensao&&M.dimensao.aberto))return;world.criaturas=world.criaturas||[];const occ=occupied();if(!occ.length)return;
-  if(world.criaturas.length<8&&Math.random()<Math.min(0.2,0.07+(world.arcano||0)/800)){const tipo=pickW(Object.keys(CRIA).map(k=>[k,CRIA[k].bom?1.1:0.9])),C=CRIA[tipo],r=R(occ);
+function criaturasYear(){const M=world.mundos||{};if(!(M.dimensao&&M.dimensao.aberto)||tomK('magia')<=0)return;world.criaturas=world.criaturas||[];const occ=occupied();if(!occ.length)return;
+  if(world.criaturas.length<8&&Math.random()<Math.min(0.2,0.07+(world.arcano||0)/800)*Math.min(1.5,tomK('magia')*2)){const tipo=pickW(Object.keys(CRIA).map(k=>[k,CRIA[k].bom?1.1:0.9])),C=CRIA[tipo],r=R(occ);
     world.criaturas.push({id:(world.criaSeq=(world.criaSeq||0)+1),tipo,reg:r.id,ate:day+Math.floor(rnd(3,10))});
     log('big',`${C.e} ${cap(C.nome)} atravessou da Dimensão Mágica e apareceu em ${r.name}! ${C.bom?'Dizem que '+C.txt+'.':'Dizem que '+C.txt+'.'}`,[]);weekNote('disc',`${C.nome} em ${r.name}`);
     if(r.id===world.active)members(r.id).forEach(n=>{remember(n,`vi ${C.nome} em ${r.name}`,9);if(!C.bom)shape(n,'coragem',-3,'viu uma criatura hostil');else shape(n,'curiosidade',3,'viu uma criatura mágica');});}
@@ -4190,7 +4190,7 @@ function drawSea(){if(!seaA)seaBuild();const a=.5+.5*Math.sin(performance.now()/
 let clkTxt='',eraTxt='';
 function hudClock(){const a=started?`${season().e} ${season().label} · ano ${day}`:`Dia ${day} · ${clockStr().slice(-5)}`;if(a!==clkTxt){clkTxt=a;document.getElementById('clock').textContent=a;}const E=ERAS[world.era],b=`${E.e} ${E.name}`;if(b!==eraTxt){eraTxt=b;document.getElementById('era').textContent=b;}}
 function mundosYear(){const M=world.mundos||{};world.colonias=world.colonias||[];const occ=occupied();if(!occ.length)return;
-  for(const id of ['dimensao','insetos']){const W=M[id];if(!W||!W.aberto)continue;const sp=id==='dimensao'?'elfo':'inseto';const p=Math.min(0.12,0.02+(day-(W.dia||0))*0.001);if(Math.random()>p)continue;
+  for(const id of ['dimensao','insetos']){const W=M[id];if(!W||!W.aberto)continue;const sp=id==='dimensao'?'elfo':'inseto';const p=Math.min(0.12,0.02+(day-(W.dia||0))*0.001)*Math.min(1.5,tomK(id==='dimensao'?'magia':'supertec')*2);if(Math.random()>p)continue;
     const r=R(occ);if(r)desembarque(id,sp,r);}
   criaturasYear();coloniasYear();try{marYear();}catch(e){console.error(e);}}
 function regionMundosHTML(r){const cs=(world.colonias||[]).filter(c=>c.reg===r.id),cr=(world.criaturas||[]).filter(c=>c.reg===r.id);let h='';
