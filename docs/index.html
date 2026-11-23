@@ -1440,6 +1440,22 @@ const ERA_MIN=[0,10,20,45,120,400,1500,6000,25000,80000];
 // anos (dias de jogo) mínimos em cada era antes da seguinte: a história leva uns 5 mil anos até os dias de hoje
 const ERA_ANOS=[400,600,800,700,700,600,250,120,100,0];
 function eraBlocked(d){const nx=ERAS[world.era+1];return nx&&nx.keys.includes(d.id)&&(totalPop()<ERA_MIN[world.era+1]||day-(world.eraStart||1)<ERA_ANOS[world.era]);}
+// Conquistas do mundo: marcos que aparecem uma única vez no diário e na linha do tempo
+const CONQUISTAS=[
+ {id:'p100',t:'O povo passou de 100 pessoas',ok:()=>totalPop()>=100},
+ {id:'p1k',t:'Mil pessoas vivem no mundo',ok:()=>totalPop()>=1000},
+ {id:'p10k',t:'Dez mil pessoas vivem no mundo',ok:()=>totalPop()>=10000},
+ {id:'p100k',t:'Cem mil pessoas vivem no mundo',ok:()=>totalPop()>=100000},
+ {id:'p1m',t:'Um milhão de pessoas vivem no mundo',ok:()=>totalPop()>=1000000},
+ {id:'ano1k',t:'Mil anos de história',ok:()=>day>=1000},
+ {id:'ano5k',t:'Cinco mil anos de história: o mundo chegou aos dias de hoje',ok:()=>day>=5000},
+ {id:'paises5',t:'Cinco povos com governo próprio',ok:()=>facs().filter(f=>f.alive).length>=5},
+ {id:'paises20',t:'Vinte povos com governo próprio',ok:()=>facs().filter(f=>f.alive).length>=20},
+ {id:'guerra',t:'A primeira guerra entre povos',ok:()=>facs().some(f=>f.alive&&f.wars&&Object.keys(f.wars).length)},
+ {id:'geracao10',t:'A décima geração nasceu',ok:()=>(world.maxGen||0)>=10}];
+function conquistasYear(){world.conq=world.conq||{};
+  for(const c of CONQUISTAS){if(world.conq[c.id])continue;let ok=false;try{ok=c.ok();}catch(e){}
+    if(ok){world.conq[c.id]=day;log('big','🏆 Conquista: '+c.t+' (ano '+day+').');}}}
 // Evento de era: a cada nova era acontece algo marcante que empurra a cultura de todos os povos
 const ERA_EVENTO=[null,
  {t:'A Noite do Fogo Grande: o bando inteiro se reuniu em volta de uma única fogueira e ninguém dormiu',cult:{coletivismo:1,tradicao:1}},
@@ -1605,7 +1621,7 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   const night=isNight();
   if(wasNight&&!night){
     world.hasHealer=NPCS.some(o=>roleOf(o)&&roleOf(o).out==='heal');if(day%10===0)pruneRelations();
-    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
+    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
     [...NPCS].forEach(n=>{if(!byId(n.id))return;n.workedToday=false;morningLife(n);});
     NPCS.forEach(n=>{estoriaCompress(n);morningReflection(n);metaMorning(n);if(!n.cmd)decide(n);});
     if(has('troca'))NPCS.forEach(n=>{if(n.isChild)return;const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=pickW(ks.map(k=>{let v=10;for(const tr in ITEMS[k].aff)v+=25*ITEMS[k].aff[tr]*T(n,tr);return [k,v];}));n.wants[k]=clamp(n.wants[k]+rnd(6,16));}});
