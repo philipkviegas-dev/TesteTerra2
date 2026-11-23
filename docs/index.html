@@ -2865,43 +2865,65 @@ function poligamiaYear(){
     remember(a,`escolhi ter também ${b.name} ao meu lado`,6,b.id);
     log('big',`💞 ${N(a)} passou a viver também com ${N(b)} (${nome}): em ${(facOf(a)||{name:'seu povo'}).name} a poligamia é ${po>=65?'costume aceito':po>=40?'uma escolha possível':'malvista, mas permitida'}.`,[a.id,b.id]);}}
 // ---------- poderes mágicos, portais e invenções livres ----------
-function darPoder(n,f){n.poderes=n.poderes||[];if(!n.poderes.includes(f.id))n.poderes.push(f.id);const m=members(n.region);let txt='';
-  if(f.id==='cura'||f.id==='pocao'){const h=m.filter(x=>x.hurt>0);h.forEach(x=>{x.hurt=0;remember(x,`${n.name} me curou com magia`,9,n.id);relate(x,n,15);});txt=h.length?`curou ${h.length} ferido(s) na hora`:'';}
+// ---------- Deuz decide se o efeito é bom ou ruim (nada é só bênção) ----------
+function deuzJulga(n,peso){const ten=clamp(world.tension||0,0,100)/100;let pBom=0.58-0.18*ten+0.12*(n?T(n,'bondade'):0)-0.04*(peso||0);pBom=clamp(pBom,0.2,0.8);
+  const bom=Math.random()<pBom,x=Math.random()+0.1*(peso||0);return {bom,forca:x>0.97?3:x>0.72?2:1};}
+function maleficio(n,f,forca,ctx){const r=regionOf(n),id=(f&&f.id)||ctx||'',nm=f&&f.nome?f.nome:ctx||'o poder';
+  const m=members(n.region).filter(x=>x!==n&&!x._dead).sort(()=>Math.random()-0.5);const ferir=(k,why)=>{const v=m.slice(0,k);v.forEach(x=>hurt(x,8+6*forca,why));return v;};let txt='';
+  if(id==='fogo_maos'){const v=ferir(forca+1,'foi queimado(a) por fogo mágico fora de controle');world.reserva=Math.max(0,world.reserva-3*forca);txt='o fogo mágico escapou e queimou gente';}
+  else if(id==='cura'||id==='pocao'){hurt(n,10*forca,'adoeceu: a cura cobrou seu preço de quem curou');txt='a cura cobrou seu preço de quem curou';}
+  else if(id==='clima'){world.reserva=Math.max(0,world.reserva-8*forca);txt='o clima enlouqueceu e estragou a colheita';}
+  else if(id==='animais'){ferir(forca,'foi atacado(a) por bichos enfurecidos');txt='os bichos se enfureceram';}
+  else if(id==='futuro'){world.tension=clamp((world.tension||0)+8*forca);m.slice(0,3).forEach(x=>remember(x,`${n.name} previu um futuro sombrio`,7));txt='viu um futuro sombrio e o medo se espalhou';}
+  else if(id==='varinha'){m.slice(0,forca+1).forEach(x=>relate(x,n,-10));txt='a varinha fez travessuras e o povo desconfiou';}
+  else if(id==='imortal'){m.slice(0,forca+2).forEach(x=>relate(x,n,-8));shape(n,'confianca',-3,'a vida longa trouxe solidão');txt='a vida longa trouxe solidão e inveja';}
+  else if(id==='golem'||id==='dragao'){const v=ferir(forca+1,'foi ferido(a) pela criatura que perdeu o controle');if(forca>=3&&v[0]&&canKill())die(v[0],'esmagado(a) pela criatura mágica',r?r.name:'');if(r)r.guarda=null;txt='a criatura mágica perdeu o controle';}
+  else if(id==='portal'||ctx==='portal'){ferir(forca,'foi ferido(a) por criaturas vindas do portal');world.arcano=Math.max(0,(world.arcano||0)-2);if(forca>=2&&r)startDisaster('insetos',r,1,false);txt='criaturas atravessaram o portal';}
+  else{hurt(n,8*forca,'sofreu um efeito colateral da magia');txt='a magia saiu errada';}
+  return txt;}
+function darPoder(n,f){n.poderes=n.poderes||[];if(!n.poderes.includes(f.id))n.poderes.push(f.id);const m=members(n.region);let txt='';const j=deuzJulga(n,f.dif||2);
+  if(f.id==='portal'){txt=criaPortal(n);if(!j.bom)txt+='; mas '+maleficio(n,f,j.forca);}
+  else if(!j.bom){txt=maleficio(n,f,j.forca);}
+  else if(f.id==='cura'||f.id==='pocao'){const h=m.filter(x=>x.hurt>0);h.forEach(x=>{x.hurt=0;remember(x,`${n.name} me curou com magia`,9,n.id);relate(x,n,15);});txt=h.length?`curou ${h.length} ferido(s) na hora`:'';}
   else if(f.id==='imortal'){n.life=(n.life||70)+60;txt='sua vida se estendeu por décadas';}
   else if(f.id==='clima'||f.id==='animais'||f.id==='fogo_maos'){world.reserva=Math.min(resCap(),world.reserva+10);txt='a comida do povo aumentou';}
   else if(f.id==='futuro'||f.id==='varinha'){world.kp+=15;txt='o saber do povo cresceu';}
-  else if(f.id==='portal')txt=criaPortal(n);
   else if(f.id==='golem'||f.id==='dragao'){regionOf(n).guarda=f.id;txt='agora protege a região';}
-  if(txt)log('',`✨ O poder de ${N(n)} mudou algo: ${txt}.`,[n.id]);}
+  if(txt)if(txt)log(j.bom?'':'big',`${j.bom?'✨':'🎲 Deuz decidiu — ✨/☠️'} O poder de ${N(n)} mudou algo: ${txt}.`,[n.id]);}
 function criaPortal(n){const r=regionOf(n);if(!r)return '';r.portal=true;addLugar(r,'Portal de '+n.name,'🌀',`${n.name} abriu um portal`,n);return `um portal agora existe em ${r.name}`;}
 function magiaYear(){NPCS.forEach(n=>{if(!n.poderes||!n.poderes.length||n.isChild)return;const m=members(n.region);
   n.poderes.forEach(id=>{if(id==='cura'||id==='pocao'){m.filter(x=>x.hurt>0).slice(0,3).forEach(x=>{x.hurt=0;remember(x,`${n.name} me curou com magia`,8,n.id);relate(x,n,10);});}
     else if(id==='clima'||id==='animais'||id==='fogo_maos')world.reserva=Math.min(resCap(),world.reserva+2);
     else if(id==='futuro'||id==='varinha')world.kp+=1;});
-  if(Math.random()<0.1&&m.length>1){const o=R(m);if(o!==n)relate(o,n,3);}});}
+  if(Math.random()<0.1&&m.length>1){const o=R(m);if(o!==n)relate(o,n,3);}
+  if(Math.random()<0.12){const j=deuzJulga(n,2),id=R(n.poderes),f=FEITO[id];if(f&&!j.bom){const t=maleficio(n,f,j.forca);if(t)log('big',`🎲 Deuz virou a sorte de ${N(n)}: ${t}.`,[n.id]);}}});}
 function portalYear(){const P=MAP.regions.filter(r=>r.portal&&members(r.id).length);if(!P.length)return;
   P.forEach(r=>{const ms=members(r.id).filter(x=>!x.isChild&&x.ageDays>=18&&!x.cmd);if(!ms.length)return;
     if(P.length>1&&Math.random()<0.5){const o=R(P.filter(x=>x!==r)),dest=members(o.id);if(dest.length){const a=R(ms);a.region=o.id;a.home=R(dest).home;RC.dirty=true;if(!here(a)){a.x=-9999;a.y=-9999;}remember(a,`atravessei o portal até ${o.name}`,8);log('',`🌀 ${N(a)} atravessou o portal de ${r.name} e apareceu em ${o.name}.`,[a.id]);}}
     if(Math.random()<0.4){const a=R(ms);const g=R(['frutas que brilham no escuro','sementes de outro mundo','um livro de símbolos','água que cura','uma pedra que canta']);
-      if(Math.random()<0.06&&canKill()){die(a,'perdido(a) do outro lado do portal',r.name);}
+      const j=deuzJulga(a,2);
+      if(!j.bom){const t=maleficio(a,{id:'portal'},j.forca,'portal');if(j.forca>=3&&canKill())die(a,'perdido(a) do outro lado do portal',r.name);log('big',`🎲 Deuz decidiu: do portal de ${r.name} veio o mal — ${t}.`,[a.id]);}
       else{world.arcano=(world.arcano||0)+4;world.kp+=8;world.reserva=Math.min(resCap(),world.reserva+4);ms.filter(x=>x.hurt>0).forEach(x=>{x.hurt=0;});remember(a,`fui à Dimensão pelo portal e voltei com ${g}`,9);shape(a,'curiosidade',3,'viajou por um portal');log('',`🌀 ${N(a)} cruzou o portal de ${r.name} e voltou com ${g}.`,[a.id]);}}});}
 const INV_V=['cantar para','dançar com','pintar','coletar','enterrar','plantar','conversar com','escutar','esculpir','empilhar','colecionar','trocar segredos com','apostar corrida com','navegar sobre','contar histórias para','dar nomes a','imitar','dormir sob','dar presentes a','contar','abraçar','assobiar para','desenhar','pesar','provar'];
 const INV_O=['as nuvens','as pedras do rio','as estrelas','os pássaros','a própria sombra','as conchas','o vento','as formigas','as folhas caídas','a chuva','o fogo','as ondas','os antepassados','as sementes','a lua','os bebês','o barro','as montanhas','o eco','os sonhos','as árvores','a neve','o próprio nome','os vizinhos'];
 const INV_M=['ao amanhecer','em silêncio','de cabeça para baixo','em roda, de mãos dadas','uma vez por lua','com o corpo pintado','sem falar uma palavra','rindo alto','à beira da água','de olhos fechados','em dupla','descalço','à meia-noite','em procissão','todo dia ao meio-dia'];
 const INV_E=[['diversão','😄','diversao'],['união','🤝','social'],['fé','🙏','fe'],['saber','💡','kp'],['fartura','🍞','comida'],['calma','🧘','diversao']];
+const INV_EM=[['discórdia','⚡','discordia'],['desperdício','🗑️','desperdicio'],['superstição','👁️','superstição'],['acidentes','🩹','acidente'],['vício','🌀','vicio']];
 function inventionYear(){world.praticas=world.praticas||[];const ad=NPCS.filter(n=>!n.isChild&&n.ageDays>=18);if(!ad.length)return;
   const K=Math.min(3,1+Math.floor(ad.length/60));
   for(let k=0;k<K;k++){const a=R(ad);if(Math.random()>0.06+0.25*Math.max(0,T(a,'curiosidade'))+0.1*Math.max(0,T(a,'coragem')))continue;
-    const nome=`${R(INV_V)} ${R(INV_O)} ${R(INV_M)}`;if(world.praticas.some(p=>p.nome===nome))continue;const ef=R(INV_E);
-    world.praticas.push({nome,ef:ef[2],e:ef[1],ev:ef[0],autor:a.id,autorNome:a.name,dia:day,reg:a.region,ad:[a.id]});if(world.praticas.length>120)world.praticas.shift();
+    const nome=`${R(INV_V)} ${R(INV_O)} ${R(INV_M)}`;if(world.praticas.some(p=>p.nome===nome))continue;const jv=deuzJulga(a,1),ef=jv.bom?R(INV_E):R(INV_EM);
+    world.praticas.push({mau:!jv.bom,nome,ef:ef[2],e:ef[1],ev:ef[0],autor:a.id,autorNome:a.name,dia:day,reg:a.region,ad:[a.id]});if(world.praticas.length>120)world.praticas.shift();
     a.fame=a.fame||`inventor(a) de “${nome}”`;remember(a,`tive uma ideia que ninguém tinha tido: ${nome}`,9);shape(a,'curiosidade',3,'inventou algo novo');world.kp+=2;
-    log('big',`💡 <b>${N(a)} inventou algo que ninguém pensara antes:</b> ${nome}. ${ef[1]}`,[a.id]);weekNote('disc',`${a.name} inventou: ${nome}`);}
+    log('big',`💡 <b>${N(a)} inventou algo que ninguém pensara antes:</b> ${nome}. ${ef[1]} <i>(Deuz decidiu: traz ${ef[0]})</i>`,[a.id]);weekNote('disc',`${a.name} inventou: ${nome}`);}
   world.praticas.forEach(p=>{if(p.fim)return;p.ad=p.ad.filter(id=>!world.deadNames[id]);
     if(!p.ad.length){p.fim=day;return;}
     const pool=members(p.reg).filter(o=>!o.isChild&&!p.ad.includes(o.id));
     for(let i=0;i<Math.min(3,pool.length);i++){const o=R(pool);if(Math.random()<0.12+0.2*Math.max(0,T(o,'curiosidade'))+0.1*Math.max(0,T(o,'sociabilidade'))&&!p.ad.includes(o.id)){p.ad.push(o.id);remember(o,`aprendi a ${p.nome}`,5);}}
     const ms=p.ad.map(byId).filter(Boolean);ms.forEach(o=>{o.needs.diversao=clamp(o.needs.diversao+4);});
-    if(p.ef==='kp')world.kp+=ms.length*0.3;else if(p.ef==='comida')world.reserva=Math.min(resCap(),world.reserva+ms.length*0.15);else if(p.ef==='fe'){const f=facOf(ms[0]||{});if(f)facCult(f).v.fe=clamp(facCult(f).v.fe+0.3,-100,100);}
+    if(p.mau){ms.forEach(o=>{if(p.ef==='discordia'){const q=R(ms);if(q!==o)relate(o,q,-2);}else if(p.ef==='vicio')o.needs.diversao=clamp(o.needs.diversao+3);else if(p.ef==='acidente'&&Math.random()<0.03&&!o.hurt)hurt(o,6,`se machucou praticando ${p.nome}`);});
+      if(p.ef==='desperdicio')world.reserva=Math.max(0,world.reserva-ms.length*0.2);else if(p.ef==='superstição'){const f=facOf(ms[0]||{});if(f)facCult(f).v.fe=clamp(facCult(f).v.fe-0.2,-100,100);}}
+    else if(p.ef==='kp')world.kp+=ms.length*0.3;else if(p.ef==='comida')world.reserva=Math.min(resCap(),world.reserva+ms.length*0.15);else if(p.ef==='fe'){const f=facOf(ms[0]||{});if(f)facCult(f).v.fe=clamp(facCult(f).v.fe+0.3,-100,100);}
     else if(p.ef==='social')ms.forEach(o=>{o.needs.social=clamp(o.needs.social+4);});
     if(p.ad.length>=10&&!p.costume){const a=byId(p.autor)||ms[0],f=a&&facOf(a);if(f){const c=facCult(f);p.costume=true;const cn='o costume de '+p.nome;if(!c.customs.includes(cn)){c.customs.push(cn);log('big',`🎭 Em ${f.name} virou costume: <b>${p.nome}</b> (${p.ad.length} praticantes).`,[]);}}}});}
 function livroInvencoes(){const L=world.praticas||[];if(!L.length)return '<div class="hint">Ninguém inventou nada ainda. Os curiosos e corajosos vão inventar coisas que nenhuma regra previa.</div>';
