@@ -2075,7 +2075,7 @@ function fabulaResolve(n){
       if(!enemies.length){setRelF(mf,R(facs().filter(f=>f.alive&&f!==mf))||mf,30);res=`${n.name} fez acordos de amizade com os vizinhos.`;pos('fiz amizade com outros povos');break;}
       const e=enemies[0];if(ok){makePeace(mf,e,`${n.name} negociou a paz`);shape(n,'bondade',5,'fez a paz');res=`${n.name} negociou a paz com ${e.name}. 🕊️`;pos(`fiz a paz com ${e.name}`,10);}
       else{res=`${n.name} propôs a paz, mas ${e.name} recusou.`;neg(`${e.name} recusou a paz`,8);}break;}
-    case 'magia':{const q=netPredict(FAN_NET,cmd.text);const fid=q.cls!=='nada'?q.cls:R(FANT.feitos.filter(f=>f.dif<=5)).id;const mest=members(n.region).find(m=>m!==n&&!m._dead&&(m.poderes||[]).includes(fid));if((n.poderes||[]).includes(fid)){res=`${n.name} já sabe ${FEITO[fid].nome}.`;break;}if(mest&&!n.aprende){comecaEnsino(mest,n,fid);res=`${n.name} começou a aprender ${FEITO[fid].nome} com ${mest.name} (leva anos).`;pos('arranjei um mestre');break;}const r2=fantasyAttempt(n,fid,true);res=r2?`${n.name} conseguiu ${FEITO[fid].nome}!`:`${n.name} tentou ${FEITO[fid].nome}, mas não deu certo desta vez.`;if(r2)pos(`consegui ${FEITO[fid].nome}`);else neg(`falhei tentando ${FEITO[fid].nome}`,6);break;}
+    case 'magia':{const q=netPredict(FAN_NET,cmd.text);const fid=q.cls!=='nada'?q.cls:R(FANT.feitos.filter(f=>f.dif<=5)).id;const mest=members(n.region).find(m=>m!==n&&!m._dead&&(m.poderes||[]).includes(fid));if((n.poderes||[]).includes(fid)){res=`${n.name} já sabe ${FEITO[fid].nome}.`;break;}if(mest&&!n.aprende){comecaEnsino(mest,n,fid);res=`${n.name} começou a aprender ${FEITO[fid].nome} com ${mest.name} (leva anos).`;pos('arranjei um mestre');break;}if(!n.aprende&&world.livros&&world.livros[n.region+':'+fid]){n.aprende={id:fid,mestre:null,livro:true,anos:0,dur:Math.max(4,Math.round((FEITO[fid].dif||2)*2.5))};res=`${n.name} começou a estudar o livro de ${world.livros[n.region+':'+fid].autor} sobre ${FEITO[fid].nome} (leva anos).`;pos('achei um livro para estudar');break;}const r2=fantasyAttempt(n,fid,true);res=r2?`${n.name} conseguiu ${FEITO[fid].nome}!`:`${n.name} tentou ${FEITO[fid].nome}, mas não deu certo desta vez.`;if(r2)pos(`consegui ${FEITO[fid].nome}`);else neg(`falhei tentando ${FEITO[fid].nome}`,6);break;}
     case 'transformar':{const r=regionOf(n),ti=transfInfo(cmd.text),ef=cmd.efeito||ti.efeito;let nome=(cmd.nome||ti.nome||'').trim();if(/^(fa[cç]a|fazer)$/i.test(nome)||nome.length<3)nome='';
       const por=(est)=>Object.keys(r.lug||{}).filter(id=>r.lug[id].est===est&&PLACES[id]);
       if(!ok){shape(n,'diligencia',-2,'a obra não saiu como planejado');if(Math.random()<.25)hurt(n,1,'se machucou na obra');res=`${n.name} tentou “${cmd.text}”, mas a obra desmoronou e a terra continua como estava.`;neg(`falhei ao tentar: ${cmd.text}`,6);break;}
@@ -2943,7 +2943,8 @@ function maldadeYear(){NPCS.forEach(n=>{if(n._dead||n.isChild||n.ageDays<18||n.h
    case 'fofoca':m.slice(0,4).forEach(w=>relate(w,v,-6));crime(n,'calúnia',v,`espalhou mentiras sobre ${v.name}`);break;
    case 'briga':hurt(v,8,`foi atacado(a) por ${n.name}`);crime(n,'agressão',v,`bateu em ${v.name}`);break;
    case 'agressao':hurt(v,16,`foi ferido(a) gravemente por ${n.name}`);crime(n,'agressão',v,`feriu ${v.name} de propósito`,true);break;
-   case 'incendio':world.reserva=Math.max(0,world.reserva-5);m.slice(0,2).forEach(w=>hurt(w,8,'se queimou num incêndio criminoso'));crime(n,'incêndio',null,`ateou fogo em ${r.name}`,true);break;
+   case 'incendio':world.reserva=Math.max(0,world.reserva-5);m.slice(0,2).forEach(w=>hurt(w,8,'se queimou num incêndio criminoso'));crime(n,'incêndio',null,`ateou fogo em ${r.name}`,true);
+      {world.livros=world.livros||{};const ks=Object.keys(world.livros).filter(k=>k.startsWith(n.region+':'));if(ks.length&&Math.random()<0.6){const k=ks[Math.floor(Math.random()*ks.length)],f=FEITO[k.split(':')[1]];const au=world.livros[k].autor;delete world.livros[k];if(f){log('big',`🔥📕 O livro de ${au} sobre ${f.nome} queimou no incêndio.`,[n.id]);weekNote('feito',`o livro de ${au} sobre ${f.nome} queimou`);}}}break;
    case 'traicao':{const c=byId(n.partner);relate(c,n,-50);shape(c,'confianca',-4,'foi traído(a)');crime(n,'traição',c,`traiu ${c.name}`);break;}
    case 'rebeliao':world.tension=clamp((world.tension||0)+8);m.slice(0,3).forEach(w=>relate(w,n,T(w,'ambicao')>0?8:-10));crime(n,'rebelião',null,`incitou o povo contra a ordem em ${r.name}`,true);break;
    case 'sabotagem':world.reserva=Math.max(0,world.reserva-4);world.kp=Math.max(0,world.kp-3);crime(n,'sabotagem',null,`sabotou o trabalho do povo`);break;
@@ -2953,10 +2954,20 @@ function maldadeYear(){NPCS.forEach(n=>{if(n._dead||n.isChild||n.ageDays<18||n.h
   });}
 function livroCrimes(){const L=world.crimes||[];if(!L.length)return '<div class="hint">Ninguém fez nada de mau ainda. Mas qualquer um pode, por livre-arbítrio.</div>';
   return L.slice().reverse().slice(0,80).map(c=>`<div class="box"><b>😈 ${String(c.n).replace(/</g,'&lt;')}</b> ${String(c.txt).replace(/</g,'&lt;')} <span class="hint">· ${c.tipo}, ano ${c.dia}${c.grave?' · grave':''}</span></div>`).join('');}
+function livroSaberes(){const esc=x=>String(x).replace(/</g,'&lt;');const h={};NPCS.forEach(n=>{if(!n._dead)(n.poderes||[]).forEach(id=>{(h[id]=h[id]||[]).push(n);});});
+  const L=world.livros||{},ids=new Set([...Object.keys(h),...Object.keys(L).map(k=>k.split(':')[1])]);
+  if(!ids.size)return '<div class="hint">Ninguém domina nenhum poder ainda. O saber precisa ser descoberto e depois ensinado.</div>';
+  return [...ids].filter(id=>FEITO[id]).map(id=>{const hs=h[id]||[],lv=Object.entries(L).filter(([k])=>k.split(':')[1]===id);
+    return `<div class="box"><b>${FEITO[id].nome}</b> <span class="hint">· ${hs.length} ${hs.length===1?'mestre':'que dominam'}${lv.length?' · 📕 '+lv.length+' livro(s)':''}</span><br>${hs.slice(0,12).map(n=>esc(n.name)).join(', ')||'<span class="hint">ninguém vivo; só o livro guarda o saber</span>'}${lv.length?'<br><span class="hint">autores: '+lv.map(([k,v])=>esc(v.autor)+' (ano '+v.ano+')').join(', ')+'</span>':''}</div>`;}).join('');}
 // ---------- o saber não é de todos: cada poder vive só em quem o aprendeu, e passa adiante pelo ensino ----------
 function sincMagia(r){if(!r)return;const m={};members(r.id).forEach(n=>{if(n._dead||n.isChild)return;(n.poderes||[]).forEach(id=>{m[id]=(m[id]||0)+1;});});r.magic=m;if(typeof calcBfx==='function')calcBfx(r);}
 function comecaEnsino(m,x,id){const f=FEITO[id];if(!f)return false;x.aprende={id,mestre:m.id,anos:0,dur:Math.max(3,Math.round(f.dif*1.5))};relate(x,m,5);remember(x,`comecei a aprender ${f.nome} com ${m.name}`,7,m.id);return true;}
 function ensinoYear(){const ocup=new Set();NPCS.forEach(x=>{if(x.aprende)ocup.add(x.aprende.mestre);});NPCS.forEach(n=>{if(n._dead||n.isChild)return;
+  if(n.aprende&&n.aprende.livro){const a=n.aprende,f=FEITO[a.id];world.livros=world.livros||{};if(!f||!world.livros[n.region+':'+a.id]){n.aprende=null;return;}a.anos++;if(a.anos<a.dur)return;n.aprende=null;n.poderes=n.poderes||[];if(n.poderes.includes(a.id))return;
+    if(Math.random()<clamp(0.3+0.3*T(n,'diligencia')+0.25*T(n,'curiosidade'),0.1,0.8)){n.poderes.push(a.id);sincMagia(regionOf(n));remember(n,`aprendi ${f.nome} sozinho, estudando o livro de ${world.livros[n.region+':'+a.id].autor}`,9);shape(n,'curiosidade',2,'aprendeu sozinho');n.fame=n.fame||`estudioso de ${f.nome}`;
+      log('big',`📚 <b>${N(n)} aprendeu ${f.nome}</b> sozinho, estudando o livro de ${world.livros[n.region+':'+a.id].autor}.`,[n.id]);weekNote('feito',`${n.name} aprendeu ${f.nome} sozinho, pelo livro`);}
+    else{remember(n,`estudei o livro de ${f.nome} e não entendi`,6);log('',`📚 ${N(n)} estudou o livro de ${f.nome}, mas não entendeu.`,[n.id]);}
+    return;}
   if(n.aprende){const a=n.aprende,m=byId(a.mestre),f=FEITO[a.id];if(!m||m._dead||m.region!==n.region||!f){n.aprende=null;return;}a.anos++;
     if(a.anos<a.dur)return;n.aprende=null;n.poderes=n.poderes||[];if(n.poderes.includes(a.id))return;
     if(Math.random()<clamp(0.45+0.3*T(n,'diligencia')+0.25*T(n,'curiosidade')+0.1*T(m,'sociabilidade'),0.15,0.95)){
@@ -2965,13 +2976,19 @@ function ensinoYear(){const ocup=new Set();NPCS.forEach(x=>{if(x.aprende)ocup.ad
       const j=deuzJulga(n,f.dif||2);if(!j.bom){const t=maleficio(n,f,j.forca);if(t)log('',`🎲 Deuz decidiu: ao aprender, ${N(n)} causou algo — ${t}.`,[n.id]);}}
     else{remember(n,`estudei ${f.nome} anos a fio e não consegui aprender`,7);shape(n,'confianca',-2,'não conseguiu aprender');log('',`📖 ${N(n)} não conseguiu aprender ${f.nome}, apesar do esforço.`,[n.id]);}
     return;}
+  world.livros=world.livros||{};
+  if(n.poderes&&n.poderes.length&&n.ageDays>=ELDER_AGE-10&&T(n,'diligencia')>0&&Math.random()<0.05){const id=R(n.poderes),k=n.region+':'+id;if(FEITO[id]&&!world.livros[k]){world.livros[k]={autor:n.name,ano:day};log('big',`📕 <b>${N(n)} escreveu um livro</b> sobre ${FEITO[id].nome}, para que o saber não morra com ${n.sex==='F'?'ela':'ele'}.`,[n.id]);weekNote('feito',`${n.name} escreveu um livro sobre ${FEITO[id].nome}`);}}
+  if(!(n.poderes&&n.poderes.length)&&n.ageDays>=25&&Math.random()<0.004+0.02*Math.max(0,T(n,'curiosidade'))){const ks=Object.keys(world.livros).filter(k=>k.startsWith(n.region+':'));if(ks.length){const id=ks[Math.floor(Math.random()*ks.length)].split(':')[1],f=FEITO[id];if(f){n.aprende={id,mestre:null,livro:true,anos:0,dur:Math.max(4,Math.round(f.dif*2.5))};remember(n,`comecei a estudar sozinho o livro de ${f.nome}`,6);return;}}}
   if(!n.poderes||!n.poderes.length||n.ageDays<25)return;
   const egoista=T(n,'bondade')<-0.2||T(n,'ambicao')>0.6;if(egoista&&Math.random()<0.7)return;
   if(ocup.has(n.id))return;if(Math.random()>0.025+0.06*Math.max(0,T(n,'sociabilidade'))+0.04*Math.max(0,T(n,'bondade')))return;
   const c=members(n.region).filter(x=>x!==n&&!x.isChild&&!x._dead&&!x.aprende&&(x.poderes||[]).length<n.poderes.length+1&&n.poderes.some(id=>!(x.poderes||[]).includes(id)));if(!c.length)return;
   const x=pickW(c.map(y=>[y,1+3*Math.max(0,T(y,'curiosidade'))+((n.kids||[]).includes(y.id)?3:0)+Math.max(0,((y.rel&&y.rel[n.id])||0)/20)]));
   const id=R(n.poderes.filter(i=>!(x.poderes||[]).includes(i)));if(id&&comecaEnsino(n,x,id)){ocup.add(n.id);log('',`📖 ${N(n)} começou a ensinar ${FEITO[id].nome} a ${N(x)}.`,[n.id,x.id]);}});
-  MAP.regions.forEach(r=>{if(r.magic&&Object.keys(r.magic).length||members(r.id).some(x=>(x.poderes||[]).length))sincMagia(r);});}
+  MAP.regions.forEach(r=>{if(r.magic&&Object.keys(r.magic).length||members(r.id).some(x=>(x.poderes||[]).length))sincMagia(r);});
+  const h={};Object.keys(world.livros||{}).forEach(k=>{h[k.split(':')[1]]=1;});NPCS.forEach(n=>{if(!n._dead)(n.poderes||[]).forEach(id=>{h[id]=1;});});try{DORM.extra.forEach(e=>{(e.poderes||[]).forEach(id=>{h[id]=1;});});}catch(e){}
+  world.saber=world.saber||{};Object.keys(world.saber).forEach(id=>{if(!h[id]&&FEITO[id]){const t=`o saber de ${FEITO[id].nome} se perdeu: ninguém mais sabe fazê-lo`;log('feito',`📜 ${t[0].toUpperCase()+t.slice(1)}.`,[]);weekNote('feito',t);delete world.saber[id];}});
+  Object.keys(h).forEach(id=>{world.saber[id]=1;});}
 function cultName(f){const c=facCult(f);return c.name;}
 function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.regions[f.capital],v=c.v;
   const push=(k,d)=>{v[k]=clamp(v[k]+d,-100,100);};
@@ -3163,6 +3180,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    ${n.goals&&n.goals.length?`<div>🎯 <b>Desejos:</b> ${n.goals.map(g=>g.text).join(' · ')}</div>`:''}
    <div>🌟 <b>Sonho:</b> ${n.dream?n.dream.text+(n.meta?' <span class="hint">(em pausa: a meta do jogador vem primeiro)</span>':''):'<span class="hint">ainda não sabe</span>'}</div>
    <div>${n.isChild?`👪 pais: ${n.parents.map(nameOf).join(' e ')}`:`💕 ${n.partner&&byId(n.partner)?'junto com '+N(byId(n.partner))+(conjuges(n).length>1?' (+'+(conjuges(n).length-1)+' cônjuge(s))':''):n.crush&&byId(n.crush)?'apaixonado(a) por '+N(byId(n.crush)):'solteiro(a)'}${n.kids.length?' · 👶 '+n.kids.map(nameOf).join(', '):''} · 🧬 desejo de família ${Math.round(n.family)}%`}</div>
+   ${n.aprende&&FEITO[n.aprende.id]?`<div>📖 aprendendo ${FEITO[n.aprende.id].nome} com ${(byId(n.aprende.mestre)||{}).name||'um mestre'} (${n.aprende.anos}/${n.aprende.dur} anos)</div>`:''}
    ${n.poderes&&n.poderes.length?`<div>✨ poderes: ${n.poderes.map(id=>{const f=FEITO[id];return f?(f.emoji||'')+' '+(f.nome||f.name||id):id;}).join(', ')}</div>`:''}
    ${has('troca')?`<div>🎒 ${n.items.map(k=>ITEMS[k].e).join(' ')||'<span class="hint">nada</span>'} · ✨ ${wants||'<span class="hint">sem desejos</span>'}</div>`:''}
    <div style="margin:4px 0">${labels}</div>
@@ -3247,7 +3265,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream)this.extra.set(id,{items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes)this.extra.set(id,{poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3263,7 +3281,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
@@ -4050,8 +4068,8 @@ let livroTab='tempo',livroEra=-1;
 function livroAbre(t){if(t)livroTab=t;let el=document.getElementById('livro');if(!el){el=document.createElement('div');el.id='livro';document.body.appendChild(el);}el.style.display='flex';livroRender();}
 function livroFecha(){const el=document.getElementById('livro');if(el)el.style.display='none';}
 function livroRender(){const el=document.getElementById('livro');if(!el||el.style.display==='none')return;
-  const tabs=[['tempo','📜 Linha do tempo'],['casas','🏰 Casas'],['eras','🗿 Eras'],['povos','🌍 Povos e culturas'],['reliq','🏺 Relíquias'],['inv','💡 Invenções'],['mal','😈 Crimes'],['busca','🔎 Buscar'],['teste','🧪 Autoteste e pular anos']];
-  let body='';try{body=livroTab==='casas'?livroCasas():livroTab==='eras'?livroEras():livroTab==='povos'?livroPovos():livroTab==='reliq'?livroReliquias():livroTab==='inv'?livroInvencoes():livroTab==='mal'?livroCrimes():livroTab==='busca'?livroBuscaTab():livroTab==='teste'?livroTeste():livroTempo();}catch(e){console.error(e);body='<div class="hint">Não foi possível montar esta aba.</div>';}
+  const tabs=[['tempo','📜 Linha do tempo'],['casas','🏰 Casas'],['eras','🗿 Eras'],['povos','🌍 Povos e culturas'],['reliq','🏺 Relíquias'],['inv','💡 Invenções'],['mal','😈 Crimes'],['saber','📚 Saberes'],['busca','🔎 Buscar'],['teste','🧪 Autoteste e pular anos']];
+  let body='';try{body=livroTab==='casas'?livroCasas():livroTab==='eras'?livroEras():livroTab==='povos'?livroPovos():livroTab==='reliq'?livroReliquias():livroTab==='inv'?livroInvencoes():livroTab==='mal'?livroCrimes():livroTab==='saber'?livroSaberes():livroTab==='busca'?livroBuscaTab():livroTab==='teste'?livroTeste():livroTempo();}catch(e){console.error(e);body='<div class="hint">Não foi possível montar esta aba.</div>';}
   el.innerHTML=`<div class="livroBox"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:20px">📖 Livro do Mundo <span class="hint">· ano ${day}</span></b><button onclick="livroFecha()">✕ Fechar</button></div><div class="tabs">${tabs.map(([k,l])=>`<button class="${livroTab===k?'on':''}" onclick="livroAbre('${k}')">${l}</button>`).join('')}</div><div class="livroCorpo">${body}</div></div>`;}
 function livroTempo(){casasInit();const L=world.timeline;const opt=[`<option value="-1">Todas as eras</option>`].concat(ERAS.map((E,i)=>i<=world.era?`<option value="${i}" ${livroEra===i?'selected':''}>${E.e} ${E.name}</option>`:'')).join('');
   const f=(livroEra<0?L:L.filter(x=>x.e===livroEra)).slice(-400).reverse();
