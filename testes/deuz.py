@@ -1,4 +1,6 @@
 HAND=[('uma estrela cadente gigante esmagando a vila','meteoro'),('uma gripe que passa de um para outro','peste'),('lagartas devorando os campos','praga'),('criaturas de seis patas vindas de outro mundo','insetos'),
 ('um temporal que derruba as árvores','tempestade'),('o rio secar por completo','seca'),('frutas sobrando em todo canto','fartura'),('uns forasteiros chegando pela praia','estrangeiros'),('o dia virar noite de repente','eclipse'),
 ('uma horda de bárbaros saqueando','invasao'),('a melhor safra de todos os tempos','colheita'),('valeu, até mais','nada'),('uma chuva de pedras flamejantes','meteoro'),('um mal que deixa todos de cama','peste'),
-('o vento arranca os telhados','tempestade'),('meses sem uma gota de água','seca'),('gente nova vindo morar aqui','estrangeiros'),('o que você está fazendo?','nada'),('um enxame gigante saindo de uma fenda','insetos'),('fungos estragando todo o milho','praga')]
+('o vento arranca os telhados','tempestade'),('meses sem uma gota de água','seca'),('gente nova vindo morar aqui','estrangeiros'),('o que você está fazendo?','nada'),('um enxame gigante saindo de uma fenda','insetos'),('fungos estragando todo o milho','praga'),
+('uma crise financeira em Kaloor','crise'),('os bancos falindo todos','crise'),('o dinheiro perdendo o valor','crise'),('uma era de riqueza e ouro','prosperidade'),('o comércio florescendo','prosperidade'),('um boom na economia','prosperidade'),
+('um grande torneio entre as regiões','torneio'),('um campeonato de atletas','torneio'),('os jogos olímpicos','torneio')]

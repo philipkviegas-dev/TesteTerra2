@@ -29,8 +29,8 @@ tr = ds['train'].map(formatar, remove_columns=ds['train'].column_names)
 te = ds['test'].map(formatar, remove_columns=ds['test'].column_names)
 
 args = TrainingArguments(output_dir='saida', per_device_train_batch_size=4, gradient_accumulation_steps=4, num_train_epochs=EPOCAS,
-                         learning_rate=2e-4, lr_scheduler_type='cosine', warmup_steps=0.03, logging_steps=25, eval_strategy='steps', eval_steps=400,
-                         save_steps=200, save_total_limit=2, fp16=True, optim='paged_adamw_8bit', report_to=[], gradient_checkpointing=True)
+                         learning_rate=2e-4, lr_scheduler_type='cosine', warmup_steps=30, logging_steps=25, eval_strategy='steps', eval_steps=400,
+                         save_steps=200, save_total_limit=2, fp16=True, optim='paged_adamw_8bit', report_to=[], gradient_checkpointing=True, gradient_checkpointing_kwargs={'use_reentrant':False})
 Trainer(model=model, args=args, train_dataset=tr, eval_dataset=te, data_collator=DataCollatorForLanguageModeling(tok, mlm=False)).train(
     resume_from_checkpoint=(os.path.isdir('saida') and any(d.startswith('checkpoint-') for d in os.listdir('saida'))) or None)
 model.save_pretrained('ilhaviva-lora'); tok.save_pretrained('ilhaviva-lora')
