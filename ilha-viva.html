@@ -2454,9 +2454,10 @@ const FAB={
  boato:{label:'espalhar um boato',h:2,target:true,vida:'boato',w:{sociabilidade:.25,bondade:-.15},rel:0,place:'centro',ok:(n,t)=>`${n.name} espalhou um boato sobre ${t.name} e todos ficaram sabendo.`,ko:(n,t)=>`${n.name} tentou espalhar um boato sobre ${t.name}, mas ninguém acreditou.`},
  ameacar:{label:'ameaçar alguém',h:1,target:true,vida:'ameacar',w:{coragem:.3,bondade:-.2},rel:0,place:'centro',ok:(n,t)=>`${n.name} ameaçou ${t.name} e deixou todo mundo tenso.`,ko:(n,t)=>`${n.name} ameaçou ${t.name}, mas ${t.name} não se abalou.`},
  vandalizar:{label:'quebrar / vandalizar',h:2,vida:'vandalizar',w:{coragem:.2,bondade:-.2},place:'centro',ok:(n)=>`${n.name} quebrou coisas do povo e fugiu rindo.`,ko:(n)=>`${n.name} tentou fazer bagunça, mas foi visto e desistiu.`},
+ migrar:{label:'migrar com seu povo',h:6,w:{coragem:.25,curiosidade:.2,sociabilidade:.1},place:'praia'},
  outro:{label:'fazer o que foi pedido',h:3,w:{coragem:.15,curiosidade:.1,diligencia:.1}},
 };
-const FAB_RULES=[['mar',/atlante|atlantida|sereia|tritao|(coloniz|fund(ar|e|a)|habit|morar|viver|povoar|ocupar|conquist).{0,25}(\bmar\b|oceano|profundez|abismo|submers|submarin|subaqu|debaixo d)|cidade (submersa|submarina|subaquatica|abissal|flutuante no mar)|base (submarina|subaquatica)|\belfos?\b.{0,40}(alianca|guerra|paz|amig|miscig|mistur|casar|filhos)|(alianca|guerra|paz|amig|miscig|mistur|casar|filhos).{0,30}\b(elfos?|elfas?)\b|miscigen|mestic|(miscig|mistur|casar|alianca|amig|paz).{0,30}(inset|formig)/],
+const FAB_RULES=[['migrar',/migr|emigr|(lev(e|ar|a)|conduz|guie|guiar) (o |seu |sua |a )?(povo|tribo|gente|fam[ií]lia|cl[aã])|(mud(e|ar)|v[aá]|ir|siga|seguir|parta|partir|rume|rumar|marche|marchar)( com| junto)?.{0,40}(para|pro|rumo|ao) (o |a )?(oeste|leste|norte|sul|ocidente|oriente)|(povo|tribo|fam[ií]lia).{0,30}(para|pro|ao) (o )?(oeste|leste|norte|sul)/],['mar',/atlante|atlantida|sereia|tritao|(coloniz|fund(ar|e|a)|habit|morar|viver|povoar|ocupar|conquist).{0,25}(\bmar\b|oceano|profundez|abismo|submers|submarin|subaqu|debaixo d)|cidade (submersa|submarina|subaquatica|abissal|flutuante no mar)|base (submarina|subaquatica)|\belfos?\b.{0,40}(alianca|guerra|paz|amig|miscig|mistur|casar|filhos)|(alianca|guerra|paz|amig|miscig|mistur|casar|filhos).{0,30}\b(elfos?|elfas?)\b|miscigen|mestic|(miscig|mistur|casar|alianca|amig|paz).{0,30}(inset|formig)/],
  ['transformar',/transposi|irrig|\bcanal\b|represa|barrage|desvi(ar|e|a) .*(rio|lago|riacho|agua)|drenar|dren(e|a) |aterr|alagar|reflorest|plantar (uma |um )?(floresta|bosque)|abrir (um |uma )?(lago|rio|poco|lagoa)|cavar (um |uma )?(lago|canal|poco)|terraform|transform(ar|e) (o |a )?(deserto|terra|campo|floresta|lago|rio)|fertiliz|(secar|seque) (o |a )?(lago|pantano)/],
  ['artefato',/\b(cri(e|ar|a)|forj(e|ar|a)|fabriqu(e|ar)|invoqu(e|ar)|conjur(e|ar)|materializ(e|ar)|fa[cç]a|fazer|d[eê]|ganhe)\b.{0,30}\b(keyblade|espada|lamina|cajado|varinha|arma|amuleto|anel|coroa|artefato|escudo|talism|reliquia|grimorio|orbe|cristal|arco magico|chave m)/],
  ['governo',/monarquia|rep[uú]blica|democracia|ditadura|teocracia|imp[eé]rio|oligarquia|anarquia|parlament|federa[cç]|(sistema|forma|regime) de governo|conselho de anci|instaur|governo (democr|autorit|religios|militar|popular|livre)/],
@@ -2483,7 +2484,7 @@ function transfInfo(text){const t=norm(text);let efeito='obra';
   if(m)nome=m[1].trim().replace(/\s+(para|pra|com|que|e)\s.*$/i,'');
   return {efeito,nome};}
 // ---- comandos amplos: obra pelo nome, leis, sistemas de governo, exércitos e projetos livres
-const FORTE=new Set(['mar','transformar','artefato','governo','lei','exercito','projeto']);
+const FORTE=new Set(['migrar','mar','transformar','artefato','governo','lei','exercito','projeto']);
 function obraByName(text){const t=norm(text);let best=null;
   for(const o of ARQ.obras){const nm=norm(o.nome).replace(/\(.*?\)/g,'').trim();if(nm.length<4)continue;const stem=nm.replace(/s$/,'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     try{if(new RegExp('\\b'+stem+'s?\\b').test(t)&&(!best||stem.length>best.l))best={o,l:stem.length};}catch(e){}}
@@ -2570,7 +2571,7 @@ async function fabulaCommand(n,text,isMeta){
   text=text.trim();if(!text)return;
   if(isMeta){
     const p=await fabulaInterpret(n,text);
-    n.meta={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,since:day,prog:0,kids0:n.kids.length,fame0:n.fame,qtd:p.acao==='filho'?metaQtd(text):1};
+    n.meta={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,since:day,prog:0,reg0:n.region,kids0:n.kids.length,fame0:n.fame,qtd:p.acao==='filho'?metaQtd(text):1};
     log('big',`🎯 Nova meta para ${N(n)}: <b>“${text}”</b> (${FAB[p.acao].label}${n.meta.qtd>1?' × '+n.meta.qtd:''}${p.alvo?' · '+p.alvo.name:''}). Ela vale até ser atingida e tem prioridade sobre o sonho de ${n.name}.`,[n.id]);
     think(n,`Agora eu tenho um objetivo: ${text}.`,'🎯');remember(n,`decidi: ${text}`,9);
     setFabOut(`🎯 Meta definida para ${n.name}. Todo dia ${n.name} vai tentar avançar nela sozinho(a).`);
@@ -2730,6 +2731,7 @@ function fabulaResolve(n){
       if(p&&ok){p.prog+=Math.max(1,Math.round(p.cost*.35));if(n.meta&&n.meta.acao==='construir')n.meta.proj=p.id;shape(n,'diligencia',3,'construiu');res=`${n.name} pôs a mão na massa e avançou ${obraNome(p)}. 🛠️`;pos(`trabalhei em ${obraNome(p)}`);}
       else if(ok){res=`${n.name} quis construir, mas não deu para começar a obra agora.`;neg('não consegui começar a obra',5);}
       else{res=`${n.name} tentou construir: “${cmd.text}”, mas a obra não andou.`;neg(`tentei construir: ${cmd.text}`,6);}break;}
+    case 'migrar':{const [txt,bom]=migrarComPovo(n,cmd.text,ok);res=txt;if(bom)pos(txt,10);else neg(txt,6);break;}
     case 'funcao':{const r=ROLES.find(x=>x.id===cmd.funcao)||R(availableRoles());if(ok){const old=roleOf(n);n.role=r.id;res=`${n.name} ${old?`deixou de ser ${old.name.toLowerCase()} e `:''}agora é ${r.name.toLowerCase()} ${r.e}.`;pos(`virei ${r.name}`);}else{res=`${n.name} pediu para ser ${r.name.toLowerCase()}, mas a tribo não aceitou ainda.`;neg(`não me deixaram ser ${r.name}`,6);}break;}
     default:if(ok){shape(n,'confianca',4,'fez o que queria');res=`${n.name} fez o que foi pedido: “${cmd.text}”. E deu certo.`;pos(`fiz: ${cmd.text}`);}else{shape(n,'confianca',-3,'não conseguiu');res=`${n.name} tentou: “${cmd.text}”. Não saiu como esperado.`;neg(`tentei: ${cmd.text}`,6);}
   }
@@ -2761,6 +2763,39 @@ function fabulaResolve(n){
   else checkMeta(n);
   if(!n.cmd)decide(n);
 }
+// MIGRAR COM O POVO: o personagem leva família, amigos e parte do povo (fichas compactas incluídas) para a região vizinha na direção pedida
+function migrarComPovo(n,text,ok){
+  const from=regionOf(n),t=norm(text);
+  const D=/oeste|ocidente|poente/.test(t)?[-1,0]:/leste|oriente|nascente/.test(t)?[1,0]:/norte/.test(t)?[0,-1]:/\bsul\b/.test(t)?[0,1]:null;
+  const nomeD=D?(D[0]<0?'oeste':D[0]>0?'leste':D[1]<0?'norte':'sul'):'além';
+  const dot=r=>{const dx=r.x-from.x,dy=r.y-from.y,L=Math.hypot(dx,dy)||1;return D?(dx*D[0]+dy*D[1])/L:0;};
+  const opts=[...new Set(from.nb.concat(has('barcos')?from.sea:[]))].map(id=>MAP.regions[id]).filter(r=>r&&r.id!==from.id);
+  const pool=D?opts.filter(r=>dot(r)>0.35):opts;
+  if(!pool.length)return [`${n.name} quis levar o povo para o ${nomeD}, mas dali não há terra ao alcance para onde ir.`,false];
+  if(!ok)return [`${n.name} chamou o povo para seguir ao ${nomeD}, mas ninguém quis largar o que tinha.`,false];
+  const val=r=>Object.values(r.res).filter(Boolean).length-regionPop(r.id)/REGION_CAP*3+dot(r)*2+rnd(0,1);
+  const to=pool.sort((a,b)=>val(b)-val(a))[0],isNew=!regionPop(to.id);
+  const people=members(from.id),set=new Set([n]);
+  const add=o=>{if(o&&o.region===from.id&&!o._dead)set.add(o);};
+  add(byId(n.partner));people.forEach(k=>{if(k.isChild&&k.parents.includes(n.id))add(k);});
+  people.filter(o=>!o.isChild&&o!==n&&(o.rel[n.id]||0)>10).sort((a,b)=>(b.rel[n.id]||0)-(a.rel[n.id]||0)).slice(0,14).forEach(o=>{add(o);add(byId(o.partner));people.forEach(k=>{if(k.isChild&&k.parents.includes(o.id))add(k);});});
+  const group=[...set];
+  // o resto do povo (fichas compactas): até 40% dos que moram ali, no máximo 40 pessoas, com os companheiros
+  let extra=0;try{const tot=DORM.pop?DORM.pop[from.id]:0,max=Math.min(40,Math.round(tot*0.4)),pr=tot?Math.min(1,max/tot*1.3):0;
+    for(let i=0;i<DORM.n&&extra<max;i++){if(!DORM.live[i]||DORM.reg[i]!==from.id||Math.random()>pr)continue;
+      const ls=[i];const ps=DORM.slotOf(DORM.partner[i]);if(ps>=0&&DORM.live[ps]&&DORM.reg[ps]===from.id)ls.push(ps);
+      ls.forEach(k=>{DORM.count(k,-1);DORM.reg[k]=to.id;DORM.count(k,1);extra++;});}}catch(e){console.error(e);}
+  RC.dirty=true;
+  group.forEach(g=>{g.region=to.id;g.home=R(['casaA','casaB','casaC']);g.cmd=null;if(g!==n){g.cmdQueue=[];}if(to.id!==world.active){g.x=-9999;g.y=-9999;}else{g.x=PLACES.praia.x;g.y=PLACES.praia.y+40;g.tx=null;}remember(g,`segui ${n.name} de ${from.name} para ${to.name}`,10,n.id);shape(g,'coragem',4,'migrou');if(g!==n)relate(g,n,4);});
+  if(isNew){to.founded=day;to.reserva=8;to.founders=group.map(g=>g.id);to.faction=from.faction;world.facDirty=true;world.facVer=(world.facVer||0)+1;}
+  world.migrations.push({from:from.id,to:to.id,day,n:group.length+extra});weekNote('migr',`${n.name} para ${to.name}`);
+  const nomes=group.slice(0,6).map(N).join(', ')+(group.length>6?` e mais ${group.length-6}`:'');
+  log('big',`🧳 ${N(n)} levou seu povo (${nomes}${extra?` + ${extra} moradores`:''}) de ${from.name} para <b>${to.name}</b>, rumo ao ${nomeD}${isNew?' — um povoado novo nasce ali':''}.`,group.slice(0,8).map(g=>g.id));
+  aiSay('tea',`${group.length+extra} pessoas seguiram ${n.name} de ${from.name} para ${to.name}.`,group.slice(0,8).map(g=>g.id));
+  people.forEach(o=>{if(o.region===from.id&&!set.has(o)&&(o.rel[n.id]||0)>40)remember(o,`${n.name} foi embora com o povo para ${to.name}`,7,n.id);});
+  if(selected&&group.includes(selected)&&mode==='morador'&&to.id!==world.active)showIsland();
+  return [`${n.name} levou ${group.length+extra} pessoas para ${to.name}, ao ${nomeD}. 🧳`,true];
+}
 // quantidade pedida na meta ("ter 10 filhos", "ter dez filhos", "três filhos"); sem número = 1
 function metaQtd(text){const t=norm(text);const d=t.match(/\d+/);if(d)return Math.max(1,Math.min(30,+d[0]));
   const W={um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,treze:13,quatorze:14,quinze:15,vinte:20};
@@ -2775,6 +2810,7 @@ function metaDone(n){
     case 'filho':return n.kids.length-m.kids0>=(m.qtd||1);
     case 'descobrir':return n.fame&&n.fame!==m.fame0;
     case 'funcao':return n.role===m.funcao;
+    case 'migrar':return m.reg0!=null&&n.region!==m.reg0;
     case 'construir':{if(!m.proj)return false;const p=(world.projects||[]).find(x=>x.id===m.proj);return !p||!!p.done;}
     case 'crenca':return !!n.belief&&n.belief.believers.length>=6;
     default:return m.prog>=100;
