@@ -2853,7 +2853,7 @@ function setFabOut(html){const el=document.getElementById('fabOut');if(el)el.inn
 const MW=800,MH=544,CELL=1.25; // 800×544 células desenhadas em 1000×680 (regiões minúsculas: 60 pessoas cada)
 const TERR=[{n:'mar fundo',c:[58,120,196]},{n:'mar raso',c:[102,170,230]},{n:'praia',c:[240,222,160]},{n:'campo',c:[168,214,110]},{n:'floresta',c:[74,150,78]},{n:'colina',c:[160,170,120]},{n:'montanha',c:[150,140,130]},{n:'neve',c:[240,240,245]},{n:'deserto',c:[232,200,120]},{n:'savana',c:[200,196,96]},{n:'selva',c:[40,120,60]},{n:'tundra',c:[176,190,180]}];
 const CONT=['Continente de Origem','Continente do Leste'];
-let MAP=null,borderImg=null,view='mapa',started=false,mapSel=null,mapImg=null,mapHover=null;
+let mapFac=null,MAP=null,borderImg=null,view='mapa',started=false,mapSel=null,mapImg=null,mapHover=null;
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function makeNoise(rand,size){const g=[];for(let i=0;i<size*size;i++)g.push(rand());const at=(x,y)=>g[((y%size+size)%size)*size+((x%size+size)%size)];const sm=t=>t*t*(3-2*t);
   return (x,y)=>{const x0=Math.floor(x),y0=Math.floor(y),fx=sm(x-x0),fy=sm(y-y0);const a=at(x0,y0),b=at(x0+1,y0),c=at(x0,y0+1),d=at(x0+1,y0+1);return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;};}
@@ -3347,10 +3347,21 @@ function drawMap(){
   if(MZ.z>1){ctx.font='700 12px "Baloo 2"';ctx.textAlign='left';ctx.fillStyle='rgba(255,247,232,.9)';rr(8,H-30,150,22,8);ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText('🔎 zoom '+MZ.z.toFixed(1)+'× · arraste para mover',16,H-14);}
   if(!started){ctx.fillStyle='rgba(255,247,232,.92)';rr(250,16,500,58,16);ctx.fill();ctx.fillStyle='#3b2f2a';ctx.font='700 18px "Baloo 2"';ctx.textAlign='center';ctx.fillText('Clique numa região de terra para começar a história',500,42);ctx.font='13px "Baloo 2"';ctx.fillText(mapHover?`${mapHover.name}: ${resLabel(mapHover)}`:'O terreno define o que seus nativos vão encontrar por perto',500,62);}
 }
+// Povo clicável: abre no painel do mapa a ficha do povo (população, capital, líder, regime, cultura, leis, alianças)
+function facLink(f){return `<a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" title="ver o povo" onclick="mapFac=${f.id};renderInfo();return false">${f.name}</a>`;}
+function facBoxHTML(f){const rs=facRegions(f),pop=rs.reduce((s,q)=>s+regionPop(q.id),0),cap=MAP.regions[f.capital],g=facGov(f),lid=g&&g.leader!=null?g.leader:null,lo=lid!=null?byId(lid):null;
+  const guerras=facs().filter(x=>x!==f&&(atWar(f,x))).map(x=>x.name);
+  return `<div class="box" style="border:2px solid ${f.color}"><div style="display:flex;justify-content:space-between"><b style="font-size:15px"><span style="color:${f.color}">■</span> ${f.name}</b><button onclick="mapFac=null;renderInfo()">Fechar</button></div>
+    <div class="row"><span>Habitantes</span><span>${pop.toLocaleString('pt-BR')} em ${rs.length} região(ões)</span></div>
+    ${cap?`<div class="row"><span>Capital</span><span><a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" onclick="livroIrRegiao(${cap.id});return false">${cap.name}</a></span></div>`:''}
+    <div class="row"><span>👑 Governante</span><span>${lid==null?'sem governante':lo?leaderLink(lo):nameOf(lid)}</span></div>
+    ${guerras.length?`<div class="row"><span>⚔️ Em guerra com</span><span>${guerras.slice(0,6).join(', ')}${guerras.length>6?` e mais ${guerras.length-6}`:''}</span></div>`:''}
+    ${factionDetail(f)}</div>`;}
 function renderMapInfo(){
   const r=mapSel||activeRegion();const totalPop_=totalPop(),occ=occupied();
   const E=ERAS[world.era];
   let html=`<div style="display:flex;justify-content:space-between"><b style="font-size:16px">🗺️ Mapa do mundo</b><span class="hint">${started?`${E.e} ${E.name} · ${totalPop_.toLocaleString('pt-BR')} habitantes em ${occ.length} região(ões)`:'escolha onde começar'}</span></div>`;
+  if(mapFac!=null&&facById(mapFac)){html+=facBoxHTML(facById(mapFac));}
   if(mapWar&&mapWar.a.wars&&mapWar.a.wars[mapWar.b.id]){const wa=mapWar.a,wb=mapWar.b,wr=wa.wars[wb.id],pf=f=>facRegions(f).reduce((s,q)=>s+regionPop(q.id),0);
     const fr=(warFronts().find(w=>w.a===wa&&w.b===wb)||{pairs:[]}).pairs;
     html+=`<div class="box" style="border:2px solid #d62b26"><b style="font-size:15px">⚔️ Guerra: <span style="color:${wa.color}">${wa.name}</span> × <span style="color:${wb.color}">${wb.name}</span></b>
@@ -3365,7 +3376,7 @@ function renderMapInfo(){
     const roles={};ad.forEach(n=>{const ro=roleOf(n);if(ro)roles[ro.e]=(roles[ro.e]||0)+1;});
     const tot=regionPop(r.id),adT=regionAdults(r.id),fR=regionFac(r),gv=fR?facGov(fR):world.gov,lid=gv&&gv.leader!=null?gv.leader:null,lObj=lid!=null?byId(lid):null,distantes=tot>people.length;
     html+=`<div class="box"><b style="font-size:15px">📍 ${r.name}</b>${r.id===world.active?' <span class="chip">você está olhando aqui</span>':''}
-      ${regionFac(r)?`<div class="row"><span>Povo</span><span><span style="color:${regionFac(r).color}">■</span> ${regionFac(r).name}${r.id===regionFac(r).capital?' (capital)':''}</span></div>`:''}
+      ${regionFac(r)?`<div class="row"><span>Povo</span><span><span style="color:${regionFac(r).color}">■</span> ${facLink(regionFac(r))}${r.id===regionFac(r).capital?' (capital)':''}</span></div>`:''}
       <div class="row"><span>Terreno</span><span>${resLabel(r)}</span></div>
       <div class="row"><span>População</span><span>${tot?`${adT} adultos · ${tot-adT} crianças (cabem ~${regionCap(r)})${tot>regionCap(r)?' · superlotada':''}`:'ninguém mora aqui'}</span></div>
       ${r.eco&&r.eco.m<0.97?`<div class="row"><span>🌲 Natureza</span><span>mata ${Math.round(r.eco.flo*100)}% · pesca ${Math.round(r.eco.pes*100)}% · solo ${Math.round(r.eco.solo*100)}%</span></div>`:''}${r.imp>0.005?`<div class="row"><span>🚚 Rota comercial</span><span>+${Math.round(r.imp*100)}% de comida importada</span></div>`:''}
@@ -4175,7 +4186,7 @@ function factionsHTML(){
   const mine=facById(regionFac(activeRegion())?regionFac(activeRegion()).id:0);
   return `<div style="margin-top:6px"><b style="font-size:14px">🏴 Povos e facções</b>${(()=>{const al=facs().filter(f=>f.alive);return al.length>10?`<div class="hint">os 10 maiores de ${al.length} povos</div>`:'';})()}${facs().filter(f=>f.alive).map(f=>[f,facRegions(f).length]).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([f])=>{const l=byId(facGov(f).leader);const ppl=(facPeople(f).length+dormAdultsOf(f)+facRegions(f).reduce((s,r)=>s+(DORM.pop?DORM.pop[r.id]-DORM.ad[r.id]:0),0)).toLocaleString('pt-BR');
     const st=mine&&f!==mine?(atWar(f,mine)?'⚔️ em guerra':relF(f,mine)<-30?'😠 tensão':relF(f,mine)>30?'🤝 amigos':'☮️ paz'):'';
-    return `<div class="row"><span><span style="color:${f.color}">■</span> ${f.name}</span><span>${ppl} pessoas · ${facRegions(f).length} reg.${l?` · ${leaderLink(l)}`:''}${st?' · '+st:''}</span></div>${factionDetail(f)}`;}).join('')}</div>`;
+    return `<div class="row"><span><span style="color:${f.color}">■</span> ${facLink(f)}</span><span>${ppl} pessoas · ${facRegions(f).length} reg.${l?` · ${leaderLink(l)}`:''}${st?' · '+st:''}</span></div>${factionDetail(f)}`;}).join('')}</div>`;
 }
 
 // =====================================================================
