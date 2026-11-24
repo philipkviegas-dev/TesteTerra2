@@ -2044,6 +2044,10 @@ const COLLECTIVE=[
    setLugar(r,id,'alagado','a água subiu e cobriu tudo');NPCS.forEach(n=>{n.needs.energia=clamp(n.needs.energia-10);});worldSay('Uma enchente. A água vai baixar, mas por um tempo esse lugar não serve para nada.','deuz');}},
  {id:'dadiva',era:[0,9],w:1.2,drama:.1,fn(){const r=activeRegion();const O=[['Nascente de água limpa','💧'],['Pomar que brotou sozinho','🍎'],['Clareira de flores','🌼'],['Rocha com vista','⛰️'],['Gruta de cristais','💎']];
    const c=R(O);if(!addLugar(r,c[0],c[1],'Deuz fez surgir')){const id=lugarAleatorio(r,['campo','floresta','rio','praia'].filter(i=>!lugEst(i)));if(id)setLugar(r,id,'florescido','uma estação generosa fez tudo florescer');}else worldSay('Deixei um presente na região. Quem achar, que cuide.','deuz');}},
+ {id:'cometa',era:[0,9],w:.6,drama:.3,fn(){world.cometaDay=day;log('big','☄️ Um cometa riscou o céu, com uma cauda enorme! Uns olham maravilhados, outros têm medo do que ele anuncia.');
+   adults().forEach(n=>{if(T(n,'curiosidade')>0.2){shape(n,'curiosidade',3,'viu um cometa');remember(n,'vi um cometa riscar o céu — que maravilha',6);if(Math.random()<.5)think(n,'O que será aquilo lá em cima?','☄️');}
+     else if(T(n,'coragem')<-0.1){shape(n,'coragem',-2,'cometa');remember(n,'o cometa no céu me deu medo: parecia um mau presságio',6);if(Math.random()<.5)think(n,'Aquilo é um mau sinal...','😨');}else remember(n,'vi um cometa cruzar o céu e fiquei olhando',4);});
+   try{weekNote('cometa','um cometa cruzou o céu');}catch(e){}world.kp+=6;}},
  {id:'estrangeiros',era:[0,8],w:1.5,drama:.4,cond:()=>totalPop()<POP_CAP-3,fn(){const k=Math.random()<.5?1:2;const ns=[];for(let i=0;i<k;i++)ns.push(addForeigner());
    log('big',`🛶 ${ns.map(N).join(' e ')} ${k>1?'chegaram':'chegou'} de outras terras${world.era<2?' numa jangada':' de barco'}!`,ns.map(n=>n.id));
    adults().forEach(o=>{if(ns.includes(o))return;ns.forEach(n=>{if(T(o,'confianca')<-0.2){relate(o,n,-10);if(Math.random()<.4)think(o,`Não confio em ${n.name}. De onde veio?`,'🤨');}else if(T(o,'bondade')>0.2){relate(o,n,10);relate(n,o,10);}});});
@@ -3343,7 +3347,7 @@ function chronicle(){
   const mig=by('migr');if(mig.length)parts.push(`${mig.length} grupo(s) migraram${mig.length<=2?` (${mig.map(x=>x.text).join('; ')})`:''}`);
   const lg=by('lugar');if(lg.length)parts.push(`mudou a paisagem (${lg.slice(-2).map(x=>x.text).join('; ')})`);
   const fe=by('festa');if(fe.length)parts.push(fe[fe.length-1].text);
-  const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
+  const cm=by('cometa');if(cm.length)parts.push(cm[cm.length-1].text);const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
   const gov=by('gov');if(gov.length)parts.push(gov[gov.length-1].text);
   const occ=MAP?occupied().length:1;
@@ -4106,6 +4110,7 @@ function drawWorld(t){
   if(started&&season().name==='Inverno'){ctx.fillStyle='rgba(235,245,255,.28)';ctx.fillRect(0,0,W,H);}
   else if(started&&season().name==='Outono'){ctx.fillStyle='rgba(255,170,60,.10)';ctx.fillRect(0,0,W,H);}
   if(arcoIris()){ctx.save();ctx.globalAlpha=.38;ctx.lineWidth=7;["#e04b4b","#f0903c","#f3d84a","#58b85a","#4a8fe0","#8a5ad0"].forEach((c,i)=>{ctx.strokeStyle=c;ctx.beginPath();ctx.arc(500,330,300-i*7,Math.PI*1.08,Math.PI*1.92);ctx.stroke();});ctx.restore();}
+  if(world.cometaDay===day){const u=((t||0)/9000)%1,cx=1100-u*1300,cy=40+u*170;ctx.save();const g=ctx.createLinearGradient(cx,cy,cx+260,cy-90);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(1,'rgba(180,220,255,0)');ctx.strokeStyle=g;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+260,cy-90);ctx.stroke();ctx.fillStyle='#fff';ctx.shadowColor='#bfe4ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(cx,cy,6,0,7);ctx.fill();ctx.restore();}
   const chuva=chovendo();
   if(chuva){ctx.fillStyle='rgba(70,90,120,.22)';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(215,235,255,.8)';ctx.lineWidth=2;ctx.beginPath();const tt=(t||0)/12;for(let i=0;i<150;i++){const x=(i*97.3+tt*1.2)%W,y=(i*53.7+tt*9)%H;ctx.moveTo(x,y);ctx.lineTo(x-4,y+16);}ctx.stroke();if(Math.sin((t||0)/1700)>.985){ctx.fillStyle="rgba(255,255,255,.28)";ctx.fillRect(0,0,W,H);}}
   const h=minutes/60%24;let dark=0;if(h>=19)dark=Math.min(.45,(h-19)*.15);else if(h<6.5)dark=.45-Math.max(0,(h-5)*.3);
