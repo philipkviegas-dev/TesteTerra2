@@ -650,6 +650,9 @@ function takeReserva(n){if(world.reserva>=1){world.reserva--;n.needs.fome=clamp(
 const SEASONS=[{name:'Primavera',label:'Anos amenos',e:'🌸',food:1.1},{name:'Verão',label:'Anos quentes',e:'☀️',food:1.0},{name:'Outono',label:'Anos de fartura',e:'🍂',food:1.25},{name:'Inverno',label:'Anos frios',e:'❄️',food:0.55}];
 const season=()=>SEASONS[Math.floor(((day-1)%28)/7)];
 const yearOf=()=>day;
+// dias de chuva: Primavera e Outono chovem mais, Verão pouco, Inverno vira neve; deserto nunca. Quem está ao ar livre sente (veja chuvaSente)
+function chuvaYear(){if(!started||!chovendo())return;if(has("agricultura"))world.reserva=Math.min(resCap(),world.reserva+3);NPCS.forEach(n=>{if(n._dead||n.isChild||!here(n))return;if(!n.home){n.needs.diversao=clamp(n.needs.diversao-6);if(Math.random()<.3){thinkOnce(n,"Estou encharcado(a)... queria ter um teto.","🌧️");shape(n,"confianca",-1,"ficou sem abrigo na chuva");}}else if(Math.random()<.15)thinkOnce(n,"Que bom ter um teto na chuva.","🏠");});}
+function chovendo(){if(!started)return false;const s=season().name;const p={Primavera:38,'Outono':28,'Verão':8,Inverno:0}[s];if(!p)return false;let b='';try{b=activeRegion().mainBiome;}catch(e){}if(b==='deserto')return false;if(b==='selva')return ((day*2654435761)>>>0)%100<p+30;return ((day*2654435761)>>>0)%100<p;}
 function seasonMorning(){
   const d=(day-1)%28;
   if(d%7!==0)return;
@@ -2139,7 +2142,7 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   const night=isNight();
   if(wasNight&&!night){
     world.hasHealer=NPCS.some(o=>roleOf(o)&&roleOf(o).out==='heal');if(day%10===0)pruneRelations();
-    seasonMorning();spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{ensinoYear();magiaYear();portalYear();inventionYear();maldadeYear();LEARN.year();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
+    seasonMorning();try{chuvaYear();}catch(e){console.error(e);}spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{ensinoYear();magiaYear();portalYear();inventionYear();maldadeYear();LEARN.year();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
     [...NPCS].forEach(n=>{if(!byId(n.id))return;n.workedToday=false;morningLife(n);});
     NPCS.forEach(n=>{estoriaCompress(n);morningReflection(n);metaMorning(n);if(!n.cmd)decide(n);});
     if(has('troca'))NPCS.forEach(n=>{if(n.isChild)return;const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=pickW(ks.map(k=>{let v=10;for(const tr in ITEMS[k].aff)v+=25*ITEMS[k].aff[tr]*T(n,tr);return [k,v];}));n.wants[k]=clamp(n.wants[k]+rnd(6,16));}});
@@ -4098,6 +4101,8 @@ function drawWorld(t){
     ctx.textAlign='center';ctx.font='700 13px "Baloo 2"';ctx.fillStyle='#3b2f2a';ctx.fillText(L.label,p.x,p.y-34);}
   if(started&&season().name==='Inverno'){ctx.fillStyle='rgba(235,245,255,.28)';ctx.fillRect(0,0,W,H);}
   else if(started&&season().name==='Outono'){ctx.fillStyle='rgba(255,170,60,.10)';ctx.fillRect(0,0,W,H);}
+  const chuva=chovendo();
+  if(chuva){ctx.fillStyle='rgba(70,90,120,.22)';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(200,225,255,.55)';ctx.lineWidth=1.5;ctx.beginPath();const tt=(t||0)/12;for(let i=0;i<90;i++){const x=(i*97.3+tt*1.2)%W,y=(i*53.7+tt*9)%H;ctx.moveTo(x,y);ctx.lineTo(x-3,y+11);}ctx.stroke();}
   const h=minutes/60%24;let dark=0;if(h>=19)dark=Math.min(.45,(h-19)*.15);else if(h<6.5)dark=.45-Math.max(0,(h-5)*.3);
   if(has('eletricidade'))dark*=0.45;else if(has('fogo')&&!world.fireOut)dark*=0.8;
   if(dark>0){ctx.fillStyle=`rgba(20,20,70,${dark})`;ctx.fillRect(0,0,W,H);
