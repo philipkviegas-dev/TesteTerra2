@@ -4633,7 +4633,7 @@ const DORM={
   finish(){if(this.job)this.pump(1e9);},
   lifeYear(i){if(!this.live[i])return;const ag=++this.age[i],r=this.reg[i],R0=MAP.regions[r];
     if(ag===CHILD_DAYS){this.ad[r]++;this.adults++;}
-    const adult=ag>=CHILD_DAYS;const RK=this.rev&&this.rev[r]?this.rev[r]-1:-1,RE=RK>=0?ACASOS.ev[RK][7]:null;
+    const adult=ag>=CHILD_DAYS;let hk=false;const RK=this.rev&&this.rev[r]?this.rev[r]-1:-1,RE=RK>=0?ACASOS.ev[RK][7]:null;
     if(RE){if(Math.random()<.5)this.remember(i,1000+RK,RE.die?8:6,r);if(RE.die&&Math.random()<RE.die&&canKill()){this.die(i);return;}for(const k in (RE.social||{}))this.shape(i,TRI[k],RE.social[k]);if(RE.die)this.shape(i,5,-1.5);}
     if(Math.random()<0.07){const k=pickAcaso(false,R0,ag,this.partner[i]>=0,this.kids[i]);if(k>=0){this.stats.pev++;const ef=ACASOS.ev[k][7];
       for(const t in (ef.t||{}))this.shape(i,TRI[t],ef.t[t]);if(ef.food)this.food[i]=Math.max(0,Math.min(30,this.food[i]+ef.food));if(ef.kp)world.kp+=ef.kp;if(ef.fantasy)world.fantasySeeds=(world.fantasySeeds||0)+1;
@@ -4649,13 +4649,13 @@ const DORM={
       const F=this.rfac&&this.rfac[r];if(F&&F.culture&&ag<25){const v=F.culture.v;this.shape(i,1,v.guerra/250);this.shape(i,0,v.coletivismo/250);this.shape(i,2,v.comercio/250);this.shape(i,4,v.liberdade/250);this.shape(i,6,v.tradicao/250);}
       if(this.food[i]<3&&hasLaw(F,'partilha')&&Math.random()<.6)this.food[i]=3;
       if(this.food[i]>=3)this.food[i]-=3;else{this.food[i]=0;this.shape(i,0,-1.5);this.shape(i,5,-1);if(Math.random()<.3)this.remember(i,6,6,-1);}}
-    else{const m=this.slotOf(this.p1[i]),f=this.slotOf(this.p2[i]);const g=m>=0&&this.food[m]>=1?m:f>=0&&this.food[f]>=1?f:-1;if(g>=0)this.food[g]--;else if(Math.random()<.3)this.remember(i,6,6,-1);}
+    else{const m=this.slotOf(this.p1[i]),f=this.slotOf(this.p2[i]);const g=m>=0&&this.food[m]>=1?m:f>=0&&this.food[f]>=1?f:-1;if(g>=0)this.food[g]--;else{hk=true;if(Math.random()<.3)this.remember(i,6,6,-1);}}
     // encontros do ano: parceiro, pais e vizinhos
     for(let e=0;e<2;e++){let j=-1;const roll=Math.random();if(roll<.3&&this.partner[i]>=0)j=this.slotOf(this.partner[i]);else if(roll<.45)j=this.slotOf(this.p1[i]);if(j<0)j=this.pick(r);if(j<0||j===i||!this.live[j])continue;
       const good=Math.random()<0.55+this.tr[i*NT]/330+this.rel(i,this.id[j])/300;
       this.relate(i,this.id[j],good?4:-4);this.relate(j,this.id[i],good?3:-3);this.shape(i,2,good?0.6:-0.6);this.shape(i,0,good?0.8:-0.8);this.shape(i,5,good?0.8:-1);
       if(good&&Math.random()<.08)this.remember(i,Math.random()<.5?1:9,5,this.id[j]);if(!good&&Math.random()<.08){this.remember(i,2,6,this.id[j]);this.shape(i,1,-1);}}
-    if(!adult)return this.deathRoll(i,ag);
+    if(!adult)return this.deathRoll(i,ag,hk);
     // namoro
     const ps=this.partner[i]>=0?this.slotOf(this.partner[i]):-1;
     if(this.partner[i]<0&&ag<FERT_MAX&&Math.random()<.7){for(let c=0;c<8;c++){const rr=c<4||!R0.nb.length?r:R0.nb[(Math.random()*R0.nb.length)|0];const j=this.pick(rr);
@@ -4678,7 +4678,10 @@ const DORM={
       if(empty&&group.length<4)return;}
     group.forEach(g=>{this.count(g,-1);this.reg[g]=best;this.count(g,1);this.remember(g,empty?10:7,9,best);this.shape(g,1,3);this.shape(g,4,2);});this.stats.moves+=group.length;
     if(empty){to.founded=day;to.reserva=8;to.faction=R0.faction;world.facDirty=true;world.facVer=(world.facVer||0)+1;this.stats.founded.push(`${this.sur[i]?'a família '+this.sur[i]:this.name[i]} em ${to.name}`);}},
-  deathRoll(i,ag){if(totalPop()<=SURV_FLOOR&&ag<90)return;let risk=0.0015+(ag>35?0.0022*Math.exp((ag-60)/6.5):0)+(ag<5?0.006:0)+(this.food[i]===0&&ag>=CHILD_DAYS?0.006*(1+(this.crowd?this.crowd[this.reg[i]]:0)):0);
+  deathRoll(i,ag,hk){if(totalPop()<=SURV_FLOOR&&ag<90)return;const cw=this.crowd?this.crowd[this.reg[i]]:0;
+    // fome: sem comida morre-se mais; quanto mais gente demais na região, mais forte (até ~10%/ano com o contágio); criança sem ninguém que a alimente também
+    const hungry=(this.food[i]===0&&ag>=CHILD_DAYS)||hk;
+    let risk=0.0015+(ag>35?0.0022*Math.exp((ag-60)/6.5):0)+(ag<5?0.006:0)+(hungry?0.006+0.03*cw/(1+cw):0);
     {const c=this.crowd?Math.min(3,this.crowd[this.reg[i]]):0;if(c>0)risk*=1+0.8*c;} // aglomeração: esgoto, água ruim e contágio
     if(has('medicina'))risk*=0.6;else if(has('ervas'))risk*=0.85;{const rr=MAP.regions[this.reg[i]];if(rr.bfx)risk*=rr.bfx.health;}if(Math.random()<risk)this.die(i);},
   stories(t){this.stats.stories.push(t);},
