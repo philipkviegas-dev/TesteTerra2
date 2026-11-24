@@ -3190,6 +3190,58 @@ function mzZoom(f,cx,cy){cx=cx==null?W/2:cx;cy=cy==null?H/2:cy;const z0=MZ.z;MZ.
 function mzReset(){MZ.z=1;MZ.x=0;MZ.y=0;}
 const MLAY={fac:true,war:true,nom:true,dec:true,rot:true};
 function toggleLayer(k){MLAY[k]=!MLAY[k];const b=document.getElementById({fac:'lyFac',war:'lyWar',nom:'lyNom',dec:'lyDec',rot:'lyRot'}[k]);if(b)b.classList.toggle('on',MLAY[k]);}
+// ---- mapa: frentes de guerra, nomes sem sobreposicao e selecao "imantada" ----
+let mapWar=null,mapWarHov=null,LBLHIT=[],WARHIT=[],WFC={key:null,list:[]};
+function warFronts(){const key=Math.floor(TICK/30)+'|'+(world.facVer||0)+'|'+day;if(WFC.key===key)return WFC.list;WFC.key=key;const out=[];
+  facs().forEach(a=>{for(const bid in a.wars){if(+bid<a.id)continue;const b=facById(+bid);if(!b||!a.wars[bid])continue;
+    const A=facRegions(a),B=facRegions(b),rb=new Set(B.map(r=>r.id));const pairs=[];
+    A.forEach(p=>(p.nb||[]).concat(p.sea||[]).forEach(id=>{if(rb.has(id)&&MAP.regions[id])pairs.push([p,MAP.regions[id]]);}));
+    if(!pairs.length){let best=null,bd=1e9;A.forEach(p=>B.forEach(q=>{const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<bd){bd=d;best=[p,q];}}));if(best)pairs.push(best);}
+    if(!pairs.length)continue;
+    const mid=pairs.map(([p,q])=>[(p.x+q.x)/2,(p.y+q.y)/2]),cx=mid.reduce((s,m)=>s+m[0],0)/mid.length,cy=mid.reduce((s,m)=>s+m[1],0)/mid.length;
+    let bm=mid[0],bd2=1e9;mid.forEach(m=>{const d=Math.hypot(m[0]-cx,m[1]-cy);if(d<bd2){bd2=d;bm=m;}});
+    out.push({a,b,pairs:pairs.slice(0,40),mx:bm[0],my:bm[1],war:a.wars[bid]});}});
+  WFC.list=out;return out;}
+// nomes em tela: pilulas com tamanho fixo, por prioridade, sem encavalar; cada pilula e clicavel
+function drawMapLabels(occR,sel,WF){
+  LBLHIT=[];WARHIT=[];const Z=MZ.z,placed=[];const hit=(a,b)=>!(a[2]<b[0]||a[0]>b[2]||a[3]<b[1]||a[1]>b[3]);
+  const t=performance.now()/1000;ctx.textBaseline='alphabetic';
+  // selos de guerra (primeiro: ficam sempre por cima e reservam o espaco)
+  WF.forEach(w=>{const sx=w.mx*CELL*Z+MZ.x,sy=w.my*CELL*Z+MZ.y;if(sx<-60||sx>W+60||sy<-60||sy>H+60)return;
+    const hov=[mapWar,mapWarHov].some(m=>m&&m.a===w.a&&m.b===w.b),pul=1+0.1*Math.sin(t*4),rd=(hov?19:16)*pul;
+    ctx.fillStyle='rgba(229,50,45,.25)';ctx.beginPath();ctx.arc(sx,sy,rd+7+3*Math.sin(t*4),0,7);ctx.fill();
+    ctx.fillStyle='#d62b26';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(sx,sy,rd,0,7);ctx.fill();ctx.stroke();
+    ctx.font='700 '+Math.round(rd*1.15)+'px serif';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.fillText('⚔',sx,sy+rd*0.4);
+    const txt=w.a.name+' × '+w.b.name;ctx.font='700 11px "Baloo 2"';const tw=ctx.measureText(txt).width+14,bx=sx-tw/2,by=sy+rd+4;
+    ctx.fillStyle='#d62b26';rr(bx,by,tw,17,8);ctx.fill();ctx.fillStyle='#fff';ctx.fillText(txt,sx,by+12.5);
+    placed.push([sx-rd-4,sy-rd-4,sx+rd+4,by+19]);WARHIT.push({w,x:sx,y:sy,r:Math.max(rd+6,22)});});
+  const cand=[];const add=(r,p)=>{const sx=r.x*CELL*Z+MZ.x,sy=r.y*CELL*Z+MZ.y;const isSel=sel&&sel.id===r.id,isAct=r.id===world.active;
+    if(!MLAY.nom&&!isSel)return;if(sx<-80||sx>W+80||sy<-30||sy>H+40)return;
+    const fc=regionFac(r),cap=fc&&fc.capital===r.id;cand.push({r,p,sx,sy,fc,isSel,isAct,cap,pri:(isSel?1e9:0)+(isAct?1e8:0)+(cap?1e7:0)+p});};
+  occR.forEach(r=>add(r,regionPop(r.id)));if(sel&&!regionPop(sel.id))add(sel,0);
+  cand.sort((a,b)=>b.pri-a.pri);const maxN=Z<2.5?22:90;let n=0;
+  for(const c of cand){const strong=c.isSel||c.isAct;if(!strong&&n>=maxN)continue;
+    const rad=c.p?(occR.length>400?2:[10,13,17,22][c.p<10?0:c.p<50?1:c.p<250?2:3]):4;
+    const pt=c.p>=10000?Math.round(c.p/1000)+'k':String(c.p);
+    ctx.font='700 12px "Baloo 2"';const nw=ctx.measureText(c.r.name).width;ctx.font='700 11px "Baloo 2"';const cw=c.p?ctx.measureText(pt).width+10:0;
+    const w=nw+(c.p?cw+11:12),h=20;
+    const opts=[[c.sx-w/2,c.sy-rad-7-h],[c.sx-w/2,c.sy+rad+7],[c.sx+rad+7,c.sy-h/2],[c.sx-rad-7-w,c.sy-h/2]];
+    let pos=null;for(const o of opts){const rc=[o[0]-2,o[1]-2,o[0]+w+2,o[1]+h+2];if(!placed.some(q=>hit(rc,q))){pos=o;placed.push(rc);break;}}
+    if(!pos){if(!strong)continue;pos=opts[0];placed.push([pos[0],pos[1],pos[0]+w,pos[1]+h]);}
+    n++;const [x,y]=pos,col=c.fc?c.fc.color:'#8a7a6a';
+    ctx.fillStyle=c.isSel?'#fff0a8':'rgba(255,248,234,.95)';rr(x,y,w,h,10);ctx.fill();ctx.lineWidth=c.isSel?3:c.isAct?2.5:2;ctx.strokeStyle=c.isSel?'#3b2f2a':c.isAct?'#fff':col;ctx.stroke();
+    if(c.isAct){ctx.lineWidth=1;ctx.strokeStyle='#3b2f2a';rr(x-1,y-1,w+2,h+2,11);ctx.stroke();}
+    ctx.textAlign='left';ctx.font='700 12px "Baloo 2"';ctx.fillStyle='#3b2f2a';ctx.fillText(c.r.name,x+7,y+14);
+    if(c.p){const cx=x+7+nw+4;ctx.fillStyle=col;rr(cx,y+3,cw,h-6,7);ctx.fill();ctx.font='700 11px "Baloo 2"';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(pt,cx+cw/2,y+14);}
+    LBLHIT.push({r:c.r,x0:x-3,y0:y-3,x1:x+w+3,y1:y+h+3});}
+}
+// o que esta sob o ponteiro: selo de guerra > nome > povoado mais perto (ate 22 px) > celula do mapa
+function mapPick(e){const [rx,ry]=evRaw(e);
+  for(const h of WARHIT)if(Math.hypot(rx-h.x,ry-h.y)<=h.r)return {war:h.w};
+  for(let i=LBLHIT.length-1;i>=0;i--){const h=LBLHIT[i];if(rx>=h.x0&&rx<=h.x1&&ry>=h.y0&&ry<=h.y1)return {r:h.r};}
+  let best=null,bd=22;occupied().forEach(r=>{const d=Math.hypot(r.x*CELL*MZ.z+MZ.x-rx,r.y*CELL*MZ.z+MZ.y-ry);if(d<bd){bd=d;best=r;}});
+  if(best)return {r:best};
+  const [x,y]=evXY(e);const r=regionAt(x,y);return r?{r}:{};}
 function drawMap(){
   ctx.save();ctx.translate(MZ.x,MZ.y);ctx.scale(MZ.z,MZ.z);
   ctx.imageSmoothingEnabled=false;
@@ -3208,15 +3260,18 @@ function drawMap(){
   // rotas comerciais (pontilhado da cor do povo; vermelho = cortada pela guerra)
   if(MLAY.rot&&world.rotas&&world.rotas.length){const tt=(performance.now()/3000)%1;world.rotas.forEach(q=>{const a=MAP.regions[q.ra],b=MAP.regions[q.rb],fa=facById(q.fa);if(!a||!b)return;const cut=q.estado==='cortada';ctx.strokeStyle=cut?'rgba(220,40,40,.9)':(fa?fa.color:'#fff');ctx.lineWidth=2.5*ZK;ctx.setLineDash(cut?[3*ZK,7*ZK]:[8*ZK,4*ZK]);ctx.beginPath();ctx.moveTo(a.x*CELL,a.y*CELL);ctx.lineTo(b.x*CELL,b.y*CELL);ctx.stroke();ctx.setLineDash([]);
     if(!cut&&q.vol>0){const o=q.ex===q.rb?[b,a]:[a,b];ctx.fillStyle='#fff';ctx.beginPath();ctx.arc((o[0].x+(o[1].x-o[0].x)*tt)*CELL,(o[0].y+(o[1].y-o[0].y)*tt)*CELL,3.5*ZK,0,7);ctx.fill();}});}
-  // guerras em andamento
-  if(world.factions&&MLAY.war)facs().forEach(a=>{for(const bid in a.wars){if(+bid<a.id)continue;const b=facById(+bid);if(!b)continue;const ca=MAP.regions[a.capital],cb=MAP.regions[b.capital];ctx.font=(22*ZK)+'px serif';ctx.textAlign='center';ctx.fillText('⚔️',(ca.x+cb.x)/2*CELL,(ca.y+cb.y)/2*CELL);}});
-  // povoados
-  const occR=occupied();const showAll=occR.length<=25;const big=new Set([...occR].sort((a,b)=>regionPop(b.id)-regionPop(a.id)).slice(0,12).map(r=>r.id));
+  // guerras em andamento: linha vermelha na frente de batalha e anel vermelho nas capitais (o selo clicavel e desenhado depois, em tela)
+  const WF=(world.factions&&MLAY.war)?warFronts():[];
+  WF.forEach(w=>{ctx.lineCap='round';w.pairs.forEach(([pa,qa])=>{ctx.strokeStyle='rgba(110,0,0,.35)';ctx.lineWidth=8*ZK;ctx.beginPath();ctx.moveTo(pa.x*CELL,pa.y*CELL);ctx.lineTo(qa.x*CELL,qa.y*CELL);ctx.stroke();ctx.strokeStyle='#e5322d';ctx.lineWidth=3.2*ZK;ctx.setLineDash([9*ZK,5*ZK]);ctx.stroke();ctx.setLineDash([]);});
+    [w.a,w.b].forEach(f=>{const c=MAP.regions[f.capital];if(!c)return;ctx.strokeStyle='#e5322d';ctx.lineWidth=3*ZK;ctx.beginPath();ctx.arc(c.x*CELL,c.y*CELL,21*ZK,0,7);ctx.stroke();});});
+  ctx.lineCap='butt';
+  // povoados (so o desenho da cidade; os nomes sao desenhados depois, em tela, sem se sobrepor)
+  const occR=occupied();
   occR.concat(sel&&!regionPop(sel.id)?[sel]:[]).forEach(r=>{const p=regionPop(r.id);
     const x=r.x*CELL,y=r.y*CELL,rad=(p?(occR.length>400?1.6:[10,13,17,22][p<10?0:p<50?1:p<250?2:3]):4)*ZK;
-    if(p){const fc=regionFac(r);ctx.fillStyle=r.id===world.active?'#ffffff':(fc?fc.color:'#3b2f2a');if(occR.length>400&&r.id!==world.active){ctx.fillRect(x-rad,y-rad,rad*2,rad*2);}else{drawCity(x,y,p,ZK,ctx.fillStyle);}}
-    ctx.font='700 '+(13*ZK)+'px "Baloo 2"';ctx.textAlign='center';ctx.lineWidth=3*ZK;ctx.strokeStyle='rgba(255,255,255,.85)';if(!MLAY.nom&&!(sel&&sel.id===r.id))return;if(MZ.z<2.5&&!showAll&&!big.has(r.id)&&!(sel&&sel.id===r.id)&&r.id!==world.active)return;if(MZ.z>=2.5&&!(sel&&sel.id===r.id)){const sx=x*MZ.z+MZ.x,sy=y*MZ.z+MZ.y;if(sx<-40||sx>W+40||sy<-20||sy>H+20)return;}const label=p?`${r.name} · ${p}`:r.name;ctx.strokeText(label,x,y-rad-6*ZK);ctx.fillStyle='#3b2f2a';ctx.fillText(label,x,y-rad-6*ZK);});
+    if(p){const fc=regionFac(r);ctx.fillStyle=r.id===world.active?'#ffffff':(fc?fc.color:'#3b2f2a');if(occR.length>400&&r.id!==world.active){ctx.fillRect(x-rad,y-rad,rad*2,rad*2);}else{drawCity(x,y,p,ZK,ctx.fillStyle);}}});
   ctx.restore();
+  try{drawMapLabels(occR,sel,WF);}catch(e){console.error(e);}
   if(MZ.z>1){ctx.font='700 12px "Baloo 2"';ctx.textAlign='left';ctx.fillStyle='rgba(255,247,232,.9)';rr(8,H-30,150,22,8);ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText('🔎 zoom '+MZ.z.toFixed(1)+'× · arraste para mover',16,H-14);}
   if(!started){ctx.fillStyle='rgba(255,247,232,.92)';rr(250,16,500,58,16);ctx.fill();ctx.fillStyle='#3b2f2a';ctx.font='700 18px "Baloo 2"';ctx.textAlign='center';ctx.fillText('Clique numa região de terra para começar a história',500,42);ctx.font='13px "Baloo 2"';ctx.fillText(mapHover?`${mapHover.name}: ${resLabel(mapHover)}`:'O terreno define o que seus nativos vão encontrar por perto',500,62);}
 }
@@ -3224,6 +3279,14 @@ function renderMapInfo(){
   const r=mapSel||activeRegion();const totalPop_=totalPop(),occ=occupied();
   const E=ERAS[world.era];
   let html=`<div style="display:flex;justify-content:space-between"><b style="font-size:16px">🗺️ Mapa do mundo</b><span class="hint">${started?`${E.e} ${E.name} · ${totalPop_.toLocaleString('pt-BR')} habitantes em ${occ.length} região(ões)`:'escolha onde começar'}</span></div>`;
+  if(mapWar&&mapWar.a.wars&&mapWar.a.wars[mapWar.b.id]){const wa=mapWar.a,wb=mapWar.b,wr=wa.wars[wb.id],pf=f=>facRegions(f).reduce((s,q)=>s+regionPop(q.id),0);
+    const fr=(warFronts().find(w=>w.a===wa&&w.b===wb)||{pairs:[]}).pairs;
+    html+=`<div class="box" style="border:2px solid #d62b26"><b style="font-size:15px">⚔️ Guerra: <span style="color:${wa.color}">${wa.name}</span> × <span style="color:${wb.color}">${wb.name}</span></b>
+      <div class="row"><span>Começou</span><span>dia ${wr.since} (há ${Math.max(0,day-wr.since)} anos)</span></div>
+      <div class="row"><span>Povo</span><span>${pf(wa).toLocaleString('pt-BR')} × ${pf(wb).toLocaleString('pt-BR')} habitantes</span></div>
+      <div class="row"><span>Regiões</span><span>${facRegions(wa).length} × ${facRegions(wb).length}</span></div>
+      <div class="row"><span>Frente</span><span>${fr.length?fr.slice(0,3).map(([p,q])=>p.name+' ↔ '+q.name).join(', ')+(fr.length>3?` e mais ${fr.length-3}`:''):'sem fronteira direta'}</span></div>
+      <div style="margin-top:6px"><button onclick="mapWar=null;renderInfo()">Fechar</button></div></div>`;}
   if(r){
     const people=NPCS.filter(n=>n.region===r.id),ad=people.filter(n=>!n.isChild);
     const fams={};people.forEach(n=>{const k=n.surname||rootOf(n).name;fams[k]=(fams[k]||0)+1;});
@@ -4361,12 +4424,12 @@ function drawNPC(n,t){
 const evXY=e=>{const r=cv.getBoundingClientRect();let x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*H/r.height;if(view==='mapa'||!started){x=(x-MZ.x)/MZ.z;y=(y-MZ.y)/MZ.z;}return [x,y];};
 const evRaw=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];};
 const PTR=new Map();let _pinch=0,_tapT=0,_tapX=0,_tapY=0;
-const abreRegiao=e=>{const [x,y]=evXY(e);const r=regionAt(x,y);if(!r)return;if(!started)startAt(r);else visit(r);};
+const abreRegiao=e=>{const pk=mapPick(e),r=pk.r||(pk.war&&MAP.regions[pk.war.a.capital]);if(!r)return;if(!started)startAt(r);else visit(r);};
 cv.onpointermove=e=>{if(PTR.has(e.pointerId))PTR.set(e.pointerId,[e.clientX,e.clientY]);
   if(view==='mapa'||!started){
     if(PTR.size===2){const [a,b]=[...PTR.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(_pinch>0&&d>0){const r=cv.getBoundingClientRect(),mx=((a[0]+b[0])/2-r.left)*W/r.width,my=((a[1]+b[1])/2-r.top)*H/r.height;mzZoom(d/_pinch,mx,my);}_pinch=d;MZ.moved=true;MZ.drag=null;return;}
     if(MZ.drag){const [rx,ry]=evRaw(e);if(Math.hypot(rx-MZ.drag.sx,ry-MZ.drag.sy)>(e.pointerType==='touch'?10:4))MZ.moved=true;if(MZ.moved){MZ.x=MZ.drag.ox+(rx-MZ.drag.sx);MZ.y=MZ.drag.oy+(ry-MZ.drag.sy);mzClamp();}}
-    const [x,y]=evXY(e);mapHover=regionAt(x,y);}};
+    if(!MZ.moved){const pk=mapPick(e);mapHover=pk.r||null;mapWarHov=pk.war?{a:pk.war.a,b:pk.war.b}:null;cv.style.cursor=(pk.r||pk.war)?'pointer':'';}}};
 cv.onpointerdown=e=>{PTR.set(e.pointerId,[e.clientX,e.clientY]);try{cv.setPointerCapture(e.pointerId);}catch(_){}
   if(PTR.size===2){const [a,b]=[...PTR.values()];_pinch=Math.hypot(a[0]-b[0],a[1]-b[1]);MZ.drag=null;MZ.moved=true;return;}
   if(view==='mapa'||!started){const [rx,ry]=evRaw(e);MZ.drag={sx:rx,sy:ry,ox:MZ.x,oy:MZ.y};MZ.moved=false;}};
@@ -4376,7 +4439,7 @@ cv.onpointerup=_ptrFim;cv.onpointercancel=_ptrFim;
 cv.ondblclick=e=>{if(view!=='mapa'&&started)return;abreRegiao(e);};
 cv.addEventListener('wheel',e=>{e.preventDefault();if(started&&view==='regiao'){if(e.deltaY>0)setView('mapa');return;}const [rx,ry]=evRaw(e);mzZoom(e.deltaY<0?1.25:0.8,rx,ry);},{passive:false});
 cv.onclick=e=>{if(MZ.moved){MZ.moved=false;return;}const [x,y]=evXY(e);
-  if(view==='mapa'||!started){const rg=regionAt(x,y);if(rg){mapSel=rg;renderInfo();}return;}
+  if(view==='mapa'||!started){const pk=mapPick(e);if(pk.war){mapWar={a:pk.war.a,b:pk.war.b};mapSel=MAP.regions[pk.war.a.capital]||mapSel;renderInfo();}else if(pk.r){mapWar=null;mapSel=pk.r;renderInfo();}return;}
   const n=hereNPCs().find(n=>Math.hypot(n.x-x,n.y-8-y)<26);if(n)follow(n);else if(mode==='morador')showIsland();};
 function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i style="width:${clamp(v)}%;background:${c}"></i></div>`;}
 function tbar(n,k){const v=n.traits[k],pos=v>=0,w=Math.abs(v)/2;const lab=Math.abs(v)>=25?TRAITS[k][pos?0:1]:'—';const sv=n.sens[k],sm=sv>=1.6?' 🩹':sv<=0.6?' 🪨':'';

@@ -186,3 +186,8 @@ A área de uma região comporta 60 pessoas (`REGION_CAP`). Nascimentos **não** 
 - **Fome:** a morte por fome (comida 0) é multiplicada por `1+crowd`.
 - **Doenças:** o risco de morte anual sobe `1+0,8·min(crowd,3)` (medicina/ervas ainda reduzem); região com `crowd>0,25` tem 3%·min(crowd,2) por ano de gerar uma peste local (leve; média se `crowd>1`), no máximo 2 pestes ativas.
 - O Livro registra "🏚️ Superlotação" por ano. A saída por migração segue valendo.
+
+## 11. Mapa legível e selecionável (implementado)
+- **Nomes**: pílulas de tamanho fixo na tela (nome + selo colorido com a população, borda na cor do povo), ordenadas por prioridade (selecionada, onde você está, capitais, mais populosas) e posicionadas sem se sobrepor (acima, abaixo, direita, esquerda; as que não cabem somem até dar zoom). Cada pílula é clicável.
+- **Seleção imantada**: o ponteiro escolhe, nesta ordem, selo de guerra, nome, povoado mais perto (até 22 px) e só então a célula do mapa. Vale para passar o mouse, clicar, duplo clique e toque duplo.
+- **Guerras**: linha vermelha tracejada na frente real entre regiões vizinhas dos dois povos, anel vermelho nas capitais e um selo ⚔ pulsante com "A × B" no meio da frente. Clicar no selo abre o painel da guerra (início, população, regiões, frente). Respeita as camadas "guerra" e "nomes".
