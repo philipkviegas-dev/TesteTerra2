@@ -5426,23 +5426,39 @@ function marYear(){racaGet('elfo');const M=world.mar;
   if(M&&M.col&&M.col.length){M.col.forEach(c=>{if(c.n<500&&Math.random()<.6)c.n+=Math.ceil(c.n*.04)+1;world.reserva=Math.min(resCap(),world.reserva+c.nivel*1.5);});
     if(!M.atl){const prof=Math.max(0,...M.col.map(c=>c.nivel));if(prof>=2&&Math.random()<(prof>=3?.22:.08))achaAtlantes(null);}}
   racasYear();}
+// QUEM AGE nos menus de Mundos e Mar. O jogador comanda todos os povos, então ele escolhe qual povo age
+// (world.mundoAtor = id do povo) ou deixa em 'auto': o povo com mais adultos que consiga fazer aquilo (para o mar, só povos com litoral).
+// O povo age pelo líder e pela região mais populosa dele; o líder (se for pessoa completa) sente o resultado (confiança, coragem...).
+function atoresMundo(tipo){const occ=new Set(occupied().map(r=>r.id));
+  return facs().map(f=>{let rs=facRegions(f).filter(r=>occ.has(r.id));if(tipo==='mar')rs=rs.filter(r=>r.res&&r.res.mar);
+    if(!rs.length)return null;rs.sort((a,b)=>regionPop(b.id)-regionPop(a.id));
+    const g=facGov(f),l=g&&g.leader?byId(g.leader):null;
+    return {f,r:rs[0],l,ad:rs.reduce((s,r)=>s+regionAdults(r.id),0),pop:rs.reduce((s,r)=>s+regionPop(r.id),0)};}).filter(Boolean);}
+function atorMundo(tipo){const L=atoresMundo(tipo);if(!L.length)return null;const esc=world.mundoAtor;
+  let a=esc!=null&&esc!=='auto'?L.find(x=>x.f.id===+esc):null;const auto=!a;if(!a)a=L.sort((x,y)=>y.ad-x.ad)[0];
+  return Object.assign({auto,n:a.l||{name:a.f.name,id:null,traits:{},sens:{}}},a);}
+function quemVai(tipo){const A=atorMundo(tipo);if(!A)return `<div class="hint">Quem vai: ninguém ${tipo==='mar'?'(nenhum povo tem litoral habitado)':'(nenhum povo habitado)'}.</div>`;
+  return `<div class="hint">👤 Quem vai: <b style="color:${A.f.color}">${A.f.name}</b>${A.l?', liderado por '+A.l.name:''} · saindo de ${A.r.name}${A.auto?' <i>(automático)</i>':''}</div>`;}
+function atorSeletor(){const L=atoresMundo('').sort((a,b)=>b.pop-a.pop),esc=world.mundoAtor,top=L.slice(0,40);
+  if(esc!=null&&esc!=='auto'&&!top.some(a=>a.f.id===+esc)){const x=L.find(a=>a.f.id===+esc);if(x)top.push(x);}
+  return `<div class="box"><b>🧭 Quem age</b><div class="hint">Você comanda todos os povos. Escolha qual deles faz as ações abaixo, ou deixe no automático (o povo com mais adultos; no mar, só povos com litoral). O líder do povo sente o resultado.</div>
+    <select style="width:100%" onchange="world.mundoAtor=this.value;mundosRender()"><option value="auto">Automático (o povo mais apto)</option>${top.map(a=>`<option value="${a.f.id}"${String(esc)===String(a.f.id)?' selected':''}>${a.f.name} · ${a.pop.toLocaleString('pt-BR')} hab.${a.l?' · '+a.l.name:''}</option>`).join('')}</select></div>`;}
 function racaPainel(sp,ac){const R0=racaGet(sp);if(!R0)return;R0.cd=R0.cd||{};if((R0.cd[ac]||0)>day){mundoMsg(`Aguarde até o dia ${R0.cd[ac]}.`);return;}
-  const occ=occupied();if(!occ.length)return;let r=MAP.regions[world.active];if(!r||!occ.includes(r))r=R(occ);
-  if(sp==='atlante'&&!(r.res&&r.res.mar)){const lit=occ.filter(x=>x.res&&x.res.mar);if(lit.length)r=R(lit);}
-  const ok=Math.random()<clamp(.55+R0.rel/250,.2,.9);R0.cd[ac]=day+2;const [txt]=racaAcao(sp,ac,{name:'O povo'},r,ok);mundoMsg(txt);mundosRender();renderInfo();}
-function marPainelColonizar(){const occ=occupied().filter(x=>x.res&&x.res.mar);if(!occ.length){mundoMsg('Nenhuma região habitada tem mar.');return;}
-  const M=world.mar=world.mar||{col:[],atl:null};let r=MAP.regions[world.active];if(!r||!occ.includes(r))r=R(occ);
-  const c=M.col.find(x=>x.reg===r.id),alvo=Math.min(3,(c?c.nivel:0)+1);const [txt]=marColonizar({name:'O povo',id:null,traits:{},sens:{}},r,alvo,Math.random()<.7);mundoMsg(txt);mundosRender();renderInfo();}
+  const A=atorMundo(sp==='atlante'?'mar':'');if(!A){mundoMsg(sp==='atlante'?'Nenhum povo habita o litoral para tratar com os atlantes.':'Nenhum povo habitado.');return;}
+  const ok=Math.random()<clamp(.55+R0.rel/250,.2,.9);R0.cd[ac]=day+2;const [txt]=racaAcao(sp,ac,A.n,A.r,ok);mundoMsg(txt);mundosRender();renderInfo();}
+function marPainelColonizar(){const A=atorMundo('mar');if(!A){mundoMsg('Nenhum povo habita uma região com mar.');return;}
+  const M=world.mar=world.mar||{col:[],atl:null},r=A.r;
+  const c=M.col.find(x=>x.reg===r.id),alvo=Math.min(3,(c?c.nivel:0)+1);const [txt]=marColonizar(A.n,r,alvo,Math.random()<.7);mundoMsg(txt);mundosRender();renderInfo();}
 function marHTML(){const M=world.mar||{col:[],atl:null},RC2=world.racas||{};
   let h=`<div class="box"><div style="height:64px;border-radius:10px;background:linear-gradient(135deg,#052a4d,#0a7aa8 55%,#7fe0d0);display:flex;align-items:center;justify-content:center;font-size:34px">🌊🧜</div><b>Mar e povos</b>`;
   h+=`<div class="hint">Peça à Fábula: “colonizar o mar”, “cidade submersa”, “procurar os atlantes”, “aliança com os elfos”, “casar com os atlantes”, “guerra contra os atlantes”. Insetos não se misturam.</div>`;
   h+=`<div class="row"><span>🌊 Colônias marinhas</span><span>${M.col.length?M.col.map(c=>`${MAP.regions[c.reg].name} (${NIVEL_MAR[c.nivel]}, ${c.n})`).join(', '):'nenhuma'}</span></div>`;
-  h+=`<div style="margin:4px 0"><button class="sug" onclick="marPainelColonizar()" title="Precisa de barcos; profundezas pedem eletricidade ou muita magia">⚓ Colonizar o mar</button></div>`;
+  h+=quemVai('mar')+`<div style="margin:4px 0"><button class="sug" onclick="marPainelColonizar()" title="Precisa de barcos; profundezas pedem eletricidade ou muita magia">⚓ Colonizar o mar</button></div>`;
   if(M.atl)h+=`<div class="row"><span>🧜 Atlantes</span><span>~${M.atl.pop.toLocaleString('pt-BR')} · achados no ano ${M.atl.dia}</span></div>`;
   ['atlante','elfo'].forEach(sp=>{const R0=RC2[sp]||(sp==='elfo'?racaGet('elfo'):null);if(!R0)return;const E=ESPECIE[sp];
     const est=R0.guerra?'⚔️ em guerra':R0.alianca?'🤝 aliados':R0.rel>=25?'😊 amigos':R0.rel<=-25?'😠 hostis':'😐 neutros';
     h+=`<div class="row"><span>${E.e} ${cap(E.nome)}s</span><span>${est} · confiança ${Math.round(R0.rel)} · mestiços ${R0.mest||0}</span></div>`;
-    h+=`<div style="margin-bottom:4px">${[['amizade','🤝 Amizade'],['alianca','🛡️ Aliança'],['paz','🕊️ Paz'],['guerra','⚔️ Guerra'],['miscigenar','💞 Misturar']].map(a=>`<button class="sug" onclick="racaPainel('${sp}','${a[0]}')">${a[1]}</button>`).join('')}</div>`;});
+    h+=quemVai(sp==='atlante'?'mar':'')+`<div style="margin-bottom:4px">${[['amizade','🤝 Amizade'],['alianca','🛡️ Aliança'],['paz','🕊️ Paz'],['guerra','⚔️ Guerra'],['miscigenar','💞 Misturar']].map(a=>`<button class="sug" onclick="racaPainel('${sp}','${a[0]}')">${a[1]}</button>`).join('')}</div>`;});
   return h+'</div>';}
 // =====================================================================
 // CASAS (nomes de família), DINASTIAS, LINHA DO TEMPO, RESUMO DAS ERAS E LIVRO DO MUNDO
@@ -5641,20 +5657,21 @@ const MUNDO_INFO={
   dimensao:{como:'Faça alguém conseguir o feito "portal" (peça à 🔮 Fantasy) ou deixe o arcano do mundo passar de 60.',cena:'linear-gradient(135deg,#3b1d6e,#8e5cf0 55%,#e9a8ff)',desc:'Um lugar onde a magia flui livre. Seres luminosos vivem aqui, e feras também.'},
   planeta:{como:'Faça alguém conseguir o feito "nave" (supertecnologia, era avançada).',cena:'linear-gradient(135deg,#0b2447,#2a7f62 55%,#d9c27a)',desc:'Um planeta inteiro e vazio, com ar respirável. Quem parte para lá funda uma colônia.'},
   insetos:{como:'Faça alguém conseguir o feito que leva ao Mundo dos Insetos (peça à 🔮 Fantasy).',cena:'linear-gradient(135deg,#2d3b12,#6b8e23 55%,#c9d86a)',desc:'O mundo de onde vêm as invasões. Agora podemos atravessar até a colmeia.'}};
-function sendColonos(max){let sent=0;if(!DORM||DORM.adults<=200)return 0;for(let i=0;i<DORM.n&&sent<max;i++){if(DORM.live[i]&&DORM.age[i]>=18&&DORM.age[i]<40&&Math.random()<.2){DORM.count(i,-1);DORM.live[i]=0;DORM.slot.delete(DORM.id[i]);sent++;}}return sent;}
+function sendColonos(max,fid){let sent=0;if(!DORM)return 0;for(let i=0;i<DORM.n&&sent<max;i++){if(DORM.live[i]&&DORM.age[i]>=18&&DORM.age[i]<40&&(fid==null||(MAP.regions[DORM.reg[i]]||{}).faction===fid)&&Math.random()<.2){DORM.count(i,-1);DORM.live[i]=0;DORM.slot.delete(DORM.id[i]);sent++;}}return sent;}
 function mundoAcao(id,ac){world.mundos=world.mundos||{};const W=world.mundos[id];if(!W||!W.aberto)return;W.cd=W.cd||{};
   if((W.cd[ac]||0)>day){mundoMsg(`Aguarde até o dia ${W.cd[ac]} para repetir isto.`);return;}
-  if(ac==='estudar'){world.arcano=(world.arcano||0)+3;W.cd[ac]=day+3;W.visitas=(W.visitas||0)+1;log('',`🌀 Estudiosos atravessaram para a Dimensão Mágica e voltaram com novos conhecimentos. (arcano +3)`,[]);mundoMsg('Os estudiosos voltaram com segredos. Arcano +3.');}
-  else if(ac==='explorar'){W.cd[ac]=day+5;W.visitas=(W.visitas||0)+1;if(Math.random()<.7){world.arcano=(world.arcano||0)+5;log('big','🌀 Uma expedição explorou a Dimensão Mágica e trouxe artefatos brilhantes. (arcano +5)',[]);mundoMsg('A expedição voltou com artefatos. Arcano +5.');}
-    else{const r=R(occupied());const k=r?killIn(new Set([r.id]),0.03,'atacado(a) por uma criatura da Dimensão Mágica'):{};log('big',`🌀 Uma fera seguiu a expedição de volta e atacou${r?' '+r.name:''}${k.dead?`, matando ${k.dead}`:''}.`,[]);mundoMsg('Uma fera seguiu a expedição de volta!');}}
-  else if(ac==='colonos'){const s=sendColonos(50);if(!s){mundoMsg('Não há adultos suficientes (é preciso mais de 200).');return;}W.colonos=(W.colonos||0)+s;W.cd[ac]=day+2;log('',`🪐 ${s} pessoas embarcaram para o Planeta Novo. Colônia: ${W.colonos.toLocaleString('pt-BR')}.`,[]);mundoMsg(`${s} colonos partiram.`);}
+  const A=atorMundo('');if(!A){mundoMsg('Nenhum povo habitado para agir.');return;}const pv=A.f.name,ld=A.l?` (liderado por ${A.l.name})`:'';
+  if(ac==='estudar'){world.arcano=(world.arcano||0)+3;W.cd[ac]=day+3;W.visitas=(W.visitas||0)+1;if(A.l)shape(A.l,'curiosidade',3,'mandou estudiosos à Dimensão Mágica');log('',`🌀 Estudiosos de ${pv}${ld} atravessaram para a Dimensão Mágica e voltaram com novos conhecimentos. (arcano +3)`,A.l?[A.l.id]:[]);mundoMsg(`Os estudiosos de ${pv} voltaram com segredos. Arcano +3.`);}
+  else if(ac==='explorar'){W.cd[ac]=day+5;W.visitas=(W.visitas||0)+1;if(A.l)shape(A.l,'coragem',3,'enviou uma expedição à Dimensão Mágica');if(Math.random()<.7){world.arcano=(world.arcano||0)+5;log('big',`🌀 Uma expedição de ${pv}${ld} explorou a Dimensão Mágica e trouxe artefatos brilhantes. (arcano +5)`,A.l?[A.l.id]:[]);mundoMsg(`A expedição de ${pv} voltou com artefatos. Arcano +5.`);}
+    else{const r=A.r,k=killIn(new Set([r.id]),0.03,'atacado(a) por uma criatura da Dimensão Mágica');if(A.l)shape(A.l,'confianca',-3,'a expedição trouxe uma fera');log('big',`🌀 Uma fera seguiu a expedição de ${pv} de volta e atacou ${r.name}${k.dead?`, matando ${k.dead}`:''}.`,A.l?[A.l.id]:[]);mundoMsg(`Uma fera seguiu a expedição de ${pv} de volta!`);}}
+  else if(ac==='colonos'){if(A.ad<=80){mundoMsg(`${pv} tem poucos adultos para partir (${A.ad}; é preciso mais de 80). Escolha um povo maior ou deixe no automático.`);return;}const s=sendColonos(50,A.f.id);if(!s){mundoMsg(`${pv} não tem gente disponível para embarcar agora.`);return;}W.colonos=(W.colonos||0)+s;W.cd[ac]=day+2;if(A.l)shape(A.l,'coragem',2,'mandou colonos ao Planeta Novo');log('',`🪐 ${s} pessoas de ${pv} embarcaram para o Planeta Novo. Colônia: ${W.colonos.toLocaleString('pt-BR')}.`,A.l?[A.l.id]:[]);mundoMsg(`${s} colonos de ${pv} partiram.`);}
   else if(ac==='expedicao'){const d=activeDisasters().find(x=>x.type==='insetos');if(!d){mundoMsg('Não há invasão de insetos agora. Volte quando houver uma.');return;}
-    d.regions=d.regions.slice(0,Math.floor(d.regions.length*0.6));W.cd[ac]=day+3;log('big','🪲 Uma expedição atravessou até o Mundo dos Insetos e atacou a colmeia por dentro. A invasão recuou.',[]);mundoMsg('A invasão recuou.');}
+    d.regions=d.regions.slice(0,Math.floor(d.regions.length*0.6));W.cd[ac]=day+3;if(A.l)shape(A.l,'coragem',4,'atacou a colmeia dos insetos');log('big',`🪲 Uma expedição de ${pv}${ld} atravessou até o Mundo dos Insetos e atacou a colmeia por dentro. A invasão recuou.`,A.l?[A.l.id]:[]);mundoMsg(`A invasão recuou graças a ${pv}.`);}
   mundosRender();renderInfo();}
 function mundoMsg(t){const e=document.getElementById('mundosMsg');if(e)e.textContent=t;}
 function mundosRender(){const box=document.getElementById('mundosBody');if(!box)return;const M=world.mundos||{};
-  const ACS={dimensao:[['estudar','📖 Estudar a magia','+3 arcano, seguro'],['explorar','🧭 Enviar expedição','+5 arcano, mas pode trazer uma fera']],planeta:[['colonos','🚀 Enviar 50 colonos','precisa de mais de 200 adultos']],insetos:[['expedicao','⚔️ Atacar a colmeia','só durante uma invasão']]};
-  box.innerHTML=Object.keys(MUNDOS).map(id=>{const m=MUNDOS[id],I=MUNDO_INFO[id],W=M[id];
+  const ACS={dimensao:[['estudar','📖 Estudar a magia','+3 arcano, seguro'],['explorar','🧭 Enviar expedição','+5 arcano, mas pode trazer uma fera']],planeta:[['colonos','🚀 Enviar 50 colonos','o povo escolhido precisa de mais de 80 adultos']],insetos:[['expedicao','⚔️ Atacar a colmeia','só durante uma invasão']]};
+  box.innerHTML=atorSeletor()+Object.keys(MUNDOS).map(id=>{const m=MUNDOS[id],I=MUNDO_INFO[id],W=M[id];
     if(!W||!W.aberto)return `<div class="box" style="opacity:.75"><b>🔒 ${cap(m.nome)}</b><div class="hint">Ainda não alcançado. ${I.como}</div></div>`;
     const ex=id==='planeta'?`<div class="row"><span>Colonos</span><span>${(W.colonos||0).toLocaleString('pt-BR')}</span></div>`:'';
     const sp=id==='dimensao'?'elfo':id==='insetos'?'inseto':null,cs=sp?(world.colonias||[]).filter(c=>c.sp===sp):[],cr=id==='dimensao'?(world.criaturas||[]):[];
@@ -5662,7 +5679,7 @@ function mundosRender(){const box=document.getElementById('mundosBody');if(!box)
     const crt=id==='dimensao'?`<div class="row"><span>✨ Criaturas soltas</span><span>${cr.length?cr.map(c=>`${CRIA[c.tipo].e}${MAP.regions[c.reg].name}`).join(', '):'nenhuma'}</span></div>`:'';
     const inv=id==='insetos'?`<div class="row"><span>Invasão agora</span><span>${activeDisasters().some(x=>x.type==='insetos')?'sim':'não'}</span></div>`:'';
     return `<div class="box"><div style="height:64px;border-radius:10px;background:${I.cena};display:flex;align-items:center;justify-content:center;font-size:34px">${m.e}</div><b>${cap(m.nome)}</b> <span class="hint">aberto no dia ${W.dia}${W.por?' por '+W.por:''}</span><div class="hint">${I.desc}</div>${ex}${inv}${col}${crt}<div class="row"><span>Visitas</span><span>${W.visitas||0}</span></div>
-      <div style="margin-top:4px">${ACS[id].map(a=>`<button class="sug" title="${a[2]}" onclick="mundoAcao('${id}','${a[0]}')">${a[1]}</button>`).join('')}</div></div>`;}).join('')+marHTML();}
+      ${quemVai('')}<div style="margin-top:4px">${ACS[id].map(a=>`<button class="sug" title="${a[2]}" onclick="mundoAcao('${id}','${a[0]}')">${a[1]}</button>`).join('')}</div></div>`;}).join('')+marHTML();}
 function mundosToggle(open){const p=document.getElementById('mundosPanel');if(!p)return;const v=open===undefined?p.style.display==='none':open;p.style.display=v?'block':'none';if(v)mundosRender();}
 (function(){const b=document.createElement('button');b.id='mundosBtn';b.title='Outros mundos';b.textContent='🌌 Mundos';b.onclick=()=>mundosToggle();const h=document.getElementById('viewRegiao');h.insertAdjacentElement('afterend',b);
   const p=document.createElement('div');p.id='mundosPanel';p.className='panel';p.style.cssText='display:none;position:fixed;top:56px;right:16px;width:340px;max-height:80vh;overflow-y:auto;z-index:50;box-shadow:0 8px 30px #0004';
