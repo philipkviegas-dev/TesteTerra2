@@ -405,7 +405,7 @@ const ROLES=[
  {id:'programador',name:'Programador(a)',e:'💻',req:'computador',place:'pedras',skill:'experimentar',trait:'curiosidade',out:'kp',y:9,tier:5,verb:'programando',pitch:'Eu falo a língua das máquinas.'},
 ];
 ROLES.push({id:'governante',name:'Governante',e:'👑',req:'__poder__',place:'centro',skill:'conversar',trait:'ambicao',out:'gov',tier:5,verb:'governando'});
-const roleOf=n=>ROLES.find(r=>r.id===n.role);
+const roleOf=n=>ROLES.find(r=>r.id===n.role)||(n.role?PROF_MAP.get(n.role):undefined);
 const roleName=(r,n)=>r.id==='governante'?(n?titleOf(n):govTitle()):r.name;
 // quem assume o poder larga a função antiga (e volta para ela se perder o poder)
 function setLeader(n,type){
@@ -767,7 +767,7 @@ function scoreDecide(n){
   if(nd.energia<45)add('dormir',(60-nd.energia)*1.5+m.luto*5,'está cansado(a)');
   add('parado',6+(1-Math.min(1,nd.energia/60))*10+m.luto*40+Math.max(0,-dil)*10,m.luto>.3?'está de luto e quer ficar quieto(a)':m.vergonha>.3?'está envergonhado(a) e quer ficar na dele':'quer um momento de calma');
   if(nd.fome<65&&world.reserva>=1)add('comer',(65-nd.fome)*1.4,'está com fome');
-  if(role&&h>=8&&h<16&&!n.workedToday){const lk=n.jobLike[role.id]||0;add('trabalho',58+28*dil+lk*.15-m.luto*25-m.raiva*8+(gk('lider')?8:0)+8*medo+(deveTotal(n)>0?8:0),lk>25?'gosta do que faz e é seu turno':'é seu turno de trabalho');}
+  if(role&&h>=8&&h<16&&!n.workedToday){const lk=n.jobLike[role.id]||0;add('trabalho',58+28*dil+lk*.15-m.luto*25-m.raiva*8+(gk('lider')?8:0)+8*medo+(deveTotal(n)>0?8:0)+salPull(n,role),lk>25?'gosta do que faz e é seu turno':'é seu turno de trabalho');}
   if(has('troca')){
     const want=Object.entries(n.wants).filter(([k])=>itemAvail(k)&&!n.items.includes(k)).sort((a,b)=>b[1]-a[1])[0];
     if(want&&want[1]>=35){const it=ITEMS[want[0]];
@@ -1129,7 +1129,7 @@ function finishShift(n){
       case 'trade':world.goods++;break;
       case 'gov':world.kp+=1;NPCS.forEach(o=>{if(o!==n&&o.region===n.region)relate(o,n,T(n,'bondade')>0.2?1:T(n,'bondade')<-0.2?-1:0);});break;
     }
-    if(has('moeda'))n.coins+=r.tier*4;
+    profWork(n,r);
   }else if(Math.random()<.4)think(n,`Hoje não rendeu nada como ${r.name.toLowerCase()}...`,'😓');
   if(r.risky&&!ok&&Math.random()<0.2*(1-T(n,'coragem'))*(has('lanca')?0.4:1)){hurt(n,2,'se machucou na caçada');return;}
   NPCS.forEach(o=>{if(o!==n&&o.task==='trabalho'&&o.target===n.target){relate(o,n,2);relate(n,o,2);}}); // trabalhar junto aproxima
@@ -1312,7 +1312,7 @@ function romance(a,b){
   return true;
 }
 function morningLife(n){
-  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}}
+  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}}
   if(n.isChild){
     if(n.ageDays>=CHILD_DAYS){n.isChild=false;log('big',`🎓 ${N(n)} cresceu e virou adulto(a)! Na próxima conversa da tribo vai escolher sua função.`,[n.id]);think(n,'Cresci! Agora é comigo.','🎓');remember(n,'virei adulto(a)',9);}
     return;
@@ -1612,6 +1612,7 @@ function discover(d,forced){
   if(who){think(who,R([`Eu consegui! Olhem isso!`,`Ninguém nunca tinha visto algo assim!`,`Acho que mudei a vida de todo mundo.`]),'💡');who.fame=who.fame?who.fame:`quem descobriu ${d.name}`;world.famous[who.id]=1;remember(who,`descobri ${d.name}`,10);shape(who,'curiosidade',6,'fez uma descoberta');shape(who,'ambicao',3,'ficou famoso(a)');NPCS.forEach(o=>{if(o!==who)relate(o,who,6);});}
   for(const id in PLACES){const a=look(id);if(a.label!==before[id])log('',`🏗️ ${before[id]} agora é <b>${a.e} ${a.label}</b>.`);}
   const newRoles=ROLES.filter(r=>r.req===d.id);if(newRoles.length)worldSay(`Com ${d.name}, surge uma nova função possível: ${newRoles.map(r=>r.e+' '+r.name).join(', ')}. Vai ser discutida na próxima conversa.`);
+  try{const np=PROFS.filter(p=>reqList(p).includes(d.id)&&reqList(p).every(x=>x===d.id||has(x)));if(np.length)log('big',`🧰 Com ${d.name}, surgem ${np.length} novos ofícios (${np.slice(0,4).map(p=>p.name.toLowerCase()).join(', ')}${np.length>4?'…':''}). Quem tiver os requisitos pode tentar.`);}catch(e){}
   const newItems=Object.entries(ITEMS).filter(([k,it])=>itemAvail(k)&&(it.req===d.id||(d.id==='troca'))).map(([k,it])=>it.e+' '+it.name);
   if(newItems.length)worldSay(`Novos objetos de desejo podem ser conseguidos no ${look('mata').label.toLowerCase()}: ${newItems.join(', ')}.`);
   if(d.id==='moeda')NPCS.forEach(o=>{o.coins+=5;});
@@ -2406,6 +2407,199 @@ const REGION_CAP=60;function regionCap(r){return REGION_CAP;}
 // o que cada terreno permite
 const ACT_RES={pescar:'mar',cacar:'floresta',coletar:null,lascar:'pedra',plantar:'fertil'};
 const ROLE_RES={pescador:'mar',marinheiro:'mar',cacador:'floresta',artesao:'pedra',ferreiro:'pedra',agricultor:'fertil',pastor:'fertil',moleiro:'fertil'};
+
+// =====================================================================
+// PROFISSÕES GERADAS — milhares de ofícios que surgem com a história.
+// Não são enfeite: têm requisitos (época, recurso da região, habilidade, idade, temperamento, capital),
+// produzem de verdade (comida, saber, objetos, cura, vigilância, abrigo, aula), pagam salário que varia
+// com a escassez do setor, as vagas da região e a riqueza local, e somem quando a época os torna obsoletos.
+// =====================================================================
+const PROFS=[],PROF_MAP=new Map();
+const SETOR_D={food:.26,craft:.2,build:.1,heal:.06,guard:.07,kp:.07,trade:.1,fun:.08,admin:.03}; // trabalhadores por habitante que o setor sustenta
+const SETOR_PAGA={food:.9,craft:1,build:1.05,heal:1.3,guard:1,kp:1.2,trade:1.15,fun:.85,admin:1.4};
+const SETOR_NOME={food:'alimento',craft:'ofícios',build:'construção',heal:'saúde',guard:'segurança',kp:'saber',trade:'comércio',fun:'artes',admin:'governo'};
+const OUT_SETOR={food:'food',kp:'kp',craft:'craft',guard:'guard',shelter:'build',fire:'build',heal:'heal',fun:'fun',trade:'trade',gov:'admin'};
+const setorDe=r=>r.setor||(r.setor=OUT_SETOR[r.out]||'craft');
+const MINSK=[0,0,8,18,32,45];
+const RANKS=[['aprendiz',.7],['oficial',1],['mestre',1.4],['grão-mestre',1.9]];
+const slug=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+const nomeF=s=>s.replace(/^(\S+)/,w=>/ão$/.test(w)?w+'(ã)':/(or|eiro|ico|ano|ês|o)$/.test(w)?w+'(a)':w);
+const reqList=p=>p.req?String(p.req).split('+'):[];
+const reqOk=p=>reqList(p).every(x=>has(x));
+function P(d){
+  if(!d.name)return;const nome=nomeF(d.name),id=slug(d.name);if(PROF_MAP.has(id))return;
+  const tr=d.tr||2,out=d.o,p={id,gen:1,name:nome,e:d.e,place:d.pl||'centro',skill:d.k,trait:d.t,out,tier:tr,req:d.rq||null,res:d.res||null,setor:d.s||OUT_SETOR[out],ate:d.ate||null,
+    y:d.y||(out==='food'?3+tr*2.5:out==='kp'?2+tr*1.6:2),risky:!!d.risky,ens:!!d.ens,w:d.w||1,minSk:d.minSk!=null?d.minSk:MINSK[tr],
+    tmin:d.tmin!=null?d.tmin:(tr>=3&&(out==='guard')?-.2:null),cap:d.cap||0};
+  p.verb=`atuando como ${nome.toLowerCase()}`;p.pitch=`Quero ser ${nome.toLowerCase()}.`;
+  PROFS.push(p);PROF_MAP.set(id,p);if(p.res)ROLE_RES[id]=p.res;
+}
+// lista simples "Nome|req|ate|emoji, ..."
+function fam(d,list){for(const raw of list.split(',')){const [nm,rq,at,em]=raw.trim().split('|');if(!nm)continue;P({...d,name:nm,rq:rq||d.rq,ate:at||d.ate,e:em||d.e});}}
+// cruzamento "prefixo:tier, ..." x "item|req|ate, ..." -> "Prefixo de item"
+function cruza(d,pref,itens,ligacao){for(const pf of pref.split(',')){const [pn,ptr,prq]=pf.trim().split(':');
+  for(const raw of itens.split(',')){const [it,rq,at,em]=raw.trim().split('|');if(!it)continue;
+    const rqs=[prq,rq,d.rq].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join('+')||null;
+    P({...d,name:`${pn} ${ligacao||'de'} ${it}`,tr:ptr?+ptr:d.tr,rq:rqs,ate:at||d.ate,e:em||d.e});}}}
+function montaProfissoes(){
+ // ---------- ALIMENTO: lavoura ----------
+ cruza({s:'food',k:'plantar',t:'diligencia',o:'food',pl:'campo',res:'fertil',e:'🌾',rq:'agricultura'},'Cultivador:2,Colhedor:1',
+  'trigo,cevada,centeio,aveia,painço,sorgo,arroz|barcos,milho|navegacao,feijão,lentilha,grão-de-bico,ervilha,fava,batata|navegacao,mandioca|navegacao,inhame,abóbora,cebola,alho,repolho,cenoura,beterraba,nabo,rabanete,alface,tomate|navegacao,pimenta|navegacao,gergelim,linhaça|tecelagem,algodão|tecelagem,cânhamo|tecelagem,cana-de-açúcar|moinho,uva|ceramica,azeitona|ceramica,maçã,pera,cereja,figo,tâmara,romã,laranja|navegacao,limão|navegacao,banana|navegacao,coco|navegacao,cacau|navegacao,café|navegacao,chá|navegacao,tabaco|navegacao,lúpulo|moinho,mostarda,açafrão|navegacao,menta,trevo,girassol|navegacao,amendoim|navegacao,melão,pepino,morango|navegacao,framboesa,castanha,noz,amêndoa,pistache|navegacao,oliveira,vinhedo|ceramica,pomar,horta,estufa|vapor,hidroponia|computador');
+ cruza({s:'food',k:'plantar',t:'diligencia',o:'food',pl:'rio',res:'fertil',e:'🌀',rq:'moinho'},'Moleiro:2',
+  'trigo,cevada,centeio,aveia,milho|navegacao,arroz,mandioca|navegacao,sorgo,castanha,azeitona|ceramica,cana-de-açúcar,painço');
+ // ---------- ALIMENTO: criação ----------
+ cruza({s:'food',k:'plantar',t:'bondade',o:'food',pl:'campo',res:'fertil',e:'🐐',rq:'domesticacao'},'Criador:2,Tratador:1',
+  'cabras,ovelhas,bois,vacas,porcos,galinhas,patos,gansos,perus,coelhos,cavalos|roda,burros,mulas,camelos,lhamas,búfalos,renas,abelhas,bichos-da-seda|tecelagem,codornas,pombos,faisões,carneiros,cordeiros,potros,gado leiteiro,gado de corte,aves de corte,peixes de viveiro|ceramica,minhocas,cães pastores,cães de guarda,falcões');
+ fam({s:'food',k:'plantar',t:'bondade',o:'food',pl:'campo',res:'fertil',e:'🐑',rq:'domesticacao',tr:2},
+  'Tosquiador,Leiteiro,Queijeiro|ceramica,Manteigueiro|ceramica,Apicultor,Ovicultor,Pastor de montanha,Pastor de transumância|roda,Vaqueiro|roda,Boiadeiro|roda,Domador de cavalos|roda,Ferrador de cavalos|ferro,Veterinário|ciencia|,Inseminador|medicina,Zootecnista|ciencia,Abatedor,Açougueiro,Salsicheiro|ceramica,Curador de carnes|ceramica,Pecuarista|moeda,Fazendeiro|moeda,Granjeiro|vapor,Avicultor|vapor,Laticinista|vapor,Frigorista|eletricidade');
+ // ---------- ALIMENTO: mar e rio ----------
+ cruza({s:'food',k:'pescar',t:'diligencia',o:'food',pl:'praia',res:'mar',e:'🎣',rq:'ferramentas'},'Pescador:1,Mergulhador:3:barcos',
+  'sardinha,atum|barcos,bacalhau|barcos,salmão,truta,enguia,polvo,camarão,ostra,mexilhão,lula,caranguejo,lagosta|barcos,baleia|navegacao,foca|barcos,tubarão|navegacao,linguado,anchova,arenque|barcos,carpa,tilápia,siri,marisco,esponja,pérola,coral,alga');
+ fam({s:'food',k:'pescar',t:'diligencia',o:'food',pl:'praia',res:'mar',e:'⛵',rq:'barcos',tr:2},
+  'Remador,Marinheiro de convés,Timoneiro,Contramestre,Calafate,Aprendiz de mestre de rede,Mestre de rede,Pescador de alto-mar,Pescador de arrasto|vapor,Pescador de rede,Pescador de anzol,Pescador de lança,Pescador de arpão,Pescador de fundo,Pescador com tarrafa,Pescador de marés,Armador de barcos|moeda,Salgador de peixe|ceramica,Secador de peixe,Defumador de peixe|fogo,Piscicultor|ceramica,Aquicultor|computador,Salineiro,Coletor de sal marinho,Coletor de algas,Coletor de conchas');
+ // ---------- ALIMENTO: caça e coleta ----------
+ cruza({s:'food',k:'cacar',t:'coragem',o:'food',pl:'floresta',res:'floresta',e:'🏹',rq:'lanca',risky:true},'Caçador:2,Rastreador:3',
+  'veado,javali,coelho,lebre,aves,patos selvagens,urso,lobo,alce,raposa,cabra montesa,bisão,búfalo,mamute,tigre,leão,crocodilo,cervo,gazela,perdiz,codorna,faisão,castor,marta,arminho,lontra,foca');
+ fam({s:'food',k:'cacar',t:'coragem',o:'food',pl:'floresta',res:'floresta',e:'🦌',rq:'lanca',tr:2,risky:true},
+  'Armadilheiro,Peleteiro,Falcoeiro|domesticacao,Tratador de cães de caça|domesticacao,Batedor,Guia de caça,Caçador de javalis,Caçador de ursos,Caçador de grandes feras,Caçador de aves,Caçador com arco|lanca,Caçador de recompensas|leis,Caçador furtivo,Guarda-caça|leis,Caçador de focas|barcos,Caçador de baleias|navegacao,Coureiro');
+ cruza({s:'food',k:'coletar',t:'diligencia',o:'food',pl:'floresta',e:'🫐',rq:'fogo'},'Coletor:1',
+  'frutas silvestres,raízes,cogumelos,nozes,castanhas,mel silvestre,ovos de ninho,ervas comestíveis,sementes,bagas,folhas comestíveis,tubérculos,mel de abelha,larvas,caracóis,mariscos da praia|ferramentas,palmitos,pinhões,juncos,taboas,agrião,aspargos selvagens');
+ // ---------- EXTRAÇÃO ----------
+ cruza({s:'craft',k:'coletar',t:'diligencia',o:'craft',pl:'floresta',res:'floresta',e:'🪓',rq:'ferramentas'},'Lenhador:2,Serrador:2:ferro',
+  'carvalho,pinho,cedro,bambu,ébano|navegacao,teca|navegacao,mogno|navegacao,nogueira,oliveira,faia,freixo,bétula,salgueiro,cipreste,abeto,sequoia|vapor,acácia,seringueira|navegacao,jacarandá|navegacao');
+ cruza({s:'craft',k:'lascar',t:'coragem',o:'craft',pl:'colina',res:'pedra',e:'⛏️',rq:'ferramentas',risky:true},'Mineiro:3,Extrator:2,Ajudante de mina:1',
+  'sílex,pedra,argila|ceramica,sal-gema,cobre|metalurgia,estanho|metalurgia,ferro|ferro,carvão|vapor,ouro|metalurgia,prata|metalurgia,chumbo|ferro,mármore|metalurgia,granito,calcário,gesso,enxofre|ferro,salitre|ferro,ocre,âmbar,jade|metalurgia,cristal,diamante|vapor,esmeralda|vapor,petróleo|eletricidade,gás natural|eletricidade,lítio|computador,urânio|computador,areia,cascalho,cal');
+ fam({s:'craft',k:'lascar',t:'diligencia',o:'craft',pl:'colina',res:'pedra',e:'🪨',rq:'ferramentas',tr:2},
+  'Cavouqueiro,Britador,Pedreiro de cantaria|ferro,Talhador de pedra,Cortador de mármore|metalurgia,Fundidor de minério|metalurgia,Mestre de forja|metalurgia,Fogueiro|vapor,Maquinista de mina|vapor,Perfurador|eletricidade,Operador de perfuratriz|eletricidade,Geólogo de campo|ciencia,Engenheiro de minas|vapor,Topógrafo de minas|matematica,Carvoeiro|fogo,Salineiro de rocha|ceramica');
+ // ---------- OFÍCIOS: material x produto ----------
+ const O={s:'craft',o:'craft',pl:'colina',tr:2,k:'lascar',t:'diligencia'};
+ fam({...O,e:'🪵',rq:'ferramentas'},'Carpinteiro,Marceneiro|ferro,Entalhador,Tanoeiro|ceramica,Torneiro de madeira,Carroceiro|roda,Carpinteiro naval|barcos,Carpinteiro de telhados|ferro,Fabricante de arcos|lanca,Fabricante de flechas|lanca,Fabricante de cabos de ferramenta,Fabricante de remos|barcos,Fabricante de rodas|roda,Charreteiro|roda,Fabricante de escadas,Fabricante de cercas,Fabricante de caixas,Fabricante de baldes,Fabricante de barris|ceramica,Fabricante de móveis|ferro,Fabricante de instrumentos de madeira|arte,Escultor de madeira|arte,Fabricante de brinquedos,Fabricante de pentes,Fabricante de colheres,Fabricante de tigelas,Construtor de carroças|roda,Construtor de moinhos|moinho,Construtor de navios|navegacao,Construtor de órgãos|livros,Construtor de pianos|vapor,Fabricante de caixões,Fabricante de lápis|imprensa,Fabricante de móveis modernos|vapor');
+ fam({...O,e:'🪨',rq:'ferramentas'},'Lascador de sílex,Fabricante de pontas de lança|lanca,Fabricante de machados,Fabricante de facas de pedra,Fabricante de raspadores,Fabricante de moendas,Fabricante de mós|moinho,Escultor de pedra|arte,Lapidador|metalurgia,Gravador de pedra|escrita,Fabricante de lápides|escrita,Pedreiro,Calceteiro|roda,Fabricante de lajes,Polidor de pedra,Fabricante de almofarizes|ervas');
+ fam({...O,e:'🏺',pl:'rio',rq:'ceramica'},'Oleiro,Ceramista,Tijoleiro,Telheiro,Ladrilheiro,Louceiro,Fabricante de potes,Fabricante de jarros,Fabricante de ânforas|barcos,Fabricante de lamparinas,Fabricante de canos de barro|leis,Fabricante de fornos,Pintor de cerâmica|arte,Esmaltador|ferro,Porcelanista|vapor,Fabricante de azulejos|ferro,Fabricante de louças finas|vapor,Fabricante de isoladores|eletricidade,Ceramista industrial|vapor,Fabricante de peças cerâmicas técnicas|computador');
+ fam({...O,e:'🧵',pl:'centro',rq:'tecelagem'},'Tecelão,Fiandeiro,Tapeceiro,Cesteiro,Cordoeiro,Costureiro,Alfaiate|moeda,Tintureiro,Bordador,Chapeleiro|moeda,Rendeiro|navegacao,Remendão,Feltreiro,Tecelão de linho,Tecelão de lã,Tecelão de algodão,Tecelão de seda|navegacao,Fabricante de redes de pesca,Fabricante de velas de navio|barcos,Fabricante de tendas,Fabricante de cobertores,Fabricante de roupas de inverno,Fabricante de luvas,Fabricante de meias|moeda,Fabricante de uniformes|leis,Fabricante de bandeiras|leis,Estampador|imprensa,Operador de tear mecânico|vapor,Costureiro industrial|vapor,Modista|navegacao,Estilista|radio,Designer de moda|internet,Operador de máquina de costura|eletricidade');
+ fam({...O,e:'👞',pl:'centro',rq:'domesticacao'},'Curtidor,Sapateiro|moeda,Seleiro|roda,Luveiro|moeda,Correeiro|roda,Fabricante de tambores|arte,Fabricante de odres,Fabricante de bolsas,Fabricante de cintos,Fabricante de botas,Fabricante de peles,Pergaminheiro|escrita,Fabricante de arreios|roda,Fabricante de escudos de couro|lanca,Fabricante de armaduras de couro|lanca,Encadernador de couro|livros,Fabricante de malas|vapor,Sapateiro industrial|vapor');
+ fam({...O,e:'⚒️',rq:'metalurgia'},'Fundidor de bronze,Caldeireiro,Sineiro|ferro,Fabricante de alfinetes,Fabricante de agulhas,Fabricante de anzóis,Fabricante de espelhos de bronze,Fabricante de tachos,Fabricante de lanternas,Fabricante de foices,Fabricante de enxadas,Fabricante de arados|agricultura,Fabricante de adagas,Fabricante de elmos,Fabricante de escudos,Fabricante de braceletes,Fabricante de fivelas,Fabricante de ornamentos,Fabricante de bacias,Fabricante de taças');
+ fam({...O,e:'⚔️',rq:'ferro',tr:3},'Ferreiro de ferro,Armeiro,Espadeiro,Serralheiro,Ferrador,Cuteleiro,Fabricante de pregos,Armadureiro,Fabricante de correntes,Fabricante de cadeados|leis,Fabricante de ferraduras|roda,Fabricante de lanças de ferro,Fabricante de machados de ferro,Fabricante de arados de ferro|agricultura,Fabricante de foices de ferro,Fabricante de facas de ferro,Fabricante de ferramentas de ferro,Fabricante de grades,Fabricante de portões,Fabricante de arpões|barcos,Fabricante de bestas,Fabricante de catapultas|matematica,Fabricante de bigornas,Fabricante de fornalhas,Fabricante de tesouras,Fabricante de agulhas de ferro,Fabricante de sinos|livros,Fabricante de armas de fogo|vapor,Fabricante de canos de ferro|vapor,Fabricante de panelas de ferro,Fabricante de trilhos|vapor,Fabricante de caldeiras|vapor');
+ fam({...O,e:'💍',rq:'metalurgia',tr:3},'Ourives,Joalheiro,Prateiro,Cunhador de moedas|moeda,Gravador de selos|escrita,Fabricante de coroas,Fabricante de anéis,Fabricante de colares,Fabricante de braceletes de ouro,Dourador,Fundidor de ouro,Fundidor de prata,Ourives de altar|escrita,Relojoeiro|matematica,Fabricante de joias de pérolas|navegacao,Gemólogo|ciencia,Lapidador de diamantes|vapor,Fabricante de alianças,Fabricante de medalhas|leis,Fabricante de selos reais|escrita,Joalheiro moderno|eletricidade');
+ fam({...O,e:'🔮',rq:'ferro',tr:3},'Vidraceiro,Soprador de vidro,Fabricante de espelhos|matematica,Fabricante de lentes|ciencia,Fabricante de óculos|ciencia,Fabricante de garrafas,Fabricante de frascos,Fabricante de vitrais|livros,Fabricante de lunetas|navegacao,Fabricante de microscópios|ciencia,Fabricante de lâmpadas|eletricidade,Fabricante de tubos de vidro|ciencia,Fabricante de vidro plano|vapor,Fabricante de fibra óptica|internet');
+ fam({...O,e:'📜',pl:'pedras',rq:'escrita',tr:3,k:'arte'},'Copista|escrita|imprensa,Iluminador de manuscritos|escrita|imprensa,Fabricante de tinta,Fabricante de papiro,Fabricante de papel|livros,Encadernador|livros,Gravador|imprensa,Tipógrafo|imprensa,Impressor|imprensa,Fundidor de tipos|imprensa,Litógrafo|vapor,Gráfico|vapor,Diagramador|computador,Fabricante de pergaminhos,Fabricante de selos de cera,Gravador de mapas|navegacao,Impressor de jornais|imprensa,Impressor de cartazes|imprensa,Operador de linotipo|vapor,Operador de impressora offset|eletricidade,Fotógrafo de impressão|eletricidade,Designer gráfico|computador,Ilustrador|arte,Cartunista|imprensa,Revisor|imprensa,Editor de livros|imprensa,Livreiro|livros,Bibliotecário|livros,Arquivista|escrita,Papeleiro|livros');
+ fam({...O,e:'🍞',pl:'centro',rq:'agricultura',k:'coletar',tr:2},'Padeiro,Cozinheiro,Cozinheiro de tribo|fogo,Confeiteiro|moinho,Doceiro|moinho,Cervejeiro|ceramica,Vinicultor|ceramica,Destilador|ciencia,Fabricante de queijos|ceramica,Fabricante de manteiga|ceramica,Fabricante de azeite|ceramica,Fabricante de vinagre|ceramica,Salgador de carnes|ceramica,Defumador|fogo,Fabricante de conservas|vapor,Fabricante de biscoitos|moinho,Fabricante de macarrão|moinho,Fabricante de mel fermentado|ceramica,Fabricante de hidromel|ceramica,Fabricante de sidra|ceramica,Fabricante de licores|ciencia,Fabricante de chocolate|navegacao,Fabricante de açúcar|moinho,Torrador de café|navegacao,Cozinheiro de estalagem|moeda,Cozinheiro de navio|barcos,Cozinheiro de exército|leis,Mestre-cuca|moeda,Padeiro industrial|vapor,Cervejeiro industrial|vapor,Enlatador|vapor,Congelador de alimentos|eletricidade,Técnico de laticínios|eletricidade,Engenheiro de alimentos|ciencia,Nutricionista|medicina,Confeiteiro de festas|moeda,Churrasqueiro|fogo,Feitor de tortas|moinho,Pizzaiolo|moinho,Sorveteiro|eletricidade');
+ // ---------- COMÉRCIO ----------
+ const C={s:'trade',k:'conversar',t:'sociabilidade',o:'trade',pl:'mata',e:'🤝',rq:'troca'};
+ cruza({...C},'Vendedor ambulante:1,Feirante:2:ceramica,Mercador:3:moeda',
+  'sal,peixe seco,peles,cerâmica|ceramica,tecidos|tecelagem,ferramentas,metais|metalurgia,especiarias|navegacao,seda|navegacao,vinho|ceramica,azeite|ceramica,grãos|agricultura,gado|domesticacao,livros|livros,armas|ferro,joias|metalurgia,perfumes|navegacao,ervas medicinais|ervas,mel,cera,madeira,pedras preciosas|metalurgia,vidro|ferro,papel|livros,chá|navegacao,café|navegacao,açúcar|moinho,tabaco|navegacao,máquinas|vapor,rádios|radio,eletrodomésticos|eletricidade,computadores|computador,roupas|tecelagem,sapatos|domesticacao,móveis,brinquedos,instrumentos musicais|arte,frutas|agricultura,verduras|agricultura,pão|agricultura,carne|domesticacao,queijos|ceramica,cestos|tecelagem,cordas|tecelagem,velas|ceramica,lamparinas|ceramica,óleo de baleia|navegacao,marfim|navegacao,ouro em pó|metalurgia,escravos libertos|leis,antiguidades|livros,mapas|navegacao,remédios|ciencia,sementes|agricultura,esponjas|barcos,conchas,peixe fresco,lenha,carvão');
+ fam({...C,tr:2},'Estalajadeiro|moeda,Taberneiro|moeda,Cambista|moeda,Agiota|moeda,Leiloeiro|moeda,Corretor de mercadorias|moeda,Corretor de imóveis|leis,Corretor de seguros|vapor,Carregador de mercadorias,Carregador de porto|barcos,Barqueiro|barcos,Carroceiro de carga|roda,Caravaneiro|roda,Guia de caravana|roda,Mensageiro|escrita|radio,Correio a cavalo|roda|eletricidade,Pombo-correio|escrita|radio,Carteiro|imprensa,Telegrafista|eletricidade|internet,Operador de rádio|radio,Telefonista|eletricidade|computador,Locutor de rádio|radio,Jornalista|imprensa,Repórter|imprensa,Redator|imprensa,Publicitário|radio,Vendedor de loja|moeda,Lojista|moeda,Dono de armazém|moeda,Atravessador|moeda,Contrabandista|leis,Pirata|barcos,Corsário|navegacao,Banqueiro|moeda+leis,Financista|democracia,Gerente de banco|eletricidade,Caixa de banco|moeda,Operador de bolsa|vapor,Contador|escrita,Guarda-livros|escrita,Tesoureiro|moeda,Cobrador|moeda,Capitão de navio mercante|navegacao,Despachante|vapor,Agente de viagens|eletricidade,Comissário de bordo|eletricidade,Motorista de caminhão|eletricidade,Motorista de ônibus|eletricidade,Taxista|eletricidade,Maquinista de trem|vapor,Foguista de trem|vapor,Cobrador de trem|vapor,Chefe de estação|vapor,Controlador de tráfego aéreo|computador,Piloto de avião|computador,Entregador|internet,Gerente de e-commerce|internet,Gerente de loja|eletricidade,Operador de caixa|computador,Atendente|eletricidade,Vendedor de seguros|vapor,Empresário|moeda,Industrial|vapor');
+ // ---------- SAÚDE ----------
+ const H={s:'heal',k:'experimentar',t:'bondade',o:'heal',pl:'centro',e:'🌿',rq:'ervas'};
+ cruza({...H,tr:2},'Curandeiro:2',
+  'febre,ossos quebrados,picadas,feridas,dores,tosse,partos,dentes,queimaduras,olhos,pele,estômago,cabeça,mordidas,envenenamento,doenças de criança,doenças de idoso,machucados de caça,afogamentos,infecções|ceramica');
+ fam({...H,tr:2},'Herbalista,Parteira,Raizeiro,Benzedeira,Massagista,Cuidador de doentes,Cuidador de idosos|agricultura,Cuidador de crianças|agricultura,Boticário|livros,Barbeiro-cirurgião|ferro,Sangrador|ferro,Dentista de aldeia|ferro,Ortopedista de aldeia|ferro,Enfermeiro|medicina,Enfermeiro de campo|medicina,Enfermeiro-chefe|medicina,Atendente de hospital|medicina,Socorrista|medicina,Paramédico|medicina,Auxiliar de farmácia|medicina,Farmacêutico|medicina,Fisioterapeuta|medicina,Terapeuta ocupacional|medicina,Psicólogo|medicina,Psiquiatra|medicina,Nutricionista clínico|medicina,Veterinário|ciencia,Veterinário de grandes animais|ciencia,Sanitarista|medicina,Epidemiologista|medicina,Médico de família|medicina,Clínico geral|medicina,Pediatra|medicina,Geriatra|medicina,Cardiologista|medicina,Neurologista|medicina,Oftalmologista|medicina,Dermatologista|medicina,Ginecologista|medicina,Obstetra|medicina,Urologista|medicina,Ortopedista|medicina,Otorrinolaringologista|medicina,Endocrinologista|medicina,Oncologista|medicina,Anestesista|medicina,Cirurgião|medicina,Cirurgião plástico|medicina,Radiologista|medicina+radio,Patologista|medicina,Hematologista|medicina,Infectologista|medicina,Dentista|medicina,Ortodontista|medicina,Optometrista|medicina,Protético|medicina,Técnico de laboratório|medicina,Técnico de raio-X|medicina+radio,Técnico de ultrassom|medicina+eletricidade,Médico legista|medicina,Médico do trabalho|medicina,Médico de navio|navegacao,Médico militar|leis,Médico de epidemias|medicina,Bioquímico|medicina,Geneticista clínico|computador,Médico de telemedicina|internet');
+ // ---------- SEGURANÇA ----------
+ const G={s:'guard',k:'explorar',t:'coragem',o:'guard',pl:'centro',e:'🛡️',rq:'fogo'};
+ cruza({...G,tr:2},'Vigia:1,Sentinela:2',
+  'do portão|abrigo,da muralha|ferro,do porto|barcos,do mercado|troca,do rio,da floresta,do templo|escrita,do celeiro|agricultura,da ponte|roda,da torre|matematica,da mina|ferramentas,da estrada|roda,da fronteira|leis,do tesouro|moeda,do rebanho|domesticacao,da plantação|agricultura,da praia,do acampamento,da caverna,da fogueira,do palácio|leis,da biblioteca|livros,da fábrica|vapor,da usina|eletricidade,do banco|moeda,da prisão|leis,do aeroporto|computador,do data center|internet');
+ fam({...G,tr:3},'Guarda,Guarda da cidade|leis,Guarda do rei|leis,Guarda do tesouro|moeda,Guarda-costas|leis,Guarda de caravana|roda,Capitão da guarda|leis,Carcereiro|leis,Xerife|leis,Policial|democracia,Policial de ronda|democracia,Policial de trânsito|eletricidade,Policial montado|democracia,Delegado|democracia,Detetive|ciencia,Perito criminal|ciencia,Investigador|democracia,Agente secreto|navegacao,Espião|escrita,Contraespião|navegacao,Lanceiro|lanca,Arqueiro de guerra|lanca,Espadachim|ferro,Cavaleiro|ferro+domesticacao,Soldado de infantaria|ferro,Soldado de cavalaria|roda,Besteiro|ferro,Piqueiro|ferro,Sapador|ferro,Engenheiro de cerco|matematica,Mercenário|moeda,Capitão de guerra|leis,General|leis,Marinheiro de guerra|navegacao,Capitão de nau|navegacao,Artilheiro|vapor,Soldado de fuzil|vapor,Granadeiro|vapor,Soldado blindado|eletricidade,Operador de rádio de guerra|radio,Piloto de caça|computador,Soldado de elite|computador,Analista de inteligência|computador,Ciberdefensor|internet,Bombeiro|vapor,Bombeiro voluntário|ferro,Salva-vidas|barcos,Guarda florestal|leis,Guarda de fronteira|leis,Alfandegário|leis,Fiscal de mercado|leis,Fiscal de obras|leis,Fiscal sanitário|medicina,Agente de trânsito|eletricidade,Segurança de evento|moeda,Segurança privado|moeda,Domador de feras,Defensor do povo|democracia,Meirinho|leis,Oficial de justiça|leis,Guardião de marcos|escrita,Rondante noturno|abrigo');
+ // ---------- CONSTRUÇÃO ----------
+ const B={s:'build',k:'construir',t:'diligencia',o:'shelter',pl:'centro',e:'🏗️',rq:'abrigo'};
+ cruza({...B,tr:2},'Construtor:2,Mestre de obras:3,Ajudante de obras:1',
+  'cabanas,casas|escrita,celeiros|agricultura,pontes|roda,muralhas|ferro,torres|matematica,templos|escrita,aquedutos|leis,moinhos|moinho,estradas|roda,portos|barcos,canais|matematica,fábricas|vapor,ferrovias|vapor,arranha-céus|eletricidade,barragens|eletricidade,usinas|eletricidade,poços|ceramica,cisternas|ceramica,silos|agricultura,estalagens|moeda,mercados|troca,palácios|leis,teatros|arte,bibliotecas|livros,hospitais|medicina,escolas|livros,quartéis|leis,faróis|navegacao,cais|barcos,pousadas|moeda,banhos públicos|leis,esgotos|leis,pavimentos|roda,viadutos|eletricidade,estádios|radio,aeroportos|computador,centros de dados|internet');
+ fam({...B,tr:2},'Pedreiro de obra|ferro,Telhador|ceramica,Pintor de paredes|arte,Gesseiro|ferro,Encanador|leis,Eletricista|eletricidade,Eletricista industrial|eletricidade,Instalador de redes|internet,Calceteiro de ruas|roda,Poceiro|ceramica,Taipeiro,Construtor de cabanas de barro,Construtor de palafitas|barcos,Construtor de cercas,Empreiteiro|moeda,Engenheiro civil|matematica,Arquiteto|matematica,Agrimensor|matematica,Urbanista|leis,Desenhista de plantas|matematica,Carpinteiro de obra|ferro,Vidraceiro de obra|ferro,Soldador|eletricidade,Operador de guindaste|vapor,Operador de escavadeira|vapor,Armador de ferragens|ferro,Capataz de obra|moeda,Engenheiro estrutural|ciencia,Engenheiro hidráulico|ciencia,Engenheiro elétrico|eletricidade,Engenheiro de telecomunicações|radio,Técnico de edificações|eletricidade');
+ // ---------- SABER ----------
+ const K={s:'kp',k:'experimentar',t:'curiosidade',o:'kp',pl:'pedras',e:'🔬',rq:'escrita',tr:3};
+ fam({...K},'Astrônomo|matematica,Matemático|matematica,Filósofo|escrita,Geômetra|matematica,Alquimista|metalurgia,Naturalista|livros,Botânico|ciencia,Zoólogo|ciencia,Geólogo|ciencia,Químico|ciencia,Físico|ciencia,Biólogo|ciencia,Médico-pesquisador|medicina,Geneticista|computador,Meteorologista|radio,Oceanógrafo|navegacao,Cartógrafo|navegacao,Historiador,Linguista|livros,Arqueólogo|ciencia,Sociólogo|democracia,Economista|moeda+leis,Estatístico|matematica,Demógrafo|matematica,Antropólogo|ciencia,Etnógrafo|navegacao,Geógrafo|navegacao,Climatologista|ciencia,Ecologista|ciencia,Engenheiro de pesquisa|eletricidade,Pesquisador de laboratório|ciencia,Assistente de laboratório|ciencia,Técnico de observatório|matematica,Calculador|matematica,Cronista|escrita,Anais do reino|leis,Escriba de templo,Escriba real|leis,Escriba de comércio|moeda,Escriba de contratos|leis,Escrivão|leis,Tabelião|leis,Tradutor|livros,Intérprete|navegacao,Decifrador|escrita,Taxonomista|ciencia,Físico nuclear|computador,Astrofísico|computador,Cientista de dados|computador,Analista de sistemas|computador,Programador de sistemas|computador,Desenvolvedor web|internet,Desenvolvedor de jogos|internet,Engenheiro de software|computador,Administrador de redes|internet,Analista de segurança|internet,Arquiteto de nuvem|internet,Especialista em IA|internet,Técnico de informática|computador,Suporte técnico|internet,Pesquisador de internet|internet,Programador de máquinas|computador,Inventor|ciencia,Inventor de máquinas|vapor,Inventor de aparelhos|eletricidade,Químico industrial|vapor,Metalurgista|ferro,Metrologista|ciencia,Engenheiro mecânico|vapor,Engenheiro naval|navegacao,Engenheiro aeronáutico|computador,Projetista|vapor,Desenhista técnico|matematica,Topógrafo|matematica,Radiotécnico|radio,Técnico de eletrônica|eletricidade,Operador de telégrafo|eletricidade');
+ cruza({...K,ens:true,tr:3,rq:'livros',pl:'pedras'},'Professor:3,Instrutor:2,Preceptor:2:escrita',
+  'de leitura,de escrita,de matemática|matematica,de astronomia|matematica,de história,de línguas,de filosofia,de medicina|medicina,de ciências|ciencia,de música|arte,de pintura|arte,de caça|lanca,de pesca,de agricultura|agricultura,de navegação|navegacao,de leis|leis,de comércio|moeda,de metalurgia|metalurgia,de construção,de culinária,de dança,de teatro|arte,de física|ciencia,de química|ciencia,de biologia|ciencia,de geografia,de engenharia|vapor,de eletricidade|eletricidade,de programação|computador,de informática|computador,de arte,de religião|escrita,de ética,de retórica,de política|democracia,de economia|moeda,de combate|ferro,de tática|leis,de equitação|roda,de ofícios|troca,de ervas|ervas,de cuidados|ervas,de sobrevivência|fogo');
+ cruza({...K,ens:true,rq:'troca',tr:2,k:'lascar',pl:'colina'},'Mestre:3,Aprendiz-chefe:2',
+  'de caça|lanca,de pesca,de cerâmica|ceramica,de tecelagem|tecelagem,de forja|metalurgia,de carpintaria,de lavoura|agricultura,de pastoreio|domesticacao,de alvenaria,de navegação|barcos,de cozinha,de pedra,de couro|domesticacao,de ourivesaria|metalurgia,de relojoaria|matematica,de impressão|imprensa,de vidraria|ferro,de máquinas|vapor,de eletricidade|eletricidade');
+ // ---------- ARTES ----------
+ const A={s:'fun',k:'arte',t:'sociabilidade',o:'fun',pl:'centro',e:'🎨',rq:'arte',tr:2};
+ cruza({...A,e:'🎵'},'Músico:2,Cantor:2,Mestre:3',
+  'de flauta,de tambor,de harpa|ferro,de lira|metalurgia,de alaúde|moinho,de violino|imprensa,de viola|imprensa,de órgão|livros,de piano|vapor,de violão|imprensa,de trompa|ferro,de trombeta|ferro,de gaita|moinho,de gaita de fole|domesticacao,de saxofone|vapor,de bateria|vapor,de guitarra elétrica|eletricidade,de sintetizador|computador,de coro,de ópera|livros,de rua,de taverna|moeda,de corte|leis,de orquestra|vapor,de banda|vapor,de rádio|radio,de rock|eletricidade,de jazz|radio,de samba|radio,de cantiga de ninar,de cantiga de roda,de lamento,de guerra|lanca,de amor');
+ fam({...A,e:'🎭'},'Dançarino,Dançarino de roda,Dançarino de corte|leis,Bailarino|livros,Ator|escrita,Atriz de teatro|escrita,Dramaturgo|escrita,Poeta,Poeta épico|escrita,Trovador|livros,Menestrel|livros,Bardo,Contador de histórias,Declamador|escrita,Mímico,Bufão|leis,Malabarista,Acrobata,Equilibrista,Engolidor de fogo|fogo,Mágico de feira|troca,Marionetista|tecelagem,Circense|vapor,Palhaço|vapor,Domador de circo|vapor,Pintor,Pintor de retratos|livros,Pintor de paisagens|livros,Pintor de cavernas,Escultor,Escultor de estátuas|metalurgia,Mosaicista|ceramica,Vitralista|livros,Tatuador,Pintor corporal,Cenógrafo|escrita,Figurinista|tecelagem,Maquiador|navegacao,Fotógrafo|eletricidade,Cineasta|eletricidade,Operador de câmera|eletricidade,Editor de vídeo|computador,Cinegrafista|radio,Roteirista|radio,Diretor de teatro|escrita,Diretor de cinema|eletricidade,Apresentador de rádio|radio,Apresentador de TV|eletricidade,DJ|radio,Produtor musical|radio,Compositor|livros,Maestro|livros,Regente de coro|escrita,Afinador de instrumentos|livros,Animador|internet,Streamer|internet,Criador de conteúdo|internet,Influenciador|internet,Fotógrafo de moda|eletricidade,Escritor|imprensa,Romancista|imprensa,Cronista de jornal|imprensa,Crítico de arte|imprensa,Curador de museu|livros,Museólogo|livros,Restaurador de arte|ciencia,Cerimonialista|leis,Mestre de cerimônias|leis,Anfitrião de festas|moeda,Organizador de festas|moeda');
+ cruza({...A,e:'🏅',k:'cacar',t:'coragem',pl:'campo'},'Atleta:2,Treinador:3',
+  'de corrida,de luta|ferro,de arco|lanca,de lança|lanca,de natação|barcos,de remo|barcos,de lançamento|ferramentas,de salto,de corrida de bigas|roda,de corrida de cavalos|roda,de justa|ferro,de pelota|ceramica,de futebol|radio,de basquete|radio,de beisebol|radio,de tênis|radio,de ginástica|vapor,de ciclismo|vapor,de automobilismo|eletricidade,de e-sports|internet,de vôlei|radio,de natação artística|eletricidade,de esgrima|ferro,de boxe|vapor,de xadrez|matematica');
+}
+montaProfissoes();
+const PROF_SK={};PROFS.forEach(p=>(PROF_SK[p.skill]=PROF_SK[p.skill]||[]).push(p));
+// ---------- censo, vagas e salário ----------
+const _cen=new Map();
+function profCenso(rid){let c=_cen.get(rid);if(c&&c.d===day)return c;
+  const ms=members(rid).filter(n=>!n.isChild),cnt={},oc={};
+  ms.forEach(n=>{const r=roleOf(n);if(!r)return;cnt[r.id]=(cnt[r.id]||0)+1;const s=setorDe(r);oc[s]=(oc[s]||0)+1;});
+  c={d:day,pop:Math.max(1,ms.length+((DORM.pop&&rid>=0&&DORM.pop[rid])||0)),cnt,oc};_cen.set(rid,c);return c;}
+function vagas(p,c){return Math.max(1,Math.ceil(c.pop*(SETOR_D[setorDe(p)]||.05)*(p.w||1)*.3));}
+function setorLivre(p,c){const s=setorDe(p);return (c.oc[s]||0)<Math.ceil(c.pop*(SETOR_D[s]||.05)*1.6)+1;}
+function rankIdx(n,p){const sk=n.skill[p.skill]||0;return sk<25?0:sk<50?1:sk<75?2:3;}
+function urgencia(p,rid,c){const reg=MAP.regions[rid]||{};const s=setorDe(p);let u=1;
+  if(s==='food'&&(reg.reserva||0)<c.pop)u=1.35;
+  else if(s==='heal'){const h=members(rid).filter(o=>o.hurt>0).length;u=1+Math.min(.5,h*.1);}
+  else if(s==='build'&&(reg.shelter||0)<c.pop*.5)u=1.2;
+  else if(s==='guard'&&world.guardDay!=null&&day-world.guardDay>6)u=1.1;
+  return u;}
+function salario(p,n,rid,semRank){rid=rid!=null?rid:n.region;const reg=MAP.regions[rid]||{},c=profCenso(rid),s=setorDe(p);
+  const dem=c.pop*(SETOR_D[s]||.05),sup=c.oc[s]||0;
+  const esc=.55+.45*clamp(dem/(sup+.5),.5,2.2);
+  const nicho=clamp(1.3-.15*(c.cnt[p.id]||0),.75,1.3);
+  const riq=.8+.4*Math.min(1,(reg.reserva||0)/(c.pop*3));
+  const rk=semRank?1:RANKS[rankIdx(n,p)][1];
+  return Math.max(1,Math.round((2+p.tier*3.2)*(SETOR_PAGA[s]||1)*esc*nicho*riq*urgencia(p,rid,c)*rk*(1+.1*(world.era||0))));}
+// ---------- requisitos ----------
+function qualifica(n,p){
+  if(n.isChild)return 'é criança';
+  if(!reqOk(p))return 'a época ainda não conhece isso';
+  if(p.ate&&has(p.ate))return 'virou coisa do passado';
+  const reg=regionOf(n);if(p.res&&!regionAllows(reg,p.res))return 'a região não tem '+p.res;
+  if(n.ageDays<CHILD_DAYS+Math.max(0,p.tier-3)*4)return 'ainda é jovem para o cargo';
+  if((n.skill[p.skill]||0)<p.minSk)return `precisa de ${p.minSk} em ${p.skill}`;
+  if(p.tmin!=null&&T(n,'coragem')<p.tmin)return 'falta coragem';
+  if(p.cap&&has('moeda')&&(n.coins||0)<p.cap)return `precisa de ${p.cap} de capital`;
+  if(p.out!=='food'&&p.tier>=3||reqList(p).length>1){const need=Math.round((p.tier-1)*(p.tier-1)*3+3*Math.max(0,reqList(p).length-1));if(profCenso(n.region).pop<need)return 'o povo é pequeno demais para sustentar isso';}
+  return null;}
+const profAtual=n=>{const r=roleOf(n);return r&&r.gen?r:null;};
+function pagar(n,r,sal){
+  if(has('moeda'))n.coins=(n.coins||0)+sal;
+  else if(r.out!=='food'){const reg=regionOf(n);const take=Math.min(Math.max(1,Math.round(sal/3)),Math.max(0,(reg.reserva||0)-1));
+    if(take>0){reg.reserva-=take;n.food=Math.min(foodCap(),(n.food||0)+take);}else n.jobLike[r.id]=clamp((n.jobLike[r.id]||0)-1,-100,100);}
+  n._sal=sal;n.renda=Math.round(((n.renda||sal)*.8+sal*.2)*10)/10;}
+// ---------- o ofício de verdade ----------
+function profWork(n,r,compact){
+  const sal=salario(r,n,n.region);pagar(n,r,sal);
+  if(!r.gen)return;
+  const ri=rankIdx(n,r);if(n.rk==null)n.rk=ri;else if(ri>n.rk){n.rk=ri;if(ri>=2){log('',`${r.e} ${N(n)} agora é ${RANKS[ri][0]} em ${r.name.toLowerCase()}.`,[n.id]);remember(n,`virei ${RANKS[ri][0]} de ${r.name}`,6);shape(n,'ambicao',1,'subiu de nível no ofício');}}
+  if(compact)return;
+  if(r.out==='craft'&&Math.random()<.1&&n.items.length<8){const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=R(ks);n.items.push(k);if(Math.random()<.3)think(n,`Fiz ${ITEMS[k].name} no meu ofício.`,ITEMS[k].e);}}
+  if(r.ens){const al=members(n.region).filter(o=>o!==n&&!o.isChild&&(o.skill[r.skill]||0)<(n.skill[r.skill]||0)-8);
+    if(al.length){const o=R(al);o.skill[r.skill]=clamp(o.skill[r.skill]+2);relate(o,n,3);remember(o,`${n.name} me ensinou ${r.skill}`,4,n.id);}}}
+// ---------- mercado de empregos (diário) ----------
+function pontoOferta(n,p,rid,c){const sal=salario(p,n,rid,true);
+  return sal*(deveTotal(n)>0?1.35:1)+25*T(n,p.trait)+.25*(n.liking[p.skill]||0)+.2*(n.jobLike[p.id]||0)-(p.risky?10*medoPerder(n):0)+(n.skill[p.skill]||0)*.15;}
+function profTick(n){
+  if(n.isChild||n.role==='governante'||n.region==null)return;
+  const cur=roleOf(n);
+  if(cur&&cur.gen&&(!reqOk(cur)||cur.ate&&has(cur.ate))){const old=cur.name.toLowerCase();n.role=null;n.missed=0;
+    log('',`🕰️ O ofício de ${old} perdeu espaço com o tempo, e ${N(n)} ficou sem ocupação.`,[n.id]);
+    remember(n,`meu ofício de ${old} acabou`,7);think(n,'O mundo mudou e meu ofício ficou para trás...','😟');shape(n,'ambicao',1,'perdeu o ofício');n._busca=1;}
+  const r0=roleOf(n),desemp=!r0;
+  if(Math.random()>(desemp?.5:.07+((n.renda||9)<4&&deveTotal(n)>0?.1:0)))return;
+  const c=profCenso(n.region),sk=Object.entries(n.skill).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+  let cand=[];for(let i=0;i<8;i++){const L=PROF_SK[R(sk)];if(L&&L.length)cand.push(R(L));}for(let i=0;i<6;i++)cand.push(R(PROFS));
+  availableRoles().filter(x=>x.id!=='governante').slice(0,40).sort(()=>Math.random()-.5).slice(0,3).forEach(x=>cand.push(x));
+  let best=null,bs=-1e9;
+  for(const p of cand){if(!p||(cur&&p.id===cur.id))continue;if(qualifica(n,p))continue;if((c.cnt[p.id]||0)>=vagas(p,c)||!setorLivre(p,c))continue;
+    const s=pontoOferta(n,p,n.region,c);if(s>bs){bs=s;best=p;}}
+  if(!best)return;
+  const atual=cur?pontoOferta(n,cur,n.region,c):-1e9;
+  if(!desemp&&bs<atual*(1.2+.3*medoPerder(n))+3)return;
+  const old=cur;n.role=best.id;n.missed=0;n.prevProf=old?old.id:null;
+  if(typeof ROLE_RES==='object'&&best.res&&!ROLE_RES[best.id])ROLE_RES[best.id]=best.res;
+  const sal=salario(best,n,n.region,true);
+  log('',`${best.e} ${N(n)} ${old?`largou ${old.name.toLowerCase()} e virou`:'arrumou trabalho como'} <b>${best.name.toLowerCase()}</b> (paga ~${sal}).`,[n.id]);
+  remember(n,`${old?'mudei de ofício para':'consegui trabalho de'} ${best.name}`,6);
+  if(desemp)think(n,'Enfim, um trabalho!','😌');}
+const salPull=(n,r)=>{if(!r)return 0;const s=n._sal||0;return Math.min(10,s*.5)*(deveTotal(n)>0?1.4:1);};
+function profResumo(n){const r=roleOf(n);if(!r)return n.isChild?'':'desempregado';
+  const rk=r.gen?RANKS[rankIdx(n,r)][0]:null;return `${r.e} ${r.name}${rk?` (${rk})`:''}${n._sal?` · ~${n._sal}/turno`:''}${r.gen&&r.ate?' · ofício em extinção':''}`;}
+
 function regionAllows(r,need){return !need||!r||r.res[need];}
 function resLabel(r){const L={mar:'🐟 mar',floresta:'🌲 floresta',pedra:'🪨 pedra',fertil:'🌾 terra fértil'};return `${CONT[r.cont||0]} · bioma: ${r.mainBiome||'?'} · `+(Object.entries(r.res).filter(([k,v])=>v).map(([k])=>L[k]).join(' · ')||'terra pobre');}
 
@@ -2458,7 +2652,7 @@ function offscreenHour(n,h){
       if(ok){const mult=regionAllows(r,ROLE_RES[ro.id])?1:0.3;
         if(ro.out==='food'){const y=Math.round((ro.y||5)*mult*season().food*(1+n.skill[ro.skill]/150)*(has('ferramentas')?1.2:1));const s=Math.round(y*clamp(0.6+0.3*T(n,'bondade'),0,1));r.reserva=Math.min(regCap2(r),r.reserva+s);n.food=Math.min(foodCap(),n.food+y-s);}
         else if(ro.out==='kp')world.kp+=(ro.y||3)*0.8;else if(ro.out==='craft'){world.kp+=1;}else if(ro.out==='shelter')r.shelter=(r.shelter||0)+2;
-        if(has('moeda'))n.coins+=ro.tier*4;}
+        profWork(n,ro,true);}
       n.jobLike[ro.id]=clamp((n.jobLike[ro.id]||0)+(ok?2:-3)+5*T(n,ro.trait),-100,100);shape(n,'diligencia',ok?0.6:-0.4,'trabalho');if(ro.risky)shape(n,'coragem',0.5,'trabalho arriscado');if(ro.out==='kp')shape(n,'curiosidade',0.5,'estudo');if(ro.tier>=3)shape(n,'ambicao',0.4,'cargo importante');}
     else{const k=R(['coletar','pescar','explorar']);if(regionAllows(r,ACT_RES[k])){n.food=Math.min(foodCap(),n.food+2);n.skill[k]=clamp(n.skill[k]+1);}}
     checkIdentity(n);
@@ -3306,6 +3500,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    <div>💼 <b>${n.isChild?'criança: brinca e aprende':r?`${r.e} ${roleName(r,n)} ${lk>25?'😍':lk<-25?'😮‍💨':'😐'}`:'ainda sem função'}</b> · 🪪 ${n.identity||'<span class="hint">sem identidade</span>'}</div>
    ${n.fame?`<div>🏆 Lembrado(a) como ${n.fame}</div>`:''}
    <div>🎯 ${n.action} · 🍖 ${n.food}${has('moeda')?` · 🪙 ${Math.round(n.coins)}`:''}${n.hurt?' · 🤕 machucado(a)':''}</div>
+   ${!n.isChild&&n.role&&n.role!=='governante'?`<div>💼 ${profResumo(n)}</div>`:''}
    ${!n.isChild&&has('troca')?`<div>🧾 Bens ~${Math.round(patrimonio(n))}${deveTotal(n)>0?` · 📕 deve ${Math.round(deveTotal(n))}`:''}${medoPerder(n)>.4?' · 😰 tem muito a perder':''}</div>`:''}
    ${(()=>{const d=deathRisk(n);const top=Object.entries(d.parts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>({acaso:'acaso',idade:'idade',infancia:'infância',fome:'fome',ferimento:'ferimento',caca:'caça',mar:'mar',exploracao:'exploração',fabrica:'fábrica',frio:'frio'}[k])).join(', ');const mt=n.menteTop?`<div>🧠 A mente de ${n.name} acha que agora o melhor é: <b>${n.menteTop.map(k=>k==='socializar'?'conversar':verb(k)).join(' · ')}</b></div>`:'';return mt+`<div>🕯️ Chance de morrer hoje: <b>${(d.total*100).toFixed(d.total<0.01?2:1)}%</b> <span class="hint">(${top})</span></div>`;})()}
    ${n.cmd?`<div>✨ <b>Fazendo agora:</b> ${FAB[n.cmd.acao].label} · chance ${Math.round(n.cmd.chance*100)}%${n.cmdQueue&&n.cmdQueue.length?` · ${n.cmdQueue.length} na fila`:''}</div>`:''}
@@ -3329,7 +3524,7 @@ function renderIsland(){
   const tl=world.tension,tLabel=tl<25?'😌 calma':tl<50?'🙂 tranquila':tl<75?'😬 tensa':'🔥 prestes a explodir';
   const nextKeys=NE?NE.keys.map(k=>{const d=DISC.find(x=>x.id===k);return has(k)?`✅ ${d.e}`:'⬜ ❓';}).join(' '):'—';
   const roles={};ad.forEach(n=>{const k=n.role||'_';(roles[k]=roles[k]||[]).push(n);});
-  const rolesHTML=Object.entries(roles).map(([id,l])=>{const r=ROLES.find(x=>x.id===id);return `<div class="row"><span>${r?r.e+' '+roleName(r):'❔ Sem função'}</span><span>${l.map(N).join(', ')}</span></div>`;}).join('');
+  const rolesHTML=Object.entries(roles).map(([id,l])=>{const r=ROLES.find(x=>x.id===id)||PROF_MAP.get(id);return `<div class="row"><span>${r?r.e+' '+roleName(r):'❔ Sem função'}</span><span>${l.map(N).join(', ')}</span></div>`;}).join('');
   document.getElementById('info').innerHTML=`
     <div style="display:flex;justify-content:space-between"><b style="font-size:16px">📍 ${activeRegion().name} · ${E.e} ${E.name}</b><span class="hint">${ad.length} adultos · ${kids.length} crianças · ${world.maxGen} geração(ões)</span></div>
     <div class="box"><b>🎲 Deuz · ⏳ Chronos · 📖 Estoria · ✨ Fábula · 🌳 Tea</b><div class="row"><span>🎲 Clima da história (Deuz)</span><span>${tLabel}</span></div><div class="bar"><i style="width:${tl}%;background:linear-gradient(90deg,#8fd3ff,#ffb347,#ff6b6b)"></i></div>
@@ -3399,7 +3594,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve)this.extra.set(id,{deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3415,7 +3610,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
