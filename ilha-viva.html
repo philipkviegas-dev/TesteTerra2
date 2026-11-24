@@ -2799,7 +2799,7 @@ function migrarComPovo(n,text,ok){
   const alvo=regiaoNomeada(t,from.id);
   if(alvo&&alvo.id===from.id)return [`${n.name} já está em ${from.name}: não há o que colonizar ali. Escolha outra região.`,false];
   const via=alvo?caminhoAte(from,alvo,10):null;
-  if(!alvo&&!/oeste|ocidente|poente|leste|oriente|nascente|norte|sul/.test(t)&&/coloniz|povoar|assentar|desbravar/.test(t))return [`${n.name} não sabe qual região colonizar: o comando não citou um nome que exista no mapa nem uma direção (oeste, leste, norte, sul).`,false];
+  if(!alvo&&!/oeste|ocidente|poente|leste|oriente|nascente|norte|\bsul\b/.test(t)&&/coloniz|povoar|assentar|desbravar/.test(t))return [`${n.name} não sabe qual região colonizar: o comando não citou um nome que exista no mapa nem uma direção (oeste, leste, norte, sul).`,false];
   if(alvo&&!via)return [`${n.name} quis levar o povo para ${alvo.name}, mas não há caminho até lá${has('barcos')?' dentro do alcance':' por terra (sem barcos, o mar é intransponível)'}.`,false];
   const D=/oeste|ocidente|poente/.test(t)?[-1,0]:/leste|oriente|nascente/.test(t)?[1,0]:/norte/.test(t)?[0,-1]:/\bsul\b/.test(t)?[0,1]:null;
   const nomeD=alvo?alvo.name:D?(D[0]<0?'oeste':D[0]>0?'leste':D[1]<0?'norte':'sul'):'além';const dirTxt=alvo?`a ${alvo.name}${via.length>2?` (${via.length-1} regiões de viagem)`:''}`:`ao ${nomeD}`;
