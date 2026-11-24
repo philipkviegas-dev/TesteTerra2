@@ -2586,7 +2586,7 @@ async function fabulaCommand(n,text,isMeta){
   text=text.trim();if(!text)return;
   if(isMeta){
     const p=await fabulaInterpret(n,text);
-    n.meta={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,since:day,prog:0,reg0:n.region,kids0:n.kids.length,fame0:n.fame,qtd:p.acao==='filho'?metaQtd(text):1};
+    n.meta={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,since:day,prog:0,reg0:n.region,dest:p.acao==='migrar'?((regiaoNomeada(text,n.region)||{}).id??null):null,kids0:n.kids.length,fame0:n.fame,qtd:p.acao==='filho'?metaQtd(text):1};
     log('big',`🎯 Nova meta para ${N(n)}: <b>“${text}”</b> (${FAB[p.acao].label}${n.meta.qtd>1?' × '+n.meta.qtd:''}${p.alvo?' · '+p.alvo.name:''}). Ela vale até ser atingida e tem prioridade sobre o sonho de ${n.name}.`,[n.id]);
     think(n,`Agora eu tenho um objetivo: ${text}.`,'🎯');remember(n,`decidi: ${text}`,9);
     setFabOut(`🎯 Meta definida para ${n.name}. Todo dia ${n.name} vai tentar avançar nela sozinho(a).`);
@@ -2853,7 +2853,7 @@ function metaDone(n){
     case 'filho':return n.kids.length-m.kids0>=(m.qtd||1);
     case 'descobrir':return n.fame&&n.fame!==m.fame0;
     case 'funcao':return n.role===m.funcao;
-    case 'migrar':return m.reg0!=null&&n.region!==m.reg0;
+    case 'migrar':return m.dest!=null?n.region===m.dest:(m.reg0!=null&&n.region!==m.reg0);
     case 'construir':{if(!m.proj)return false;const p=(world.projects||[]).find(x=>x.id===m.proj);return !p||!!p.done;}
     case 'crenca':return !!n.belief&&n.belief.believers.length>=6;
     default:return m.prog>=100;
