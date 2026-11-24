@@ -142,7 +142,7 @@
   <span class="hg" data-t="Tempo"><button id="pause">⏸ Pausar</button>
   <button data-speed="1" class="on">1×</button><button data-speed="3">3×</button><button data-speed="8">8×</button><button data-speed="20">20×</button><button data-speed="50">50×</button></span>
   <span class="hg" data-t="Visão"><button id="viewMapa" class="on">🗺️ Mapa</button><button id="viewRegiao">🔍 Região</button><button id="zIn" title="Aproximar o mapa" onclick="mzZoom(1.5)">➕</button><button id="zOut" title="Afastar o mapa" onclick="mzZoom(1/1.5)">➖</button><button id="zRst" title="Mapa inteiro" onclick="mzReset()">⌖</button></span>
-  <span class="hg" data-t="Camadas"><button class="on" id="lyFac" title="Mostrar/ocultar as cores dos países" onclick="toggleLayer('fac')">🏳️</button><button class="on" id="lyWar" title="Mostrar/ocultar guerras e catástrofes" onclick="toggleLayer('war')">⚔️</button><button class="on" id="lyNom" title="Mostrar/ocultar os nomes" onclick="toggleLayer('nom')">🔤</button><button class="on" id="lyDec" title="Mostrar/ocultar construções e decoração" onclick="toggleLayer('dec')">🏰</button><button id="somBtn" title="Ligar/desligar os sons de conquistas e eras" onclick="toggleSom()">🔇</button></span>
+  <span class="hg" data-t="Camadas"><button class="on" id="lyFac" title="Mostrar/ocultar as cores dos países" onclick="toggleLayer('fac')">🏳️</button><button class="on" id="lyWar" title="Mostrar/ocultar guerras e catástrofes" onclick="toggleLayer('war')">⚔️</button><button class="on" id="lyNom" title="Mostrar/ocultar os nomes" onclick="toggleLayer('nom')">🔤</button><button class="on" id="lyDec" title="Mostrar/ocultar construções e decoração" onclick="toggleLayer('dec')">🏰</button><button class="on" id="lyRot" title="Mostrar/ocultar rotas comerciais" onclick="toggleLayer('rot')">🚚</button><button id="somBtn" title="Ligar/desligar os sons de conquistas e eras" onclick="toggleSom()">🔇</button></span>
   <span class="hg" data-t="Poderes"><button id="event" title="Um acaso qualquer da Deuz">🎲 Evento</button><span class="deuzbox"><select id="aiPick" title="Para quem é o pedido"><option value="deuz">🎲 Deuz</option><option value="arq">🏗️ Arquiteto</option><option value="fan">🔮 Fantasy</option></select><input id="deuzIn" placeholder="🎲 Peça à Deuz: &quot;meteoro em Kaloor&quot;, &quot;uma peste leve&quot;…" autocomplete="off"><button id="deuzGo">Pedir</button></span></span>
   <span class="hg" data-t="Jogo"><button id="saveBtn" title="Salvar a partida">💾</button><button id="loadBtn" title="Continuar a partida salva">📂</button><button id="expBtn" title="Baixar a partida como arquivo .ivsave">⬇️</button><button id="impBtn" title="Carregar uma partida de arquivo .ivsave">⬆️</button><input type="file" id="impFile" accept=".ivsave" style="display:none"><button id="livroBtn" title="Livro do Mundo: linha do tempo, Casas, eras e povos" onclick="livroAbre()">📖 Livro</button>
   <button id="reportBtn" title="Copiar relatório da sessão">📋</button>
@@ -486,7 +486,7 @@ const SAVE_KEY='ilhaviva_save_v3';
 function serialize(trim){
   const w={...world,disc:[...world.disc]};delete w.reserva;
   return JSON.stringify({v:1,seed:MAP.seed,day,minutes,uid,world:w,
-    regions:MAP.regions.filter(r=>r.founded!=null||r.faction!=null||r.reserva!==12||r.builds||r.stock||r.lug||r.novos).map(r=>({id:r.id,lug:r.lug,novos:r.novos,novoSeq:r.novoSeq,builds:r.builds,stock:r.stock,bfx:r.bfx,proj:r.proj,faction:r.faction,reserva:r.reserva,founded:r.founded,hunger:r.hunger,shelter:r.shelter,founders:r.founders})),
+    regions:MAP.regions.filter(r=>r.founded!=null||r.faction!=null||r.reserva!==12||r.builds||r.stock||r.lug||r.novos||r.eco).map(r=>({eco:r.eco,id:r.id,lug:r.lug,novos:r.novos,novoSeq:r.novoSeq,builds:r.builds,stock:r.stock,bfx:r.bfx,proj:r.proj,faction:r.faction,reserva:r.reserva,founded:r.founded,hunger:r.hunger,shelter:r.shelter,founders:r.founders})),
     npcs:NPCS.map(n=>{const o={...n};delete o._q;delete o.vid;delete o._qt;delete o._en;delete o._m;delete o._mp;delete o.seek;delete o.hab;delete o.tx;delete o.ty;delete o.say;delete o.recent;delete o.today;if(trim&&!here(n)){o.memories=n.memories.slice(0,4);o.diary={days:[],weeks:[],months:[],years:[],marcos:(n.diary&&n.diary.marcos||[]).slice(-3)};const keep=Object.entries(n.rel).sort((x,y)=>Math.abs(y[1])-Math.abs(x[1])).slice(0,12);o.rel=Object.fromEntries(keep.map(([k,v])=>[k,Math.round(v)]));o.wants={};for(const k in o)if(k.startsWith('bff_')||k.startsWith('foe_')||k.startsWith('hate_')||k.startsWith('love_'))delete o[k];
           for(const k of ['skill','liking','traits','sens'])o[k]=Object.fromEntries(Object.entries(n[k]).map(([a,v])=>[a,Math.round(v*10)/10]));}return o;}),
     log:logData.slice(0,150),selected:selected&&selected.id,view});
@@ -3188,8 +3188,8 @@ const MZ={z:1,x:0,y:0,drag:null,moved:false};
 function mzClamp(){MZ.z=Math.max(1,Math.min(10,MZ.z));MZ.x=Math.min(0,Math.max(W-W*MZ.z,MZ.x));MZ.y=Math.min(0,Math.max(H-H*MZ.z,MZ.y));}
 function mzZoom(f,cx,cy){cx=cx==null?W/2:cx;cy=cy==null?H/2:cy;const z0=MZ.z;MZ.z=Math.max(1,Math.min(10,MZ.z*f));const k=MZ.z/z0;MZ.x=cx-(cx-MZ.x)*k;MZ.y=cy-(cy-MZ.y)*k;mzClamp();}
 function mzReset(){MZ.z=1;MZ.x=0;MZ.y=0;}
-const MLAY={fac:true,war:true,nom:true,dec:true};
-function toggleLayer(k){MLAY[k]=!MLAY[k];const b=document.getElementById({fac:'lyFac',war:'lyWar',nom:'lyNom',dec:'lyDec'}[k]);if(b)b.classList.toggle('on',MLAY[k]);}
+const MLAY={fac:true,war:true,nom:true,dec:true,rot:true};
+function toggleLayer(k){MLAY[k]=!MLAY[k];const b=document.getElementById({fac:'lyFac',war:'lyWar',nom:'lyNom',dec:'lyDec',rot:'lyRot'}[k]);if(b)b.classList.toggle('on',MLAY[k]);}
 function drawMap(){
   ctx.save();ctx.translate(MZ.x,MZ.y);ctx.scale(MZ.z,MZ.z);
   ctx.imageSmoothingEnabled=false;
@@ -3205,6 +3205,9 @@ function drawMap(){
   if(MLAY.war&&activeDisasters().length){activeDisasters().forEach(d=>{const col=d.type==='insetos'?'rgba(120,20,160,.85)':d.type==='peste'?'rgba(20,20,20,.55)':'rgba(140,90,20,.6)';ctx.fillStyle=col;d.regions.forEach(id=>{const r=MAP.regions[id];ctx.fillRect(r.x*CELL-3*ZK,r.y*CELL-3*ZK,6*ZK,6*ZK);});});}
   // migrações recentes
   world.migrations.filter(m=>day-m.day<=4).forEach(m=>{const a=MAP.regions[m.from],b=MAP.regions[m.to];ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=2*ZK;ctx.setLineDash([6*ZK,5*ZK]);ctx.beginPath();ctx.moveTo(a.x*CELL,a.y*CELL);ctx.lineTo(b.x*CELL,b.y*CELL);ctx.stroke();ctx.setLineDash([]);});
+  // rotas comerciais (pontilhado da cor do povo; vermelho = cortada pela guerra)
+  if(MLAY.rot&&world.rotas&&world.rotas.length){const tt=(performance.now()/3000)%1;world.rotas.forEach(q=>{const a=MAP.regions[q.ra],b=MAP.regions[q.rb],fa=facById(q.fa);if(!a||!b)return;const cut=q.estado==='cortada';ctx.strokeStyle=cut?'rgba(220,40,40,.9)':(fa?fa.color:'#fff');ctx.lineWidth=2.5*ZK;ctx.setLineDash(cut?[3*ZK,7*ZK]:[8*ZK,4*ZK]);ctx.beginPath();ctx.moveTo(a.x*CELL,a.y*CELL);ctx.lineTo(b.x*CELL,b.y*CELL);ctx.stroke();ctx.setLineDash([]);
+    if(!cut&&q.vol>0){const o=q.ex===q.rb?[b,a]:[a,b];ctx.fillStyle='#fff';ctx.beginPath();ctx.arc((o[0].x+(o[1].x-o[0].x)*tt)*CELL,(o[0].y+(o[1].y-o[0].y)*tt)*CELL,3.5*ZK,0,7);ctx.fill();}});}
   // guerras em andamento
   if(world.factions&&MLAY.war)facs().forEach(a=>{for(const bid in a.wars){if(+bid<a.id)continue;const b=facById(+bid);if(!b)continue;const ca=MAP.regions[a.capital],cb=MAP.regions[b.capital];ctx.font=(22*ZK)+'px serif';ctx.textAlign='center';ctx.fillText('⚔️',(ca.x+cb.x)/2*CELL,(ca.y+cb.y)/2*CELL);}});
   // povoados
@@ -3230,6 +3233,7 @@ function renderMapInfo(){
       ${regionFac(r)?`<div class="row"><span>Povo</span><span><span style="color:${regionFac(r).color}">■</span> ${regionFac(r).name}${r.id===regionFac(r).capital?' (capital)':''}</span></div>`:''}
       <div class="row"><span>Terreno</span><span>${resLabel(r)}</span></div>
       <div class="row"><span>População</span><span>${people.length?`${ad.length} adultos · ${people.length-ad.length} crianças (cabem ~${regionCap(r)})`:'ninguém mora aqui'}</span></div>
+      ${r.eco&&r.eco.m<0.97?`<div class="row"><span>🌲 Natureza</span><span>mata ${Math.round(r.eco.flo*100)}% · pesca ${Math.round(r.eco.pes*100)}% · solo ${Math.round(r.eco.solo*100)}%</span></div>`:''}${r.imp>0.005?`<div class="row"><span>🚚 Rota comercial</span><span>+${Math.round(r.imp*100)}% de comida importada</span></div>`:''}
       ${people.length?`<div class="row"><span>🍖 Reserva</span><span>${r.reserva} porções${r.hunger?' · passando fome':''}</span></div>
       <div class="row"><span>Fundado</span><span>dia ${r.founded}${r.founders?` por ${r.founders.map(nameOf).join(', ')}`:''}</span></div>
       <div class="row"><span>🌳 Famílias</span><span>${Object.entries(fams).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k} (${v})`).join(', ')}</span></div>
@@ -3485,6 +3489,7 @@ function setFacLeader(f,n){
 function facLeaders(){
   facs().forEach(f=>{if(!f.alive||f.id===0)return;const g=f.gov,l=byId(g.leader);
     if(l&&facOf(l)===f)return;
+    if(f.id!==0&&sucessaoVaga(f))return;
     let ad=facPeople(f).filter(n=>!n.isChild);if(!ad.length){const rs=facRegions(f).filter(r=>DORM.ad&&DORM.ad[r.id]>0);if(!rs.length)return;const rr=rs.find(r=>r.id===f.capital)||rs[0];const c=DORM.hydrateOne(rr.id,i=>DORM.tr[i*NT+3]+DORM.tr[i*NT+2]+Math.random()*30);if(!c)return;ad=[c];}
     const cs=dinastiaCasa(f);const n=ad.sort((a,b)=>(popularity(b)+(cs&&b.surname===cs?12:0))-(popularity(a)+(cs&&a.surname===cs?12:0)))[0];setFacLeader(f,n);
     log('',`👑 ${N(n)} passou a liderar ${f.name}.`,[n.id]);});
@@ -3583,7 +3588,10 @@ const LAWS=[
  {id:'assembleia',name:'Decisões em assembleia',fav:{liberdade:.8,tradicao:-.3},minEra:3},
  {id:'castigo',name:'Castigos duros',fav:{guerra:.5,tradicao:.4,liberdade:-.6},minEra:2},
  {id:'porte',name:'Só a guarda porta armas',fav:{tradicao:.6,coletivismo:.5,liberdade:-.8,guerra:-.3},minEra:2,not:'armado'},
- {id:'armado',name:'Povo armado: todos podem portar armas',fav:{liberdade:.9,guerra:.4,coletivismo:-.4},minEra:2,not:'porte'}];
+ {id:'armado',name:'Povo armado: todos podem portar armas',fav:{liberdade:.9,guerra:.4,coletivismo:-.4},minEra:2,not:'porte'},
+ {id:'manejo',name:'Manejo da mata: só se corta o que volta a crescer',fav:{tradicao:.5,coletivismo:.5},minEra:2},
+ {id:'defeso',name:'Defeso: pesca e caça com pausa para reproduzir',fav:{tradicao:.6,fe:.3,coletivismo:.2},minEra:2},
+ {id:'rodizio',name:'Rodízio de roças: a terra descansa',fav:{coletivismo:.4,comercio:.2,tradicao:.3},minEra:3}];
 const REGIMES={teocracia:'teocracia',imperio:'império',bando:'bando com líder',chefia:'chefia',anciaos:'conselho de anciãos',monarquia:'monarquia',republica:'república',democracia:'democracia',ditadura:'ditadura militar'};
 let CULT_SEQ=0;
 function newCulture(parent,where){const c={id:CULT_SEQ++,name:parent?parent.name:'Cultura dos Primeiros',v:{},customs:[],born:day,parent:parent?parent.id:null,root:parent?(parent.root||parent.v):null,
@@ -3813,7 +3821,7 @@ function regimeYear(f){const r=regimeOf(f);if(f.regime&&f.regime!==r){log('big',
   const g=facGov(f);
   // eleições e golpes (o povo do jogador segue as conversas da tribo)
   if(f.id!==0&&(r==='republica'||r==='democracia')&&day-g.since>=(r==='democracia'?4:8)){const old=byId(g.leader);g.leader=null;if(old&&old.role==='governante'){old.role=old.prevRole||null;}log('',`🗳️ Eleições em ${f.name}: um novo governo vai ser escolhido.`,[]);}
-  if(f.id!==0&&r==='ditadura'&&Math.random()<0.03){const old=byId(g.leader);g.leader=null;if(old&&old.role==='governante')old.role=old.prevRole||null;log('big',`💥 Golpe em ${f.name}! ${old?N(old)+' foi derrubado(a).':''}`,old?[old.id]:[]);}}
+  if(f.id!==0&&(r==='ditadura'||r==='monarquia'||r==='imperio'))golpeCausa(f,r);}
 // ---- diplomacia: comércio, alianças e uniões
 function diplomacyPair(a,b,near){a.allies=a.allies||{};b.allies=b.allies||{};a.trade=a.trade||{};b.trade=b.trade||{};
   const r=relF(a,b),ca=facCult(a).v,cb=facCult(b).v,cd=cultDist(ca,cb);
@@ -3826,17 +3834,174 @@ function diplomacyPair(a,b,near){a.allies=a.allies||{};b.allies=b.allies||{};a.t
     if(day-a.allies[b.id]>=25&&relF(a,b)>80&&cd<45&&Math.random()<0.03){mergeFactions(big,small);}}
   else if(r>55&&Math.random()<0.05){a.allies[b.id]=b.allies[a.id]=day;log('big',`🛡️ ${a.name} e ${b.name} formaram uma <b>aliança</b>.`,[]);weekNote('gov',`aliança entre ${a.name} e ${b.name}`);}}
 function mergeFactions(big,small){facRegions(small).forEach(r=>{r.faction=big.id;});world.facDirty=true;world.facVer=(world.facVer||0)+1;small.alive=false;
-  facs().forEach(f=>{delete f.wars[small.id];if(f.allies)delete f.allies[small.id];if(f.trade)delete f.trade[small.id];});
+  facs().forEach(f=>{delete f.wars[small.id];if(f.allies)delete f.allies[small.id];if(f.trade)delete f.trade[small.id];if(f.vassal&&f.vassal.de===small.id)delete f.vassal;});
+  if(small.vassal)delete small.vassal;if(world.rotas)world.rotas=world.rotas.filter(q=>q.fa!==small.id&&q.fb!==small.id);
   const c=facCult(big).v,o=facCult(small).v;CULT_K.forEach(k=>c[k]=c[k]*0.75+o[k]*0.25);
   log('big',`🔗 <b>${small.name}</b> e <b>${big.name}</b> se uniram num só povo, que segue chamado ${big.name}.`,[]);worldSay(`Depois de anos de aliança, ${small.name} decidiu se juntar a ${big.name}.`,'chronos');weekNote('gov',`${small.name} se uniu a ${big.name}`);}
 // aliados entram na guerra
 function callAllies(att,def){const out=[];[[def,att],[att,def]].forEach(([side,enemy])=>{for(const id in (side.allies||{})){const al=facById(+id);if(!al||al===enemy||atWar(al,enemy))continue;
   if(Math.random()<0.7){al.wars[enemy.id]=enemy.wars[al.id]={since:day,tiredA:0,tiredB:0};setRelF(al,enemy,Math.min(relF(al,enemy),-50));out.push(`${al.name} entrou ao lado de ${side.name}`);}}});
   if(out.length)log('big',`⚔️ Alianças em ação: ${out.join('; ')}.`,[]);}
-function politicsYear(){facs().filter(f=>f.alive).forEach(f=>{cultureYear(f);lawsYear(f);regimeYear(f);if(hasLaw(f,'imposto'))world.kp+=Math.min(40,facRegions(f).length*0.3);});}
+function politicsYear(){try{ecoYear();rotasYear();}catch(e){console.error(e);}facs().filter(f=>f.alive).forEach(f=>{cultureYear(f);lawsYear(f);regimeYear(f);if(f.id!==0)try{sucessaoYear(f);}catch(e){console.error(e);}if(hasLaw(f,'imposto'))world.kp+=Math.min(40,facRegions(f).length*0.3);});}
 function factionDetail(f){const c=facCult(f);const v=c.v;const top=CULT_K.map(k=>[k,v[k]]).filter(x=>Math.abs(x[1])>=15).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,3).map(([k,x])=>`${x>0?'+':'−'}${CULT_L[k]}`).join(' ');
   const laws=(f.laws||[]).map(id=>(lawFind(id)||{}).name).filter(Boolean);const al=Object.keys(f.allies||{}).map(id=>facById(+id)).filter(Boolean).map(x=>x.name);const tr=Object.keys(f.trade||{}).map(id=>facById(+id)).filter(Boolean).map(x=>x.name);
-  return `<div class="hint" style="margin:0 0 4px 12px">🏛️ ${REGIMES[f.regime||'bando']} · 🎭 ${c.name}${top?` (${top})`:''}${c.customs.length?`<br>Costumes: ${c.customs.join(', ')}`:''}${laws.length?`<br>📜 Leis: ${laws.join(' · ')}`:''}${al.length?`<br>🛡️ Aliados: ${al.join(', ')}`:''}${tr.length?`<br>🤝 Comércio: ${tr.join(', ')}`:''}</div>`;}
+  return `<div class="hint" style="margin:0 0 4px 12px">🏛️ ${REGIMES[f.regime||'bando']} · 🎭 ${c.name}${top?` (${top})`:''}${c.customs.length?`<br>Costumes: ${c.customs.join(', ')}`:''}${laws.length?`<br>📜 Leis: ${laws.join(' · ')}`:''}${al.length?`<br>🛡️ Aliados: ${al.join(', ')}`:''}${tr.length?`<br>🤝 Comércio: ${tr.join(', ')}`:''}${(()=>{let t='';const g=f.gov||{};const h=byId(g.heir);if(f.id!==0&&h&&!g.crise)t+=`<br>🍼 Herdeiro: ${N(h)}`;if(g.crise)t+=`<br>⚠️ Crise de sucessão: ${g.crise.pret.map(i=>byId(i)).filter(Boolean).map(N).join(' x ')}`;if(f.vassal){const s=facById(f.vassal.de);if(s)t+=`<br>🙇 Vassalo de ${s.name} (tributo ${Math.round(f.vassal.tributo*100)}%)`;}const vs=facs().filter(x=>x.alive&&x.vassal&&x.vassal.de===f.id).map(x=>x.name);if(vs.length)t+=`<br>👑 Vassalos: ${vs.join(', ')}`;return t;})()}</div>`;}
+
+// =====================================================================
+// ECOLOGIA: a natureza da região se desgasta com gente demais e se recupera com descanso e leis de manejo
+// (a Mente sente pela comida: eco baixa => menos comida => fome; as pessoas lembram da mata que acabou)
+// =====================================================================
+function ecoOf(r){if(!r.eco)r.eco={flo:1,pes:1,solo:1,m:1,lv:0};return r.eco;}
+function ecoYear(){
+  const occ=new Set(occupied().map(r=>r.id));
+  MAP.regions.forEach(r=>{
+    if(!r.eco&&!occ.has(r.id))return;
+    const f=regionFac(r),pop=occ.has(r.id)?regionPop(r.id):0;
+    let nb=0;for(const k in (r.builds||{}))nb+=r.builds[k]||0;
+    const p=pop/REGION_CAP+nb/30+(has('ferro')?.15:0)+(has('vapor')?.2:0)+(has('eletricidade')?.15:0);
+    if(!r.eco&&p<0.6)return;
+    const E=ecoOf(r);
+    const wear=0.02*Math.max(0,p-0.6),rec=pop?0.012*Math.max(0,1-p)+0.003:0.02;
+    const lm=hasLaw(f,'manejo'),ld=hasLaw(f,'defeso'),lr=hasLaw(f,'rodizio');
+    const up=(v,k)=>clamp(v-wear*k+rec,0.25,1);
+    E.flo=up(E.flo,lm?0.45:1.15);E.pes=up(E.pes,ld?0.35:1);E.solo=up(E.solo,lr?0.4:1);
+    if(E.flo>=0.999&&E.pes>=0.999&&E.solo>=0.999&&!pop){delete r.eco;return;}
+    const old=E.m;E.m=(E.flo+E.pes+E.solo)/3;
+    const lv=E.m<0.3?2:E.m<0.5?1:0;
+    if(pop&&lv>E.lv){const msg=lv===2?`a natureza de ${r.name} está quase morta: mata, pesca e solo acabados`:`a natureza de ${r.name} está se esgotando; já falta mata e peixe`;
+      log(lv===2?'big':'',`🥀 ${msg}.`,[]);weekNote('eco',msg);members(r.id).filter(n=>!n.isChild).slice(0,3).forEach(n=>{remember(n,msg,lv===2?7:5);shape(n,'diligencia',1,'viu a natureza se esgotar');});}
+    else if(pop&&lv<E.lv&&E.m>old){log('',`🌱 A natureza de ${r.name} se recupera.`,[]);members(r.id).filter(n=>!n.isChild).slice(0,2).forEach(n=>remember(n,`a mata de ${r.name} voltou a crescer`,5));}
+    E.lv=lv;
+  });
+}
+// =====================================================================
+// ROTAS COMERCIAIS: povos com acordo de comércio ligam regiões vizinhas; excedente vai para quem tem fome.
+// Um caravaneiro (pessoa real) arrisca a vida; guerra corta a rota.
+// =====================================================================
+function rotaCaravaneiro(q){let c=byId(q.c);if(c&&!c._dead&&!c.isChild&&c.region===q.ex)return c;
+  const m=members(q.ex).filter(n=>!n.isChild);if(!m.length){q.c=null;return null;}
+  c=m.find(n=>n.role==='comerciante')||m.sort((a,b)=>T(b,'ambicao')-T(a,'ambicao'))[0];q.c=c.id;return c;}
+function rotasYear(){
+  world.rotas=world.rotas||[];const R=world.rotas;
+  MAP.regions.forEach(r=>{if(r.imp)r.imp=0;});
+  for(let i=R.length-1;i>=0;i--){const q=R[i],a=facById(q.fa),b=facById(q.fb),ra=MAP.regions[q.ra],rb=MAP.regions[q.rb];
+    if(!a||!b||!(a.trade||{})[b.id]||ra.faction!==q.fa||rb.faction!==q.fb)R.splice(i,1);}
+  facs().forEach(a=>{if(!a.alive)return;for(const id in (a.trade||{})){const b=facById(+id);if(!b||b.id<a.id)continue;
+    if(R.some(q=>(q.fa===a.id&&q.fb===b.id)||(q.fa===b.id&&q.fb===a.id)))continue;
+    let best=null,bs=-1;facRegions(a).forEach(ra=>{const nbs=ra.nb.concat(has('barcos')&&ra.sea?ra.sea:[]);nbs.forEach(id2=>{const rb=MAP.regions[id2];if(rb.faction!==b.id)return;const sc=regionPop(ra.id)+regionPop(rb.id)+1;if(sc>bs){bs=sc;best=[ra,rb];}});});
+    if(best){R.push({id:R.length?R[R.length-1].id+1:1,fa:a.id,fb:b.id,ra:best[0].id,rb:best[1].id,desde:day,vol:0,risco:0,estado:'aberta',ex:best[0].id,c:null,viagens:0,perdas:0});
+      log('',`🚚 Nasce uma rota comercial entre ${best[0].name} (${a.name}) e ${best[1].name} (${b.name}).`,[]);weekNote('eco',`rota comercial entre ${a.name} e ${b.name}`);}}});
+  R.forEach(q=>{const a=facById(q.fa),b=facById(q.fb),ra=MAP.regions[q.ra],rb=MAP.regions[q.rb];if(!a||!b)return;
+    q.vol=0;if(atWar(a,b)){if(q.estado!=='cortada'){q.estado='cortada';log('',`🚫 A rota entre ${ra.name} e ${rb.name} foi cortada pela guerra.`,[]);}return;}
+    if(q.estado==='cortada'){q.estado='aberta';log('',`🚚 A rota entre ${ra.name} e ${rb.name} reabriu.`,[]);}
+    const pa=regionPop(ra.id),pb=regionPop(rb.id);if(!pa||!pb)return;
+    const [ex,im]=(ra.reserva/Math.max(5,pa))>=(rb.reserva/Math.max(5,pb))?[ra,rb]:[rb,ra];q.ex=ex.id;
+    if(ex.reserva<=8||ex.reserva<=im.reserva)return;
+    let vol=Math.min(10,Math.floor((ex.reserva-im.reserva)*0.3));if(vol<=0)return;
+    const cv=rotaCaravaneiro(q);
+    const guerra=Object.keys(a.wars).length>0||Object.keys(b.wars).length>0;
+    q.risco=Math.max(0.01,0.03+(guerra?0.05:0)+(ex.hunger?0.03:0)-(hasLaw(a,'roubo')||hasLaw(b,'roubo')?0.01:0)-(hasLaw(a,'comercio')||hasLaw(b,'comercio')?0.01:0));
+    if(Math.random()<q.risco){vol=Math.floor(vol/2);q.perdas++;
+      if(cv){remember(cv,`fui assaltado(a) na estrada de ${ex.name} a ${im.name}`,8);shape(cv,'coragem',1,'sobreviveu a um assalto');
+        if(Math.random()<0.15){log('',`🗡️ ${N(cv)}, caravaneiro(a), morreu assaltado(a) na estrada entre ${ex.name} e ${im.name}.`,[cv.id]);die(cv,'assaltado(a) na estrada');q.c=null;}}
+      setRelF(a,b,relF(a,b)-1);}
+    else if(cv){q.viagens++;if(has('moeda'))cv.coins=(cv.coins||0)+Math.max(1,Math.round(vol/2));shape(cv,'ambicao',0.5,'viagem de comércio');if(Math.random()<0.25)remember(cv,`levei comida de ${ex.name} para ${im.name}`,5);}
+    if(vol<=0)return;
+    ex.reserva=Math.max(0,ex.reserva-vol);im.reserva=Math.min(80,im.reserva+Math.round(vol*0.9));
+    q.vol=vol;im.imp=Math.min(0.2,(im.imp||0)+vol/Math.max(10,regionPop(im.id)));
+  });
+}
+function livroRotas(){const R=world.rotas||[];
+  let h=`<b style="font-size:16px">🚚 Rotas comerciais</b>`;
+  if(!R.length)h+=`<div class="hint">Ainda não há rotas. Elas nascem quando dois povos vizinhos fazem um acordo de comércio.</div>`;
+  R.forEach(q=>{const a=facById(q.fa),b=facById(q.fb),ra=MAP.regions[q.ra],rb=MAP.regions[q.rb];if(!a||!b)return;const c=byId(q.c);
+    h+=`<div class="row"><span><span style="color:${a.color}">■</span> ${ra.name} ⇄ <span style="color:${b.color}">■</span> ${rb.name}</span><span>${q.estado==='cortada'?'🚫 cortada pela guerra':`carga ${q.vol} · risco ${Math.round(q.risco*100)}%`} · ${q.viagens} viagens${q.perdas?` · ${q.perdas} assaltos`:''}${c?` · caravaneiro ${N(c)}`:''}</span></div>`;});
+  h+=`<div style="margin-top:12px"><b style="font-size:16px">👑 Sucessões e vassalagens</b></div>`;
+  const L=(world.sucessoes||[]).slice(-25).reverse();
+  if(!L.length)h+=`<div class="hint">Nenhuma sucessão registrada ainda.</div>`;
+  L.forEach(x=>{h+=`<div class="row"><span>ano ${x.dia}</span><span>${x.txt}</span></div>`;});
+  return h;}
+
+// =====================================================================
+// SUCESSÃO, CRISES, GOLPE COM CAUSA E VASSALAGEM (só povos de IA; o povo do jogador segue as conversas da tribo)
+// =====================================================================
+const REG_HERDA=['monarquia','chefia','imperio','teocracia','bando','ditadura'];
+function sucReg(f,txt){world.sucessoes=world.sucessoes||[];world.sucessoes.push({dia:day,fid:f.id,txt});if(world.sucessoes.length>120)world.sucessoes.shift();}
+function validoPara(n,f){return !!n&&!n._dead&&!n.isChild&&facOf(n)===f;}
+function heirOf(f,l){if(!l)return null;const r=f.regime;
+  if(['monarquia','chefia','imperio','teocracia','bando'].includes(r)){
+    const kin=(l.kids||[]).map(byId).filter(x=>validoPara(x,f)).sort((a,b)=>(b.ageDays||0)-(a.ageDays||0));if(kin.length)return kin[0];
+    if(l.surname){const rel=facPeople(f).filter(x=>!x.isChild&&x!==l&&x.surname===l.surname).sort((a,b)=>popularity(b)-popularity(a));if(rel.length)return rel[0];}
+    return null;}
+  if(r==='anciaos'){const ad=facPeople(f).filter(x=>!x.isChild&&x!==l).sort((a,b)=>(b.ageDays||0)-(a.ageDays||0)).slice(0,Math.max(1,Math.ceil(facPeople(f).length*0.3)));return ad.sort((a,b)=>popularity(b)-popularity(a))[0]||null;}
+  if(r==='ditadura'){return facPeople(f).filter(x=>!x.isChild&&x!==l).sort((a,b)=>(T(b,'ambicao')+T(b,'coragem'))-(T(a,'ambicao')+T(a,'coragem')))[0]||null;}
+  return null;}
+// retorna true se a vaga foi tratada aqui (herdeiro ou crise); false deixa a eleição normal agir
+function sucessaoVaga(f){const g=f.gov;
+  if(g.crise){if(day>=g.crise.ate)return resolveCrise(f);return true;}
+  if(!REG_HERDA.includes(f.regime)&&f.regime!=='anciaos')return false;
+  const h=byId(g.heir);
+  if(validoPara(h,f)){g.heir=null;setFacLeader(f,h);log('big',`👑 ${N(h)} herdou o poder em ${f.name}, sem disputa.`,[h.id]);sucReg(f,`${N(h)} assumiu ${f.name} como herdeiro(a)`);remember(h,`assumi o governo de ${f.name}`,9);shape(h,'ambicao',1,'herdou o poder');return true;}
+  if(!REG_HERDA.includes(f.regime))return false;
+  const ad=facPeople(f).filter(x=>!x.isChild&&T(x,'ambicao')>0.2);if(ad.length<2)return false;
+  const pt=x=>popularity(x)+T(x,'ambicao')*20;
+  ad.sort((a,b)=>pt(b)-pt(a));
+  const pret=ad.filter(x=>pt(ad[0])-pt(x)<=10).slice(0,3);
+  if(pret.length<2)return false;
+  g.crise={desde:day,ate:day+1+Math.floor(Math.random()*3),pret:pret.map(x=>x.id)};
+  log('big',`⚠️ <b>Crise de sucessão em ${f.name}!</b> ${pret.map(N).join(' e ')} disputam o poder.`,pret.map(x=>x.id));worldSay(`${f.name} ficou sem líder e há mais de um pretendente. O trono pode ser decidido por acordo, golpe ou guerra civil.`,'chronos');weekNote('gov',`crise de sucessão em ${f.name}`);
+  pret.forEach(x=>remember(x,`disputei o poder em ${f.name}`,8));
+  return true;}
+function resolveCrise(f){const g=f.gov,pret=g.crise.pret.map(byId).filter(x=>validoPara(x,f));g.crise=null;
+  if(pret.length<2)return false;
+  const sc=n=>T(n,'coragem')+T(n,'ambicao')+rnd(-0.5,0.5);
+  const rebelde=facRegions(f).length>=2?pret.find(n=>n.region!==f.capital):null;
+  const x=Math.random();
+  if(x<0.4){const w=pret.sort((a,b)=>popularity(b)-popularity(a))[0];setFacLeader(f,w);
+    pret.forEach(n=>{if(n!==w){remember(n,`aceitei que ${N(w)} governasse ${f.name}`,7);shape(n,'bondade',1,'cedeu o trono');}});
+    log('big',`🤝 Em ${f.name}, a crise acabou em <b>acordo</b>: ${N(w)} governa.`,[w.id]);sucReg(f,`acordo: ${N(w)} governa ${f.name}`);return true;}
+  if(x<0.7||!rebelde){const w=pret.sort((a,b)=>sc(b)-sc(a))[0];
+    pret.forEach(n=>{if(n===w)return;relate(n,w,-40);remember(n,`${N(w)} tomou o poder à força`,9);
+      if(Math.random()<0.35){crime(w,'assassinato',n,'matou o rival ao trono',true);log('big',`🗡️ ${N(w)} mandou matar ${N(n)} na disputa pelo trono de ${f.name}.`,[w.id,n.id]);die(n,'morto(a) na disputa pelo trono');shape(w,'bondade',-3,'matou um rival');}});
+    setFacLeader(f,w);shape(w,'ambicao',2,'tomou o poder');remember(w,`tomei o poder em ${f.name}`,9);
+    log('big',`💥 Em ${f.name}, a crise acabou em <b>golpe</b>: ${N(w)} tomou o poder.`,[w.id]);sucReg(f,`golpe: ${N(w)} tomou ${f.name}`);return true;}
+  // guerra civil: o pretendente de outra região funda um povo próprio
+  const w=pret.find(n=>n!==rebelde)||pret[0];const r=MAP.regions[rebelde.region];
+  const nf=newFaction(`Facção de ${rebelde.surname||N(rebelde)}`,r);nf.culture=newCulture(facCult(f));nf.laws=[...(f.laws||[])];nf.allies={};nf.trade={};nf.regime=f.regime;
+  facRegions(f).forEach(o=>{if(o.id!==f.capital&&o!==r&&Math.hypot(o.x-r.x,o.y-r.y)<35)o.faction=nf.id;});world.facVer=(world.facVer||0)+1;world.facDirty=true;
+  setFacLeader(nf,rebelde);setFacLeader(f,w);setRelF(f,nf,-40);
+  declareWar(f,nf,'guerra civil pelo trono');sucReg(f,`guerra civil: ${N(rebelde)} se separou de ${f.name}`);
+  return true;}
+function sucessaoYear(f){const g=f.gov,l=byId(g.leader);
+  if(l&&validoPara(l,f)){const h=heirOf(f,l);const ant=g.heir;g.heir=h?h.id:null;if(h&&h.id!==ant&&REG_HERDA.includes(f.regime)&&Math.random()<0.5)remember(h,`sou o herdeiro de ${f.name}`,6);}
+  if(g.crise&&Math.random()<0.15)vassalagem(f,'a crise de sucessão deixou o povo fraco demais');
+  else if(Object.keys(f.wars).length&&Math.random()<0.1){const en=Object.keys(f.wars).map(i=>facById(+i)).filter(Boolean).sort((a,b)=>facStrength(b)-facStrength(a))[0];if(en&&facStrength(en)>facStrength(f)*2)vassalagem(f,'a guerra estava perdida',en);}
+  if(f.vassal){const big=facById(f.vassal.de);if(!big||(big.vassal&&big.vassal.de===f.id)){delete f.vassal;return;}
+    const cap=MAP.regions[big.capital];let tot=0;facRegions(f).forEach(r=>{const t=Math.floor(Math.max(0,r.reserva-10)*f.vassal.tributo);if(t>0){r.reserva-=t;tot+=t;}});cap.reserva=Math.min(80,cap.reserva+tot);
+    setRelF(f,big,relF(f,big)-0.6);const fome=facRegions(f).some(r=>r.hunger);
+    if(Math.random()<0.015+(fome?0.05:0)+(relF(f,big)<-20?0.05:0)){delete f.vassal;declareWar(f,big,'rebelião de vassalo');sucReg(f,`${f.name} se rebelou contra ${big.name}`);}}
+}
+function vassalagem(f,why,alvo){if(f.vassal||f.id===0)return;
+  const big=alvo||facs().filter(x=>x.alive&&x.id!==f.id&&!(x.vassal&&x.vassal.de===f.id)&&bordering(f,x)&&facStrength(x)>facStrength(f)*1.8).sort((a,b)=>facStrength(b)-facStrength(a))[0];
+  if(!big||(big.vassal&&big.vassal.de===f.id))return;
+  if(atWar(f,big))makePeace(f,big,'rendição como vassalo');
+  f.vassal={de:big.id,tributo:0.1,desde:day};if(f.gov.crise)f.gov.crise=null;
+  log('big',`🙇 <b>${f.name}</b> passou a ser vassalo de <b>${big.name}</b> (${why}).`,[]);worldSay(`${f.name} jurou fidelidade a ${big.name} e paga tributo.`,'chronos');weekNote('gov',`${f.name} virou vassalo de ${big.name}`);sucReg(f,`${f.name} virou vassalo de ${big.name}`);
+  facPeople(f).forEach(n=>{if(!n.isChild&&Math.random()<.3)remember(n,`${f.name} passou a obedecer a ${big.name}`,7);});}
+function golpeCausa(f,r){const g=facGov(f),l=byId(g.leader);if(!l||g.crise)return;
+  const regs=facRegions(f),fome=regs.length?regs.filter(x=>x.hunger).length/regs.length:0;
+  const m=members(f.capital).filter(n=>!n.isChild&&n!==l);const avg=m.length?m.reduce((s,n)=>s+(n.rel[l.id]||0),0)/m.length:0;
+  const pl=popularity(l);const riv=facPeople(f).filter(n=>!n.isChild&&n!==l&&T(n,'ambicao')>0.3&&T(n,'coragem')>0.2&&popularity(n)>=pl-5).sort((a,b)=>(T(b,'ambicao')+T(b,'coragem'))-(T(a,'ambicao')+T(a,'coragem')))[0];
+  if(!riv)return;
+  const p=(0.005+0.03*fome+0.04*Math.max(0,-avg/30)+0.03)*(r==='ditadura'?1:0.4);
+  if(Math.random()>=p)return;
+  const causa=fome>0.3?'a fome no povo':avg<-10?'o descontentamento com o governo':`a ambição de ${N(riv)}`;
+  const parente=(l.kids||[]).includes(riv.id)||(l.surname&&riv.surname===l.surname);
+  let fim=`${N(l)} foi derrubado(a)`;
+  if(parente&&T(riv,'bondade')<0&&Math.random()<0.2){crime(riv,'assassinato',l,'matou o próprio parente para governar',true);shape(riv,'bondade',-3,'matou um parente');remember(riv,`matei ${N(l)} para tomar o poder`,10);die(l,'assassinado(a) pelo próprio parente');fim=`${N(l)} foi assassinado(a) pelo próprio parente`;}
+  else{remember(l,`${N(riv)} me derrubou do poder em ${f.name}`,10);relate(l,riv,-50);}
+  setFacLeader(f,riv);g.heir=null;remember(riv,`tomei o poder de ${f.name}`,9);shape(riv,'ambicao',2,'golpe de estado');
+  log('big',`💥 <b>Golpe em ${f.name}!</b> ${N(riv)} tomou o poder (${causa}); ${fim}.`,[riv.id,l.id]);weekNote('gov',`golpe em ${f.name}`);sucReg(f,`golpe em ${f.name}: ${N(riv)} derrubou ${N(l)}`);}
 
 let SECQ=0;
 function politicsDaily(){SECQ=0;if(MAP&&world.factions)politicsYear();
@@ -3847,6 +4012,7 @@ function politicsDaily(){SECQ=0;if(MAP&&world.factions)politicsYear();
   for(let i=0;i<alive.length;i++)for(let j=i+1;j<alive.length;j++){
     const a=alive[i],b=alive[j];
     if(atWar(a,b)){battle(a,b);continue;}
+    if((a.vassal&&a.vassal.de===b.id)||(b.vassal&&b.vassal.de===a.id))continue;
     const nearAB=bordering(a,b);diplomacyPair(a,b,nearAB||has('barcos'));if(!a.alive||!b.alive)continue;
     if((a.allies||{})[b.id])continue;
     if(!nearAB){setRelF(a,b,relF(a,b)*0.97);continue;}
@@ -4475,7 +4641,7 @@ const SURV_FLOOR=40;
 const DIS_INFO={
   peste:{e:'☠️',name:'peste'},praga:{e:'🦗',name:'praga nas plantações'},meteoro:{e:'☄️',name:'meteoro'},insetos:{e:'🪲',name:'invasão dos insetos'}};
 function canKill(){return totalPop()>SURV_FLOOR;}
-function regionFoodMul(rid){const r=MAP&&MAP.regions[rid];let m=(world.winter?world.winter.mul:1)*(r&&r.bfx?1+r.bfx.food:1);if(r&&r.blight)m*=0.35;if(r&&r.insect)m*=0.2;return m;}
+function regionFoodMul(rid){const r=MAP&&MAP.regions[rid];let m=(world.winter?world.winter.mul:1)*(r&&r.bfx?1+r.bfx.food:1);if(r&&r.blight)m*=0.35;if(r&&r.insect)m*=0.2;if(r&&r.eco)m*=0.55+0.45*r.eco.m;if(r&&r.imp)m*=1+r.imp;return m;}
 // mata uma fração das pessoas de um conjunto de regiões (fichas e objetos), respeitando o piso
 function killIn(rset,frac,cause){let dead=0;const names=[];
   for(let i=0;i<DORM.n;i++){if(!DORM.live[i]||!rset.has(DORM.reg[i]))continue;if(!canKill())break;let f=frac;if(DORM.age[i]>60||DORM.age[i]<5)f*=1.4;if(Math.random()<f){if(names.length<4)names.push(DORM.name[i]);DORM.die(i);dead++;}}
@@ -5201,8 +5367,8 @@ let livroTab='tempo',livroEra=-1;
 function livroAbre(t){if(t)livroTab=t;let el=document.getElementById('livro');if(!el){el=document.createElement('div');el.id='livro';document.body.appendChild(el);}el.style.display='flex';livroRender();}
 function livroFecha(){const el=document.getElementById('livro');if(el)el.style.display='none';}
 function livroRender(){const el=document.getElementById('livro');if(!el||el.style.display==='none')return;
-  const tabs=[['tempo','📜 Linha do tempo'],['casas','🏰 Casas'],['eras','🗿 Eras'],['povos','🌍 Povos e culturas'],['reliq','🏺 Relíquias'],['inv','💡 Invenções'],['mal','😈 Crimes'],['saber','📚 Saberes'],['busca','🔎 Buscar'],['teste','🧪 Autoteste e pular anos']];
-  let body='';try{body=livroTab==='casas'?livroCasas():livroTab==='eras'?livroEras():livroTab==='povos'?livroPovos():livroTab==='reliq'?livroReliquias():livroTab==='inv'?livroInvencoes():livroTab==='mal'?livroCrimes():livroTab==='saber'?livroSaberes():livroTab==='busca'?livroBuscaTab():livroTab==='teste'?livroTeste():livroTempo();}catch(e){console.error(e);body='<div class="hint">Não foi possível montar esta aba.</div>';}
+  const tabs=[['tempo','📜 Linha do tempo'],['casas','🏰 Casas'],['rotas','🚚 Rotas e tronos'],['eras','🗿 Eras'],['povos','🌍 Povos e culturas'],['reliq','🏺 Relíquias'],['inv','💡 Invenções'],['mal','😈 Crimes'],['saber','📚 Saberes'],['busca','🔎 Buscar'],['teste','🧪 Autoteste e pular anos']];
+  let body='';try{body=livroTab==='rotas'?livroRotas():livroTab==='casas'?livroCasas():livroTab==='eras'?livroEras():livroTab==='povos'?livroPovos():livroTab==='reliq'?livroReliquias():livroTab==='inv'?livroInvencoes():livroTab==='mal'?livroCrimes():livroTab==='saber'?livroSaberes():livroTab==='busca'?livroBuscaTab():livroTab==='teste'?livroTeste():livroTempo();}catch(e){console.error(e);body='<div class="hint">Não foi possível montar esta aba.</div>';}
   el.innerHTML=`<div class="livroBox"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:20px">📖 Livro do Mundo <span class="hint">· ano ${day}</span></b><button onclick="livroFecha()">✕ Fechar</button></div><div class="tabs">${tabs.map(([k,l])=>`<button class="${livroTab===k?'on':''}" onclick="livroAbre('${k}')">${l}</button>`).join('')}</div><div class="livroCorpo">${body}</div></div>`;}
 function livroTempo(){casasInit();const L=world.timeline;const opt=[`<option value="-1">Todas as eras</option>`].concat(ERAS.map((E,i)=>i<=world.era?`<option value="${i}" ${livroEra===i?'selected':''}>${E.e} ${E.name}</option>`:'')).join('');
   const f=(livroEra<0?L:L.filter(x=>x.e===livroEra)).slice(-400).reverse();

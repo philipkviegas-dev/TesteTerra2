@@ -170,3 +170,12 @@ Um ciclo de causa e efeito que gera histórias sozinho, sem script, e todo ele c
 | C Ecologia | `regionFoodMul`, passo anual, painel da região, `drawCenario`, 3 leis | pequeno | baixo |
 | A Rotas | `diplomacyPair`, novo passo anual, `drawMap`, aba no Livro, caravaneiro | médio | médio (desenho e hidratação) |
 | B Sucessão | `die`, `facLeaders`, `regimeYear`, `secession`, `mergeFactions`, painel e árvore | médio-grande | médio (muitos casos de borda) |
+
+## 9. Status: implementado (as três fases, na ordem C → A → B)
+
+Tudo está em `ilha-viva.html`, ligado a `politicsYear()`. Decisões padrão usadas nas perguntas em aberto: primogenitura com alternativas (parente de mesmo sobrenome, depois o mais popular); caravaneiro real quando existe (senão a rota é abstrata); a cicatriz ecológica se recupera devagar, mas sempre pode se recuperar. O que mudou em relação ao desenho acima:
+
+- **Ecologia:** a região só ganha `eco` quando a pressão passa de 0,6 (pop/60 + obras/30 + tecnologia); abaixo disso nada é criado. Piso 0,25. Leis novas `manejo` (mata), `defeso` (pesca) e `rodizio` (solo). Sem lei a comida cai a ~0,66; com as três fica ~0,85. Custo ≈ 1 ms por passo anual. `eco` é salvo.
+- **Rotas:** só entre regiões vizinhas (ou por mar com barcos) de povos com acordo de comércio, salto direto, sem caminho em vários trechos. Carga até 10, 90% chega, `imp` até +0,2 na comida da região que recebe. Guerra corta a rota ('cortada'); assalto reduz a carga e pode matar o caravaneiro (15%). Camada 🚚 no mapa e aba "Rotas e tronos" no Livro.
+- **Sucessão:** em vez de "intervenção" entre povos, foi feita **vassalagem** (tributo de 10%, rebelião mais provável com fome ou relação ruim). Herdeiro atualizado todo ano; crise com 2–3 pretendentes resolvida em 1–3 anos por acordo (40%), golpe ou guerra civil. O golpe cego de 3% foi trocado por golpe com causa (fome, descontentamento, ambição de um rival). Vale só para povos de IA; o povo do jogador segue as conversas da tribo.
+- **Testado no navegador:** rotas abrem, entregam, fecham na guerra e reabrem; herdeiro assume sem crise; crise abre e se resolve; vassalo se rebela e declara guerra; golpe acontece com fome; `serialize` guarda `eco` e as rotas; saves antigos carregam porque todos os campos novos são opcionais.
