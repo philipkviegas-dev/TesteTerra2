@@ -2784,31 +2784,39 @@ function migrarComPovo(n,text,ok){
   const nomeD=D?(D[0]<0?'oeste':D[0]>0?'leste':D[1]<0?'norte':'sul'):'além';
   const dot=r=>{const dx=r.x-from.x,dy=r.y-from.y,L=Math.hypot(dx,dy)||1;return D?(dx*D[0]+dy*D[1])/L:0;};
   const opts=[...new Set(from.nb.concat(has('barcos')?from.sea:[]))].map(id=>MAP.regions[id]).filter(r=>r&&r.id!==from.id);
-  const pool=D?opts.filter(r=>dot(r)>0.35):opts;
+  let pool=D?opts.filter(r=>dot(r)>0.35):opts;
+  // sem boa vizinha na direção pedida (cheia ou sem comida), olha a segunda fileira de regiões
+  const boa=r=>regionPop(r.id)<regionCap(r)-8&&Object.values(r.res).filter(Boolean).length>0;
+  if(!pool.some(boa)){const seg=new Set(pool);opts.filter(r=>!D||dot(r)>-0.2).forEach(r=>[].concat(r.nb).forEach(id=>{const q=MAP.regions[id];if(q&&q.id!==from.id&&!opts.includes(q)&&(!D||dot(q)>0.35))seg.add(q);}));pool=[...seg];}
   if(!pool.length)return [`${n.name} quis levar o povo para o ${nomeD}, mas dali não há terra ao alcance para onde ir.`,false];
   if(!ok)return [`${n.name} chamou o povo para seguir ao ${nomeD}, mas ninguém quis largar o que tinha.`,false];
-  const val=r=>Object.values(r.res).filter(Boolean).length-regionPop(r.id)/REGION_CAP*3+dot(r)*2+rnd(0,1);
+  // destino: comida e espaço contam; terra livre (colonizar) é preferida; terra de outro povo é evitada
+  const val=r=>{const p=regionPop(r.id),dono=r.faction!=null&&r.faction!==from.faction&&p>0;
+    return Object.values(r.res).filter(Boolean).length*1.2-p/regionCap(r)*3-(p>=regionCap(r)-8?6:0)-(dono?5:0)+(p===0&&!dono?1.5:0)+dot(r)*2-(opts.includes(r)?0:1)+rnd(0,1);};
   const to=pool.sort((a,b)=>val(b)-val(a))[0],isNew=!regionPop(to.id);
-  const people=members(from.id),set=new Set([n]);
+  const people=members(from.id),set=new Set([n]);let lidera=false;try{lidera=facs().some(f=>((facGov(f)||{}).leader)===n.id);}catch(e){}
   const add=o=>{if(o&&o.region===from.id&&!o._dead)set.add(o);};
   add(byId(n.partner));people.forEach(k=>{if(k.isChild&&k.parents.includes(n.id))add(k);});
-  people.filter(o=>!o.isChild&&o!==n&&(o.rel[n.id]||0)>10).sort((a,b)=>(b.rel[n.id]||0)-(a.rel[n.id]||0)).slice(0,14).forEach(o=>{add(o);add(byId(o.partner));people.forEach(k=>{if(k.isChild&&k.parents.includes(o.id))add(k);});});
+  people.filter(o=>!o.isChild&&o!==n&&(o.rel[n.id]||0)>(lidera?0:10)).sort((a,b)=>(b.rel[n.id]||0)-(a.rel[n.id]||0)).slice(0,lidera?24:14).forEach(o=>{add(o);add(byId(o.partner));people.forEach(k=>{if(k.isChild&&k.parents.includes(o.id))add(k);});});
+  // para colonizar terra livre o grupo precisa ter gente de verdade (mín. 5): convence quem está mais perto dela
+  if(isNew&&set.size<5)people.filter(o=>!o.isChild&&!set.has(o)&&o.region===from.id&&!o._dead).sort((x,y)=>(y.rel[n.id]||0)-(x.rel[n.id]||0)).forEach(o=>{if(set.size>=5||people.length-set.size<=3)return;add(o);add(byId(o.partner));});
   const group=[...set];
   // o resto do povo (fichas compactas): até 40% dos que moram ali, no máximo 40 pessoas, com os companheiros
-  let extra=0;try{const tot=DORM.pop?DORM.pop[from.id]:0,max=Math.min(40,Math.round(tot*0.4)),pr=tot?Math.min(1,max/tot*1.3):0;
+  let extra=0;try{const tot=DORM.pop?DORM.pop[from.id]:0,max=Math.min(lidera?80:60,Math.max(Math.round(tot*(lidera?0.5:0.4)),isNew?Math.max(0,Math.min(6,tot-3)):0)),pr=tot?Math.min(1,max/tot*1.3):0;
     for(let i=0;i<DORM.n&&extra<max;i++){if(!DORM.live[i]||DORM.reg[i]!==from.id||Math.random()>pr)continue;
       const ls=[i];const ps=DORM.slotOf(DORM.partner[i]);if(ps>=0&&DORM.live[ps]&&DORM.reg[ps]===from.id)ls.push(ps);
       ls.forEach(k=>{DORM.count(k,-1);DORM.reg[k]=to.id;DORM.count(k,1);extra++;});}}catch(e){console.error(e);}
   RC.dirty=true;
   group.forEach(g=>{g.region=to.id;g.home=R(['casaA','casaB','casaC']);g.cmd=null;if(g!==n){g.cmdQueue=[];}if(to.id!==world.active){g.x=-9999;g.y=-9999;}else{g.x=PLACES.praia.x;g.y=PLACES.praia.y+40;g.tx=null;}remember(g,`segui ${n.name} de ${from.name} para ${to.name}`,10,n.id);shape(g,'coragem',4,'migrou');if(g!==n)relate(g,n,4);});
-  if(isNew){to.founded=day;to.reserva=8;to.founders=group.map(g=>g.id);to.faction=from.faction;world.facDirty=true;world.facVer=(world.facVer||0)+1;}
+  if(isNew){to.founded=day;to.reserva=8;to.hunger=0;to.founders=group.map(g=>g.id);if(to.faction==null)to.faction=from.faction;world.facDirty=true;world.facVer=(world.facVer||0)+1;}
   world.migrations.push({from:from.id,to:to.id,day,n:group.length+extra});weekNote('migr',`${n.name} para ${to.name}`);
   const nomes=group.slice(0,6).map(N).join(', ')+(group.length>6?` e mais ${group.length-6}`:'');
-  log('big',`🧳 ${N(n)} levou seu povo (${nomes}${extra?` + ${extra} moradores`:''}) de ${from.name} para <b>${to.name}</b>, rumo ao ${nomeD}${isNew?' — um povoado novo nasce ali':''}.`,group.slice(0,8).map(g=>g.id));
+  if(isNew)weekNote('colon',`${to.name} colonizada por ${n.name}`);
+  log('big',`🧳 ${N(n)} levou seu povo (${nomes}${extra?` + ${extra} moradores`:''}) de ${from.name} para <b>${to.name}</b>, rumo ao ${nomeD}${isNew?` — <b>${to.name} foi colonizada</b>: um povoado novo nasce ali`:''}.`,group.slice(0,8).map(g=>g.id));
   aiSay('tea',`${group.length+extra} pessoas seguiram ${n.name} de ${from.name} para ${to.name}.`,group.slice(0,8).map(g=>g.id));
   people.forEach(o=>{if(o.region===from.id&&!set.has(o)&&(o.rel[n.id]||0)>40)remember(o,`${n.name} foi embora com o povo para ${to.name}`,7,n.id);});
   if(selected&&group.includes(selected)&&mode==='morador'&&to.id!==world.active)showIsland();
-  return [`${n.name} levou ${group.length+extra} pessoas para ${to.name}, ao ${nomeD}. 🧳`,true];
+  return [`${n.name} levou ${group.length+extra} pessoas para ${to.name}, ao ${nomeD}${isNew?' e colonizou a região':''}. 🧳`,true];
 }
 // quantidade pedida na meta ("ter 10 filhos", "ter dez filhos", "três filhos"); sem número = 1
 function metaQtd(text){const t=norm(text);const d=t.match(/\d+/);if(d)return Math.max(1,Math.min(30,+d[0]));
