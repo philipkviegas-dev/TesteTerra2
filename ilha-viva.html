@@ -334,6 +334,7 @@ const DISC=[
  {id:'moinho',name:'o moinho',e:'🌀',era:4,pre:['roda','matematica'],cost:130,lines:['construir','plantar'],desc:'muito mais comida com menos gente'},
  {id:'livros',name:'os livros e as escolas',e:'📚',era:4,pre:['escrita','matematica'],cost:130,lines:['experimentar','arte'],desc:'professores ensinam as crianças'},
  // era 5 -> 6
+ {id:'polvora',name:'a pólvora',e:'💥',era:5,pre:['ferro','matematica'],cost:150,lines:['experimentar','lascar'],desc:'armas de fogo: mosquetes, rifles e canhões'},
  {id:'imprensa',name:'a imprensa',e:'🖨️',era:5,pre:['livros','ferro'],cost:160,lines:['lascar','arte'],desc:'ideias se espalham rápido'},
  {id:'navegacao',name:'a navegação',e:'🧭',era:5,pre:['barcos','matematica'],cost:150,lines:['pescar','experimentar'],desc:'viagens longas pelo oceano'},
  {id:'ciencia',name:'o método científico',e:'🔬',era:5,pre:['livros'],cost:180,lines:['experimentar'],desc:'cientistas e descobertas mais rápidas'},
@@ -1227,7 +1228,111 @@ function espProf(n,r){ // o ofício de verdade: atleta compete e treina; treinad
 function espResumo(n){const p=n.sp;if(!p||!p.k)return '';const s=ESP_MAP[p.k];if(!s)return '';
   return `${s.e} ${s.n} nível ${Math.round(p.lv[s.id]||0)} · ${p.v}V/${p.d}D${p.t?` · ${p.t} título(s)`:''}${p.fama>=5?` · fama ${Math.round(p.fama)}`:''}${p.les?` · ${p.les} lesão(ões)`:''}${p.pat?' · patrocinado':''}`;}
 
+// ---------- ARMAS POR ÉPOCA ----------
+// k:'a' arma, 'd' proteção. p = poder, c = custo, d = anos de uso, auto = qualquer um faz sozinho, dist = de longe.
+const ARMAS=[
+ {id:'porrete',n:'porrete',e:'🪵',k:'a',tech:[],p:1,c:1,d:10,auto:1},
+ {id:'lanca_m',n:'lança de madeira',e:'🔱',k:'a',tech:['lanca'],p:1.7,c:2,d:12,auto:1},
+ {id:'arco',n:'arco e flechas',e:'🏹',k:'a',tech:['lanca'],p:1.9,c:3,d:14,auto:1,dist:1},
+ {id:'adaga_b',n:'adaga de bronze',e:'🗡️',k:'a',tech:['metalurgia'],p:2.3,c:6,d:25},
+ {id:'espada_b',n:'espada de bronze',e:'⚔️',k:'a',tech:['metalurgia'],p:3,c:11,d:25},
+ {id:'lanca_f',n:'lança de ferro',e:'🔱',k:'a',tech:['ferro'],p:3.7,c:12,d:35},
+ {id:'espada_f',n:'espada de ferro',e:'⚔️',k:'a',tech:['ferro'],p:4.4,c:18,d:40},
+ {id:'besta',n:'besta',e:'🏹',k:'a',tech:['ferro','matematica'],p:4.8,c:22,d:35,dist:1},
+ {id:'mosquete',n:'mosquete',e:'🔫',k:'a',tech:['polvora'],p:6.5,c:32,d:35,dist:1},
+ {id:'rifle',n:'rifle',e:'🔫',k:'a',tech:['polvora','vapor'],p:9,c:45,d:50,dist:1},
+ {id:'fuzil_auto',n:'fuzil automático',e:'🔫',k:'a',tech:['polvora','eletricidade'],p:12,c:65,d:60,dist:1},
+ {id:'fuzil_mod',n:'fuzil moderno',e:'🔫',k:'a',tech:['polvora','computador'],p:15,c:90,d:70,dist:1},
+ {id:'couro',n:'proteção de couro',e:'🦺',k:'d',tech:['domesticacao'],p:1,c:2,d:15,auto:1},
+ {id:'escudo_b',n:'escudo de bronze',e:'🛡️',k:'d',tech:['metalurgia'],p:2,c:8,d:30},
+ {id:'armad_f',n:'armadura de ferro',e:'🛡️',k:'d',tech:['ferro'],p:3.4,c:20,d:45},
+ {id:'colete',n:'colete balístico',e:'🦺',k:'d',tech:['polvora','eletricidade'],p:5.5,c:50,d:60}];
+const ARMA_MAP={};ARMAS.forEach(a=>ARMA_MAP[a.id]=a);
+const armaOk=a=>a.tech.every(has);
+const MIL_RE=/Guarda|Soldado|Lanceiro|Arqueiro|Espadachim|Cavaleiro|Besteiro|Piqueiro|Mercen|Capit|General|Policial|Granadeiro|Artilheiro|Xerife|Segurança|Sapador|Cacador de recompensa|Caçador de recompensa/;
+const FERR_RE=/Ferreiro|Armeiro|Espadeiro|Armadureiro|Cuteleiro|Fundidor de bronze|Fabricante de (adagas|elmos|escudos|armas|lanças|bestas|catapultas|arcos|armaduras|machados)/;
+const armaMil=n=>{const r=roleOf(n);return !!(r&&(MIL_RE.test(r.name)||r.out==='guard'));};
+const armaFerr=n=>{const r=roleOf(n);return !!(r&&r.gen&&FERR_RE.test(r.name));};
+const armaP=n=>{const a=n.ar&&n.ar.a&&ARMA_MAP[n.ar.a];return a?a.p:0;};
+const defP=n=>{const a=n.ar&&n.ar.d&&ARMA_MAP[n.ar.d];return a?a.p:0;};
+function arsenal(rid){const W=world.arsenal=world.arsenal||{};return W[rid]=W[rid]||{};}
+function armaPreco(a){return Math.max(1,Math.round(a.c*(has('moeda')?Math.max(.6,world.preco||1):.6)));}
+function armaPode(n,preco){return has('moeda')?(n.coins||0)>=preco:(n.food||0)>=Math.ceil(preco/2)+1;}
+function armaPaga(n,preco,rid){
+  if(has('moeda'))n.coins-=preco;else n.food-=Math.ceil(preco/2);
+  const sm=members(rid).find(o=>o!==n&&!o.isChild&&armaFerr(o));
+  if(sm){if(has('moeda'))sm.coins=(sm.coins||0)+preco;else sm.food=Math.min(foodCap(),(sm.food||0)+Math.ceil(preco/2));}}
+function armaEquipa(n,a){const s=n.ar=n.ar||{a:null,d:null,ua:0,ud:0};if(a.k==='a'){s.a=a.id;s.ua=a.d;}else{s.d=a.id;s.ud=a.d;}}
+function armaMelhor(rid,k,minP,nMax){ // melhor item do estoque da região, de poder maior que minP
+  const st=arsenal(rid);let best=null;for(const id in st){if(!(st[id]>0))continue;const a=ARMA_MAP[id];if(!a||a.k!==k||a.p<=minP)continue;if(nMax!=null&&armaPreco(a)>nMax)continue;if(!best||a.p>best.p)best=a;}return best;}
+function armaTotal(rid){const st=arsenal(rid);let t=0;for(const id in st)t+=st[id]||0;return t;}
+function armaMul(a,v){return clamp((1+armaP(a))/(1+.6*defP(v)+.4*armaP(v)),.7,3);}
+function armaResumo(n){const s=n.ar;if(!s||(!s.a&&!s.d))return '';const A=ARMA_MAP[s.a],D=ARMA_MAP[s.d];
+  return [A?`${A.e} ${A.n}`:'',D?`${D.e} ${D.n}`:''].filter(Boolean).join(' · ');}
+function armaLargar(n,volta){const s=n.ar;if(!s)return;const st=arsenal(n.region);
+  if(volta){if(s.a&&s.ua>3)st[s.a]=(st[s.a]||0)+1;if(s.d&&s.ud>3)st[s.d]=(st[s.d]||0)+1;}s.a=s.d=null;s.ua=s.ud=0;}
+function armaMorre(n){if(n.ar&&(n.ar.a||n.ar.d))armaLargar(n,true);}
+function armaOpts(n,add,m,c,L2){
+  if(n.isChild||n.hurt||n.region==null)return;const f=facOf(n),mil=armaMil(n);
+  if(hasLaw(f,'porte')&&!mil)return;
+  const s=n.ar||{},medo=medoPerder(n),guerra=f&&f.wars&&Object.keys(f.wars).length>0;
+  let recente=0;(world.crimes||[]).slice(-20).forEach(x=>{if(x.reg===n.region&&day-x.dia<=3)recente++;});
+  const amea=.35*Math.min(1.5,medo)+(guerra?.55:0)+Math.min(.4,recente*.12)+(mil?.5:0)+(n.preso?0:0)+.15*Math.max(0,T(n,'coragem'))+(hasLaw(f,'armado')?.2:0)-.3*Math.max(0,T(n,'bondade'));
+  if(amea<=.1)return;const mp=has('moeda')?(n.coins||0)*.7:(n.food||0)*1.4;
+  const pa=armaP(n),pd=defP(n);
+  [['a',pa],['d',pd]].forEach(([k,cur])=>{
+    const est=armaMelhor(n.region,k,cur*1.15,mp);
+    const auto=ARMAS.filter(a=>a.k===k&&a.auto&&armaOk(a)&&a.p>cur*1.15).sort((a,b)=>b.p-a.p)[0];
+    const a=est||auto;if(!a)return;const sc=2+26*amea+(k==='a'?0:-4)-armaPreco(a)*.25+(cur===0?5:0);
+    add('vida:armar',sc,`quer ${k==='a'?'uma arma melhor':'proteção'} (${a.n}) para não perder o que tem`);});}
+function armaAdquire(n){
+  const f=facOf(n),k=(armaP(n)<=defP(n)*1.2||!armaOk(ARMAS[0]))?'a':'a';
+  for(const kk of (defP(n)<armaP(n)*.5?['d','a']:['a','d'])){
+    const cur=kk==='a'?armaP(n):defP(n),mp=has('moeda')?(n.coins||0)*.7:(n.food||0)*1.4;
+    const est=armaMelhor(n.region,kk,cur*1.15,mp);
+    const auto=ARMAS.filter(a=>a.k===kk&&a.auto&&armaOk(a)&&a.p>cur*1.15).sort((a,b)=>b.p-a.p)[0];
+    if(est&&(!auto||est.p>=auto.p||Math.random()<.7)){const pr=armaPreco(est);if(armaPode(n,pr)){arsenal(n.region)[est.id]--;armaPaga(n,pr,n.region);armaEquipa(n,est);return {a:est,pago:pr};}}
+    if(auto){n.needs.energia=clamp(n.needs.energia-6);armaEquipa(n,auto);return {a:auto,pago:0,fez:1};}}
+  return null;}
+Object.assign(VIDA,{
+ armar:{e:'🛡️',place:'centro',verb:()=>'se armando',fx:n=>{
+  const r=armaAdquire(n);if(!r)return;const a=r.a;
+  remember(n,r.fez?`fiz ${/^(arco|escudo)/.test(a.n)?'um':'uma'} ${a.n}`:`comprei ${a.n} por ${r.pago}`,a.p>=4?6:4);
+  shape(n,'confianca',.4,'se armou');if(a.k==='a'&&Math.random()<.3)shape(n,'coragem',.5,'empunhou uma arma');
+  if(a.p>=3.5||Math.random()<.15)log('',`${a.e} ${N(n)} ${r.fez?'fez':'comprou'} ${a.n}.`,[n.id]);
+  if(Math.random()<.4)think(n,a.k==='a'?'Agora ninguém me toma o que é meu.':'Assim eu me sinto mais seguro(a).',a.e);}}});
+function armaForja(n,r){ // ferreiro e armeiro: fazem o que a época deixa e o povo precisa
+  if(!armaFerr(n))return;const rid=n.region,f=facOf(n),st=arsenal(rid),adultos=members(rid).filter(o=>!o.isChild).length;
+  const guerra=f&&f.wars&&Object.keys(f.wars).length>0;
+  if(hasLaw(f,'porte')&&!guerra&&armaTotal(rid)>=Math.max(2,adultos*.25))return;
+  if(armaTotal(rid)>=adultos*(guerra?1.2:.7)+2)return;
+  const lista=ARMAS.filter(a=>!a.auto&&armaOk(a)&&(a.k==='a'||Math.random()<.35)).sort((a,b)=>b.p-a.p).slice(0,3);if(!lista.length)return;
+  const a=R(lista),q=1+(rankIdx(n,r)>=2?1:0)+(guerra?1:0);
+  st[a.id]=(st[a.id]||0)+q;n.skill[r.skill]=clamp((n.skill[r.skill]||0)+.3);
+  if(Math.random()<.15)think(n,`Mais ${q>1?q+' ':''}${a.n}${q>1?'s':''} saíram da forja.`,a.e);}
+function armaTick(n){ // por habitante, a cada ano
+  if(n.isChild||n.region==null)return;const f=facOf(n),s=n.ar,mil=armaMil(n);
+  const guerra=f&&f.wars&&Object.keys(f.wars).length>0;
+  if(s&&s.a){s.ua-=.25+(guerra&&mil?.5:0);if(s.ua<=0){const A=ARMA_MAP[s.a];log('',`🪓 ${A.e} ${A.n} de ${N(n)} quebrou de tão usada.`,[n.id]);remember(n,`minha ${A.n} quebrou`,5);s.a=null;s.ua=0;}}
+  if(s&&s.d){s.ud-=.15+(guerra&&mil?.4:0);if(s.ud<=0){s.d=null;s.ud=0;}}
+  // o Estado arma os guardas e, na guerra, os convocados
+  if(mil||(guerra&&(hasLaw(f,'servico')||Math.random()<.3))){
+    const ba=armaMelhor(n.region,'a',armaP(n)*1.1),bd=armaMelhor(n.region,'d',defP(n)*1.1);
+    if(ba){arsenal(n.region)[ba.id]--;if(n.ar&&n.ar.a)armaLargar(Object.assign({},n,{ar:{a:n.ar.a,d:null,ua:n.ar.ua,ud:0},region:n.region}),true);armaEquipa(n,ba);}
+    if(bd){arsenal(n.region)[bd.id]--;armaEquipa(n,bd);}}
+  // lei de porte restrito: quem não é guarda perde a arma boa
+  if(hasLaw(f,'porte')&&!mil&&s&&s.a&&ARMA_MAP[s.a].p>1.8&&Math.random()<.12){
+    const A=ARMA_MAP[s.a];armaLargar(n,true);remember(n,`levaram minha ${A.n} por causa da lei`,6);shape(n,'confianca',-1,'foi desarmado(a)');
+    try{justica(n,'porte ilegal de arma',null,false,0,{flagrante:1},null);}catch(e){}}}
+function armaGuerra(W,L,rw,rl,margin){ // saque e desgaste depois de uma batalha
+  const sl=arsenal(rl.id),sw=arsenal(rw.id);let tomadas=0;
+  for(const id in sl){const q=Math.floor((sl[id]||0)*.4);if(q>0){sl[id]-=q;sw[id]=(sw[id]||0)+Math.ceil(q/2);tomadas+=Math.ceil(q/2);}}
+  [rw,rl].forEach(r=>members(r.id).filter(n=>n.ar&&n.ar.a).slice(0,4).forEach(n=>{n.ar.ua-=1.5;}));
+  if(tomadas>=3)log('',`🗡️ ${W.name} tomou ${tomadas} armas dos arsenais de ${L.name}.`,[]);}
+function armaForcaFac(ad){if(!ad.length)return 0;return ad.reduce((s,n)=>s+armaP(n)+.5*defP(n),0)/ad.length;}
+
 function ecoOpts(n,add,m,c,L2){
+  try{armaOpts(n,add,m,c,L2);}catch(e){}
   const dev=L2.find(o=>o.deve&&Object.values(o.deve).some(d=>d.a===n.id));
   if(dev)add('vida:cobrar',14+8*Math.max(0,-c.bon)+(medoPerder(n)>.5?6:0),`${dev.name} lhe deve e ainda não pagou`,dev);
   if(has('troca')){
@@ -1597,7 +1702,7 @@ function romance(a,b){
   return true;
 }
 function morningLife(n){
-  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}try{finTick(n);}catch(e){}try{espTick(n);}catch(e){}}
+  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}try{finTick(n);}catch(e){}try{espTick(n);}catch(e){}try{armaTick(n);}catch(e){}}
   if(n.isChild){
     if(n.ageDays>=CHILD_DAYS){n.isChild=false;log('big',`🎓 ${N(n)} cresceu e virou adulto(a)! Na próxima conversa da tribo vai escolher sua função.`,[n.id]);think(n,'Cresci! Agora é comigo.','🎓');remember(n,'virei adulto(a)',9);}
     return;
@@ -1667,6 +1772,7 @@ function rollDeath0(n){
   die(n,CAUSES[cause](),where);return true;
 }
 function die(n,cause,where){
+  try{armaMorre(n);}catch(e){}
   world.deadNames[n.id]=n.name;world.deaths++;weekNote('death',n.name);if(!n.isChild&&((n.fame)||popularity(n)>30))setNews(`${n.name} morreu.`,`Ainda não acredito que ${n.name} se foi.`,'🕯️');
   const heirs=n.kids.map(byId).filter(x=>x&&!x.isChild);
   if(heirs.length){const f=Math.floor(n.food/heirs.length),c=Math.floor(n.coins/heirs.length);heirs.forEach(h=>{h.food+=f;h.coins+=c;});if(n.items.length){heirs[0].items.push(...n.items.filter(k=>!heirs[0].items.includes(k)));}}
@@ -2856,6 +2962,7 @@ function profWork(n,r,compact){
   const ri=rankIdx(n,r);if(n.rk==null)n.rk=ri;else if(ri>n.rk){n.rk=ri;if(ri>=2){log('',`${r.e} ${N(n)} agora é ${RANKS[ri][0]} em ${r.name.toLowerCase()}.`,[n.id]);remember(n,`virei ${RANKS[ri][0]} de ${r.name}`,6);shape(n,'ambicao',1,'subiu de nível no ofício');}}
   if(compact)return;
   try{espProf(n,r);}catch(e){}
+  try{armaForja(n,r);}catch(e){}
   if(r.out==='craft'&&Math.random()<.1&&n.items.length<8){const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=R(ks);n.items.push(k);if(Math.random()<.3)think(n,`Fiz ${ITEMS[k].name} no meu ofício.`,ITEMS[k].e);}}
   if(r.ens){const al=members(n.region).filter(o=>o!==n&&!o.isChild&&(o.skill[r.skill]||0)<(n.skill[r.skill]||0)-8);
     if(al.length){const o=R(al);o.skill[r.skill]=clamp(o.skill[r.skill]+2);relate(o,n,3);remember(o,`${n.name} me ensinou ${r.skill}`,4,n.id);}}}
@@ -3352,7 +3459,8 @@ function secession(){
 function facStrength(f){
   const tech=1+(has('lanca')?0.3:0)+(has('metalurgia')?0.4:0)+(has('ferro')?0.5:0)+(has('vapor')?1:0)+(has('eletricidade')?1.5:0);
   const ad=facPeople(f).filter(n=>!n.isChild&&!n.hurt);
-  const army=1+0.15*Math.min(5,f.exercito||0);
+  let army=1+0.15*Math.min(5,f.exercito||0);
+  try{let eq=armaForcaFac(ad),est=0;facRegions(f).forEach(r=>{est+=armaTotal(r.id);});army*=1+Math.min(1.8,.1*eq+.02*Math.min(30,est));}catch(e){}
   return (buildDef(f)*tech+(hasLaw(f,'servico')?1.3:1)*dormAdultsOf(f)*0.6*tech+ad.reduce((s,n)=>s+0.6+0.5*T(n,'coragem')+(roleOf(n)&&['guard'].includes(roleOf(n).out)?0.8:0)+(n.role==='cacador'?0.3:0),0)*tech)*army;
 }
 function declareWar(a,b,why){
@@ -3387,6 +3495,7 @@ function battle(a,b){
     members(rl.id).forEach(n=>{remember(n,`fomos conquistados por ${W.name}`,9);shape(n,'confianca',-5,'foi conquistado(a)');const l=byId(facGov(W).leader);if(l)relate(n,l,-15);});
     if(rl.id===L.capital){const rest=facRegions(L);if(rest.length){L.capital=rest[0].id;txt+=` A capital de ${L.name} mudou para ${rest[0].name}.`;}}
   }
+  try{armaGuerra(W,L,rw,rl,margin);}catch(e){}
   log('big',txt,[]);
   if(!facRegions(L).length){L.alive=false;facs().forEach(f=>{delete f.wars[L.id];});L.wars={};txt=`🏳️ ${L.name} deixou de existir: todo o seu povo agora pertence a ${W.name}.`;log('big',txt);worldSay(txt,'chronos');weekNote('gov',`${L.name} foi absorvido por ${W.name}`);return;}
   const tired=war.tiredA+war.tiredB;
@@ -3416,7 +3525,9 @@ const LAWS=[
  {id:'culto',name:'Culto oficial do povo',fav:{fe:1,liberdade:-.5},minEra:2,not:'crenca'},
  {id:'crenca',name:'Liberdade de crença',fav:{liberdade:1,fe:-.4},minEra:4,not:'culto'},
  {id:'assembleia',name:'Decisões em assembleia',fav:{liberdade:.8,tradicao:-.3},minEra:3},
- {id:'castigo',name:'Castigos duros',fav:{guerra:.5,tradicao:.4,liberdade:-.6},minEra:2}];
+ {id:'castigo',name:'Castigos duros',fav:{guerra:.5,tradicao:.4,liberdade:-.6},minEra:2},
+ {id:'porte',name:'Só a guarda porta armas',fav:{tradicao:.6,coletivismo:.5,liberdade:-.8,guerra:-.3},minEra:2,not:'armado'},
+ {id:'armado',name:'Povo armado: todos podem portar armas',fav:{liberdade:.9,guerra:.4,coletivismo:-.4},minEra:2,not:'porte'}];
 const REGIMES={teocracia:'teocracia',imperio:'império',bando:'bando com líder',chefia:'chefia',anciaos:'conselho de anciãos',monarquia:'monarquia',republica:'república',democracia:'democracia',ditadura:'ditadura militar'};
 let CULT_SEQ=0;
 function newCulture(parent,where){const c={id:CULT_SEQ++,name:parent?parent.name:'Cultura dos Primeiros',v:{},customs:[],born:day,parent:parent?parent.id:null,root:parent?(parent.root||parent.v):null,
@@ -3556,8 +3667,8 @@ function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.at
   switch(R(op)){
    case 'roubo':if(v.food>0){v.food--;n.food++;}else world.reserva=Math.max(0,world.reserva-2);crime(n,'roubo',v,`roubou comida de ${v.name}`);break;
    case 'fofoca':m.slice(0,4).forEach(w=>relate(w,v,-6));crime(n,'calúnia',v,`espalhou mentiras sobre ${v.name}`);break;
-   case 'briga':hurt(v,8,`foi atacado(a) por ${n.name}`);crime(n,'agressão',v,`bateu em ${v.name}`);break;
-   case 'agressao':hurt(v,16,`foi ferido(a) gravemente por ${n.name}`);crime(n,'agressão',v,`feriu ${v.name} de propósito`,true);break;
+   case 'briga':{const k=armaMul(n,v);if(k<.85&&Math.random()<.4){hurt(n,6,`apanhou de ${v.name} ao tentar brigar`);crime(n,'agressão',v,`tentou bater em ${v.name} e apanhou`);break;}hurt(v,Math.round(8*k),`foi atacado(a) por ${n.name}`);crime(n,'agressão',v,`bateu em ${v.name}${armaP(n)>=1.7?' com '+ARMA_MAP[n.ar.a].n:''}`,k>=2.2);break;}
+   case 'agressao':{const k=armaMul(n,v);hurt(v,Math.round(16*k),`foi ferido(a) gravemente por ${n.name}`);if(k>=2.4&&canKill()&&Math.random()<.12){crime(n,'agressão',v,`feriu ${v.name} de propósito`,true);die(v,`ferimentos de ${ARMA_MAP[n.ar.a].n} (${n.name})`,r.name);break;}crime(n,'agressão',v,`feriu ${v.name} de propósito`,true);break;}
    case 'incendio':world.reserva=Math.max(0,world.reserva-5);m.slice(0,2).forEach(w=>hurt(w,8,'se queimou num incêndio criminoso'));crime(n,'incêndio',null,`ateou fogo em ${r.name}`,true);
       {world.livros=world.livros||{};const ks=Object.keys(world.livros).filter(k=>k.startsWith(n.region+':'));if(ks.length&&Math.random()<0.6){const k=ks[Math.floor(Math.random()*ks.length)],f=FEITO[k.split(':')[1]];const au=world.livros[k].autor;delete world.livros[k];if(f){log('big',`🔥📕 O livro de ${au} sobre ${f.nome} queimou no incêndio.`,[n.id]);weekNote('feito',`o livro de ${au} sobre ${f.nome} queimou`);}}}break;
    case 'traicao':{const c=byId(n.partner);relate(c,n,-50);shape(c,'confianca',-4,'foi traído(a)');crime(n,'traição',c,`traiu ${c.name}`);break;}
@@ -3565,7 +3676,8 @@ function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.at
    case 'sabotagem':world.reserva=Math.max(0,world.reserva-4);world.kp=Math.max(0,world.kp-3);crime(n,'sabotagem',null,`sabotou o trabalho do povo`);break;
    case 'feitico':{const f=FEITO[R(n.poderes)];hurt(v,14,`foi atingido(a) por um feitiço de ${n.name}`);crime(n,'magia negra',v,`usou ${f?f.nome:'magia'} para ferir ${v.name}`,true);break;}
    case 'heresia':{const f=facOf(n);if(f)facCult(f).v.fe=clamp(facCult(f).v.fe-2,-100,100);crime(n,'heresia',null,`zombou da fé do povo`);break;}
-   case 'assassinato':crime(n,'assassinato',v,`matou ${v.name}`,true);die(v,'assassinado(a) por '+n.name,r.name);m.filter(w=>w.parents&&v.kids&&(v.kids.includes(w.id)||v.partner===w.id)).forEach(w=>{w.rancor=n.id;});break;}
+   case 'assassinato':if(armaMul(n,v)<.9&&Math.random()<.4){hurt(n,10,`foi ferido(a) ao tentar matar ${v.name}`);crime(n,'tentativa de assassinato',v,`tentou matar ${v.name}, mas ${v.name} se defendeu`,true);break;}
+      crime(n,'assassinato',v,`matou ${v.name}`,true);die(v,'assassinado(a) por '+n.name,r.name);m.filter(w=>w.parents&&v.kids&&(v.kids.includes(w.id)||v.partner===w.id)).forEach(w=>{w.rancor=n.id;});break;}
   });}
 function livroCrimes(){const L=world.crimes||[];if(!L.length)return '<div class="hint">Ninguém fez nada de mau ainda. Mas qualquer um pode, por livre-arbítrio.</div>';
   return L.slice().reverse().slice(0,80).map(c=>`<div class="box"><b>😈 ${String(c.n).replace(/</g,'&lt;')}</b> ${String(c.txt).replace(/</g,'&lt;')} <span class="hint">· ${c.tipo}, ano ${c.dia}${c.grave?' · grave':''}${c.pena?' · pena: '+c.pena:''}</span></div>`).join('');}
@@ -3792,6 +3904,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    <div>🎯 ${n.action} · 🍖 ${n.food}${has('moeda')?` · 🪙 ${Math.round(n.coins)}`:''}${n.hurt?' · 🤕 machucado(a)':''}</div>
    ${!n.isChild&&n.role&&n.role!=='governante'?`<div>💼 ${profResumo(n)}</div>`:''}
    ${n.sp&&n.sp.k?`<div>🏅 ${espResumo(n)}</div>`:''}
+   ${armaResumo(n)?`<div>⚔️ ${armaResumo(n)}</div>`:''}
    ${!n.isChild&&(n.dep||n.emp)?`<div>🏦 ${finResumo(n)}</div>`:''}
    ${!n.isChild&&has('troca')?`<div>🧾 Bens ~${Math.round(patrimonio(n))}${deveTotal(n)>0?` · 📕 deve ${Math.round(deveTotal(n))}`:''}${medoPerder(n)>.4?' · 😰 tem muito a perder':''}</div>`:''}
    ${(()=>{const d=deathRisk(n);const top=Object.entries(d.parts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>({acaso:'acaso',idade:'idade',infancia:'infância',fome:'fome',ferimento:'ferimento',caca:'caça',mar:'mar',exploracao:'exploração',fabrica:'fábrica',frio:'frio'}[k])).join(', ');const mt=n.menteTop?`<div>🧠 A mente de ${n.name} acha que agora o melhor é: <b>${n.menteTop.map(k=>k==='socializar'?'conversar':verb(k)).join(' · ')}</b></div>`:'';return mt+`<div>🕯️ Chance de morrer hoje: <b>${(d.total*100).toFixed(d.total<0.01?2:1)}%</b> <span class="hint">(${top})</span></div>`;})()}
@@ -3886,7 +3999,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||n.dep||n.emp||n.sp||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{sp:n.sp,dep:n.dep,emp:n.emp,bk:n.bk,cred:n.cred,prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||n.dep||n.emp||n.sp||(n.ar&&(n.ar.a||n.ar.d))||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{sp:n.sp,ar:n.ar,dep:n.dep,emp:n.emp,bk:n.bk,cred:n.cred,prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3902,7 +4015,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.sp)n.sp=ex.sp;if(ex.dep)n.dep=ex.dep;if(ex.emp)n.emp=ex.emp;if(ex.bk!=null)n.bk=ex.bk;if(ex.cred!=null)n.cred=ex.cred;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.sp)n.sp=ex.sp;if(ex.ar)n.ar=ex.ar;if(ex.dep)n.dep=ex.dep;if(ex.emp)n.emp=ex.emp;if(ex.bk!=null)n.bk=ex.bk;if(ex.cred!=null)n.cred=ex.cred;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
