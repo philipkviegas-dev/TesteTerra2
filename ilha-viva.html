@@ -19,7 +19,7 @@
   main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(330px,1fr);gap:12px;padding:0 16px 12px}
   @media(max-width:900px){main{grid-template-columns:1fr}}
   .stage{background:var(--card);border:2px solid var(--line);border-radius:18px;overflow:hidden;align-self:start}
-  canvas{display:block;width:100%;height:auto;cursor:pointer}
+  canvas{display:block;width:100%;height:auto;cursor:pointer;touch-action:none}
   .side{display:flex;flex-direction:column;gap:12px}
   .panel{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:10px 12px}
   .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
@@ -501,7 +501,7 @@ async function gunzBin(buf,T){if(buf instanceof ArrayBuffer===false&&ArrayBuffer
 async function packDorm(){const o=DORM.exportData(),out={meta:await gz(JSON.stringify({n:o.n,pal:o.pal,name:o.name,sur:o.sur,marcos:o.marcos,extra:o.extra})),bin:{}};
   for(const k in o){if(ArrayBuffer.isView(o[k]))out.bin[k]={t:o[k].constructor.name,z:await gzBin(new Uint8Array(o[k].buffer,o[k].byteOffset,o[k].byteLength))};}return out;}
 async function unpackDorm(d){if(!d)return null;const m=JSON.parse(await gunz(d.meta));for(const k in d.bin){const T=self[d.bin[k].t];m[k]=await gunzBin(d.bin[k].z,T);}return m;}
-async function gunz(data){if(typeof data==='string')return data;return await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).text();}
+async function gunz(data){if(typeof data==='string')return data;if(typeof DecompressionStream==='undefined')throw new Error('Este navegador não consegue abrir saves comprimidos (sem DecompressionStream). Use um navegador mais novo.');return await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).text();}
 let saving=false;
 async function saveGame(silent){
   if(!started)return false;if(saving){if(silent)return false;while(saving)await new Promise(r=>setTimeout(r,100));}saving=true;if(!silent)setSaveMsg('💾 Salvando...');
@@ -1949,7 +1949,7 @@ function leadership(){
 function costOf(d){return d.cost*world.paceMul*2.6*(1+0.3*Math.max(0,d.era-1))*Math.max(1,Math.pow(totalPop()/40,0.35));} // eras levam décadas
 const ERA_MIN=[0,10,20,45,120,400,1500,6000,25000,80000];
 // anos (dias de jogo) mínimos em cada era antes da seguinte: a história leva uns 5 mil anos até os dias de hoje
-const ERA_ANOS=[400,600,800,700,700,600,250,120,100,0];
+const ERA_ANOS=[500,700,900,800,800,700,300,150,200,0]; // soma 5050 anos
 function eraBlocked(d){const nx=ERAS[world.era+1];return nx&&nx.keys.includes(d.id)&&(totalPop()<ERA_MIN[world.era+1]||day-(world.eraStart||1)<ERA_ANOS[world.era]);}
 // Conquistas do mundo: marcos que aparecem uma única vez no diário e na linha do tempo
 // Som: tons curtos gerados no navegador (sem arquivos); começa desligado, o botão 🔇/🔊 liga
@@ -4194,10 +4194,20 @@ function drawNPC(n,t){
 // =====================================================================
 const evXY=e=>{const r=cv.getBoundingClientRect();let x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*H/r.height;if(view==='mapa'||!started){x=(x-MZ.x)/MZ.z;y=(y-MZ.y)/MZ.z;}return [x,y];};
 const evRaw=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];};
-cv.onmousemove=e=>{if(view==='mapa'||!started){if(MZ.drag){const [rx,ry]=evRaw(e);if(Math.hypot(rx-MZ.drag.sx,ry-MZ.drag.sy)>4)MZ.moved=true;if(MZ.moved){MZ.x=MZ.drag.ox+(rx-MZ.drag.sx);MZ.y=MZ.drag.oy+(ry-MZ.drag.sy);mzClamp();}}const [x,y]=evXY(e);mapHover=regionAt(x,y);}};
-cv.onmousedown=e=>{if(view==='mapa'||!started){const [rx,ry]=evRaw(e);MZ.drag={sx:rx,sy:ry,ox:MZ.x,oy:MZ.y};MZ.moved=false;}};
-window.addEventListener('mouseup',()=>{MZ.drag=null;});
-cv.ondblclick=e=>{if(view!=='mapa'&&started)return;const [x,y]=evXY(e);const r=regionAt(x,y);if(!r)return;if(!started)startAt(r);else visit(r);};
+const PTR=new Map();let _pinch=0,_tapT=0,_tapX=0,_tapY=0;
+const abreRegiao=e=>{const [x,y]=evXY(e);const r=regionAt(x,y);if(!r)return;if(!started)startAt(r);else visit(r);};
+cv.onpointermove=e=>{if(PTR.has(e.pointerId))PTR.set(e.pointerId,[e.clientX,e.clientY]);
+  if(view==='mapa'||!started){
+    if(PTR.size===2){const [a,b]=[...PTR.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(_pinch>0&&d>0){const r=cv.getBoundingClientRect(),mx=((a[0]+b[0])/2-r.left)*W/r.width,my=((a[1]+b[1])/2-r.top)*H/r.height;mzZoom(d/_pinch,mx,my);}_pinch=d;MZ.moved=true;MZ.drag=null;return;}
+    if(MZ.drag){const [rx,ry]=evRaw(e);if(Math.hypot(rx-MZ.drag.sx,ry-MZ.drag.sy)>(e.pointerType==='touch'?10:4))MZ.moved=true;if(MZ.moved){MZ.x=MZ.drag.ox+(rx-MZ.drag.sx);MZ.y=MZ.drag.oy+(ry-MZ.drag.sy);mzClamp();}}
+    const [x,y]=evXY(e);mapHover=regionAt(x,y);}};
+cv.onpointerdown=e=>{PTR.set(e.pointerId,[e.clientX,e.clientY]);try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  if(PTR.size===2){const [a,b]=[...PTR.values()];_pinch=Math.hypot(a[0]-b[0],a[1]-b[1]);MZ.drag=null;MZ.moved=true;return;}
+  if(view==='mapa'||!started){const [rx,ry]=evRaw(e);MZ.drag={sx:rx,sy:ry,ox:MZ.x,oy:MZ.y};MZ.moved=false;}};
+const _ptrFim=e=>{const eraToque=e.pointerType==='touch'&&PTR.size===1&&!MZ.moved&&e.type==='pointerup';PTR.delete(e.pointerId);if(PTR.size<2)_pinch=0;MZ.drag=null;
+  if(eraToque&&(view==='mapa'||!started)){const agora=performance.now();if(agora-_tapT<350&&Math.hypot(e.clientX-_tapX,e.clientY-_tapY)<30){_tapT=0;abreRegiao(e);}else{_tapT=agora;_tapX=e.clientX;_tapY=e.clientY;}}};
+cv.onpointerup=_ptrFim;cv.onpointercancel=_ptrFim;
+cv.ondblclick=e=>{if(view!=='mapa'&&started)return;abreRegiao(e);};
 cv.addEventListener('wheel',e=>{e.preventDefault();if(started&&view==='regiao'){if(e.deltaY>0)setView('mapa');return;}const [rx,ry]=evRaw(e);mzZoom(e.deltaY<0?1.25:0.8,rx,ry);},{passive:false});
 cv.onclick=e=>{if(MZ.moved){MZ.moved=false;return;}const [x,y]=evXY(e);
   if(view==='mapa'||!started){const rg=regionAt(x,y);if(rg){mapSel=rg;renderInfo();}return;}
@@ -5212,8 +5222,9 @@ function livroPovos(){const L=facs().filter(f=>f.alive);if(!L.length)return '<di
   return L.map(f=>{const pop=facRegions(f).reduce((s,r)=>s+regionPop(r.id),0),l=byId(facGov(f).leader),c=facCult(f);const gue=Object.keys(f.wars||{}).map(id=>facById(+id)).filter(Boolean).map(x=>x.name);
     return `<div class="box"><b><span style="color:${f.color}">●</span> ${f.name}</b> <span class="hint">· ${pop.toLocaleString('pt-BR')} hab. · ${facRegions(f).length} região(ões)${l?` · ${facTitle(f)}: ${l.name}${l.surname?' '+l.surname:''}`:''}${gue.length?' · ⚔️ em guerra com '+gue.join(', '):''}</span>${factionDetail(f)}${c.lingua?`<div class="hint" style="margin-left:12px">🗣️ Língua: ${c.lingua}${c.religiao?` · 🙏 ${c.religiao}`:''}</div>`:''}</div>`;}).join('');}
 // ---- Livro: busca, autoteste e pular anos
+const escH=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let livroBusca='';
-function livroBuscaTab(){const q=livroBusca.trim().toLowerCase();let h=`<input id="lvq" value="${livroBusca.replace(/"/g,'&quot;')}" placeholder="Nome de região, pessoa ou Casa…" style="width:100%;padding:6px 10px;border:2px solid #e8d8c0;border-radius:999px;font:inherit" oninput="livroBusca=this.value;livroBuscaTab.t=setTimeout(()=>{livroRender();const e=document.getElementById('lvq');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},250)">`;
+function livroBuscaTab(){const q=livroBusca.trim().toLowerCase();let h=`<input id="lvq" value="${escH(livroBusca)}" placeholder="Nome de região, pessoa ou Casa…" style="width:100%;padding:6px 10px;border:2px solid #e8d8c0;border-radius:999px;font:inherit" oninput="livroBusca=this.value;livroBuscaTab.t=setTimeout(()=>{livroRender();const e=document.getElementById('lvq');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}},250)">`;
   if(q.length<2)return h+'<div class="hint" style="margin-top:6px">Digite ao menos 2 letras.</div>';
   const R=MAP.regions.filter(r=>r.founded!=null&&(r.name||'').toLowerCase().includes(q)).slice(0,15);
   const P=NPCS.filter(n=>!n._dead&&(n.name+' '+(n.surname||'')).toLowerCase().includes(q)).slice(0,20);
@@ -5355,17 +5366,22 @@ const QN=n=>QL?Math.ceil(n*(QL===1?.5:.25)):n;
 function qualAjusta(dt){if(QL>=2||speed>1||paused||document.hidden||dt>200)return;_qEma+=(dt-_qEma)*.05;if(++_qN>180&&_qEma>26){QL++;_qN=0;_qEma=16;try{localStorage.setItem('iv_ql',QL);}catch(e){}if(typeof log==='function')try{log('info','🎞️ Gráficos reduzidos para manter a fluidez (qualidade '+['alta','média','baixa'][QL]+').');}catch(e){}}}
 function loop(t){
   const raw=Math.min(50,t-last)/16.67;qualAjusta(t-last);last=t;
-  if(!paused){for(let i=0;i<speed;i++)update(raw);DORM.pump(BOOKWAIT?40:speed>=20?12:7);}
+  if(!paused){const t0=performance.now();for(let i=0;i<speed;i++){update(raw);if(i>=1&&performance.now()-t0>14)break;}DORM.pump(BOOKWAIT?40:speed>=20?12:7);}
   if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}}
   hudClock();
-  if(++tick%15===0){renderInfo();hudUpdate();}
+  if(++tick%15===0){if(!paused||tick%60===0){const inf=document.getElementById('info'),st=inf?inf.scrollTop:0;renderInfo();if(inf)inf.scrollTop=st;}hudUpdate();}
   requestAnimationFrame(loop);
 }
 document.getElementById('pause').onclick=e=>{paused=!paused;e.target.textContent=paused?'▶ Continuar':'⏸ Pausar';};
 document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{speed=+b.dataset.speed;document.querySelectorAll('[data-speed]').forEach(x=>x.classList.remove('on'));b.classList.add('on');});
 document.getElementById('event').onclick=()=>worldEvent(true);
 {const di=document.getElementById('deuzIn'),pk=document.getElementById('aiPick');pk.onchange=()=>{di.placeholder=pk.value==='fan'?'🔮 Peça à Fantasy: "voar", "abrir um portal", "nave para as estrelas"…':pk.value==='arq'?'🏗️ Peça ao Arquiteto: "fortaleza em Kaloor", "uma fazenda aqui"…':'🎲 Peça à Deuz: "meteoro em Kaloor", "uma peste leve"…';};const go=()=>{if(pk.value==='arq')architectCommand(di.value);else if(pk.value==='fan')fantasyCommand(di.value);else deuzCommand(di.value);di.value='';};document.getElementById('deuzGo').onclick=go;di.addEventListener('keydown',e=>{if(e.key==='Enter')go();});}
-document.getElementById('reset').onclick=()=>{init();renderInfo();document.getElementById('viewMapa').classList.add('on');document.getElementById('viewRegiao').classList.remove('on');};
+addEventListener('keydown',e=>{const t=e.target,tag=t&&t.tagName;if(e.ctrlKey||e.metaKey||e.altKey||tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable))return;
+  if(e.key===' '||e.code==='Space'){e.preventDefault();document.getElementById('pause').click();}
+  else if(e.key>='1'&&e.key<='5'){const b=document.querySelectorAll('[data-speed]')[+e.key-1];if(b)b.click();}
+  else if(e.key==='m'||e.key==='M'){if(started)setView(view==='mapa'?'regiao':'mapa');}
+  else if(e.key==='Escape'){livroFecha();mundosToggle(false);}});
+document.getElementById('reset').onclick=()=>{if(started&&!confirm('Gerar um mundo novo? A partida atual será perdida (salve antes se quiser guardar).'))return;init();renderInfo();document.getElementById('viewMapa').classList.add('on');document.getElementById('viewRegiao').classList.remove('on');};
 document.getElementById('viewMapa').onclick=()=>setView('mapa');
 document.getElementById('reportBtn').onclick=()=>{if(started)showReport();};
 document.getElementById('lrnBtn').onclick=()=>{const b=document.getElementById('lrnBox');b.style.display=b.style.display==='none'?'block':'none';LEARN.ui();};
