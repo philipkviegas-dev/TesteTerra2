@@ -648,7 +648,7 @@ function takeReserva(n){if(world.reserva>=1){world.reserva--;n.needs.fome=clamp(
 // estações: o ano tem 28 dias (7 por estação)
 // clima em ciclos de 7 anos (cada dia de jogo é um ano)
 const SEASONS=[{name:'Primavera',label:'Anos amenos',e:'🌸',food:1.1},{name:'Verão',label:'Anos quentes',e:'☀️',food:1.0},{name:'Outono',label:'Anos de fartura',e:'🍂',food:1.25},{name:'Inverno',label:'Anos frios',e:'❄️',food:0.55}];
-const season=()=>SEASONS[Math.floor(((day-1)%28)/7)];
+const season=()=>SEASONS[Math.floor((((day-1)%28+28)%28)/7)||0];
 const yearOf=()=>day;
 // dias de chuva: Primavera e Outono chovem mais, Verão pouco, Inverno vira neve; deserto nunca. Quem está ao ar livre sente (veja chuvaSente)
 function arcoIris(sh){if(!started||chovendo())return false;day--;const o=chovendo();day++;const h=minutes/60%24;return o&&(sh||(h>=7&&h<18));}
@@ -2163,13 +2163,12 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   if((PT=(PT+1)%4)===0){const dtP=dt*4;
   const HN=hereNPCs(),GRID=new Map(),gk=(x,y)=>((x/140)|0)*1000+((y/140)|0);
   HN.forEach(n=>{const k=gk(n.x,n.y);let c=GRID.get(k);if(!c){c=[];GRID.set(k,c);}c.push(n);});
-  const PAIRS=[];HN.forEach(a=>{const cx=(a.x/140)|0,cy=(a.y/140)|0;for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++){const c=GRID.get((cx+dx)*1000+cy+dy);if(c)c.forEach(b=>{if(a.id<b.id)PAIRS.push([a,b]);});}});
-  for(const [a,b] of PAIRS){
-    const dd=Math.hypot(a.x-b.x,a.y-b.y);if(dd>140)continue;
+  for(const a of HN){const cx=(a.x/140)|0,cy=(a.y/140)|0;for(let ox=-1;ox<=1;ox++)for(let oy=-1;oy<=1;oy++){const c=GRID.get((cx+ox)*1000+cy+oy);if(!c)continue;for(let q=0;q<c.length;q++){const b=c[q];if(a.id>=b.id)continue;
+    const ex=a.x-b.x,ey=a.y-b.y;if(ex*ex+ey*ey>19600)continue;const dd=Math.hypot(ex,ey);
     if(b.holding)noticeItem(a,b);if(a.holding)noticeItem(b,a);
     if(dd<60&&a.cool<=0&&b.cool<=0&&(a.holding&&ITEMS[a.holding].share||b.holding&&ITEMS[b.holding].share)&&Math.random()<.02*dtP){const [o,f]=a.holding&&ITEMS[a.holding].share?[a,b]:[b,a];if(!['dormir','trabalho','roda'].includes(f.task)){a.cool=b.cool=200;shareItem(o,f);}continue;}
     if(dd<60&&a.task!=='roda'&&Math.random()<.008*dtP){Math.random()<.5?interact(a,b):interact(b,a);}
-  }
+  }}}
   }
   thinkT+=dt;if(thinkT>480){thinkT=0;const hn=hereNPCs();if(!night&&hn.length)idleThoughtRich(R(hn));}
 }
