@@ -4677,14 +4677,15 @@ const DORM={
     else if(ps>=0&&this.live[ps]&&this.sex[i]===1&&ag<FERT_MAX&&this.reg[ps]===r){const full=regionPop(r)>=REGION_CAP;const p=0.62*(ag<38?1:0.55)*(this.kids[i]>=9?0.3:1)*(this.food[i]+this.food[ps]>1?1:0.6)*(full?0.3:1)*fertMul();
       if(Math.random()<p&&totalPop()<POP_CAP)this.born(i,ps);}
     // migração: a região tem área para 60; cheia, alguém parte
-    const pr=regionPop(r);if(pr>=REGION_CAP*0.6&&ag<45){const push=pr>REGION_CAP?0.6:pr>=REGION_CAP?0.25:(pr/REGION_CAP-0.6)*0.2;if(Math.random()<push)this.move(i,R0);}
+    const pr=regionPop(r);if(pr>=REGION_CAP*0.85&&ag<45){const push=pr>REGION_CAP?0.35:pr>=REGION_CAP?0.12:(pr/REGION_CAP-0.85)*0.1;if(Math.random()<push)this.move(i,R0);}
     this.deathRoll(i,ag);},
   move(i,R0){const opts=R0.nb.concat(has('barcos')||(R0.bfx&&R0.bfx.sea)?R0.sea:[]);if(!opts.length)return;let best=-1,bv=1e9;for(let q=0;q<8;q++){let o=opts[(Math.random()*opts.length)|0];if(q>=4){const nn=MAP.regions[o].nb;if(nn.length)o=nn[(Math.random()*nn.length)|0];}const v=regionPop(o)+(MAP.regions[o].res.fertil?-3:0)+Math.random()*4;if(v<bv){bv=v;best=o;}}
-    if(best<0||regionPop(best)>=REGION_CAP)return;const to=MAP.regions[best],empty=regionPop(best)===0;
+    // só vale a pena partir para um lugar bem mais vazio (sem vaivém: ninguém troca de região por diferença pequena)
+    if(best<0||regionPop(best)>=REGION_CAP||regionPop(best)>regionPop(R0.id)*0.7)return;const to=MAP.regions[best],empty=regionPop(best)===0;
     const group=[i];const ps=this.slotOf(this.partner[i]);if(ps>=0&&this.reg[ps]===R0.id)group.push(ps);
     {const a=this.bstart[R0.id],b=this.bstart[R0.id+1];for(let q=a;q<b&&group.length<8;q++){const k=this.bidx[q];if(this.live[k]&&this.reg[k]===R0.id&&this.age[k]<CHILD_DAYS&&(this.p1[k]===this.id[i]||this.p2[k]===this.id[i]))group.push(k);}
       // ninguém funda um povoado sozinho: jovens solteiros da mesma região vão junto
-      if(empty||group.length<3){for(let q=a;q<b&&group.length<6;q++){const k=this.bidx[q];if(group.includes(k)||!this.live[k]||this.reg[k]!==R0.id||this.age[k]<16||this.age[k]>=35||this.partner[k]>=0)continue;if(Math.random()<.5)group.push(k);}}
+      if(empty||group.length<3){for(let q=a;q<b&&group.length<6;q++){const k=this.bidx[q];if(group.includes(k)||!this.live[k]||this.reg[k]!==R0.id||this.age[k]<16||this.age[k]>=35||this.partner[k]>=0)continue;if(Math.random()<.3)group.push(k);}}
       if(empty&&group.length<4)return;}
     group.forEach(g=>{this.count(g,-1);this.reg[g]=best;this.count(g,1);this.remember(g,empty?10:7,9,best);this.shape(g,1,3);this.shape(g,4,2);});this.stats.moves+=group.length;
     if(empty){to.founded=day;to.reserva=8;to.faction=R0.faction;world.facDirty=true;world.facVer=(world.facVer||0)+1;this.stats.founded.push(`${this.sur[i]?'a família '+this.sur[i]:this.name[i]} em ${to.name}`);}},
