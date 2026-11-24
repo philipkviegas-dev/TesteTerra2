@@ -621,12 +621,23 @@ function renderTabs(){
   const tabs=document.getElementById('tabs');tabs.innerHTML='';
   TYPES.forEach(([f,l])=>{const b=document.createElement('button');b.textContent=l;if(f===typeFilter)b.classList.add('on');b.onclick=()=>{typeFilter=f;renderTabs();renderLog();};tabs.appendChild(b);});
   const who=document.getElementById('who');who.innerHTML='';
-  if(mode==='morador')hereNPCs().forEach(n=>{const b=document.createElement('button');b.className='av'+(n===selected?' on':'');b.innerHTML=`<i style="background:${n.color}"></i>${n.name}${n.isChild?' 🐣':n.ageDays>=ELDER_AGE?' 👴':''}`;b.onclick=()=>follow(n);who.appendChild(b);});
+  if(mode==='morador')hereNPCs().forEach(n=>{const b=document.createElement('button');b.className='av'+(n===selected?' on':'');b.innerHTML=`<i style="background:${n.color}"></i>${favIs(n.id)?'⭐ ':''}${n.name}${n.isChild?' 🐣':n.ageDays>=ELDER_AGE?' 👴':''}`;b.onclick=()=>follow(n);who.appendChild(b);});
   document.getElementById('modeIlha').classList.toggle('on',mode==='ilha');
   document.getElementById('modeMorador').classList.toggle('on',mode==='morador');
 }
 function follow(n){mode='morador';selected=n;cardTab='ficha';setTimeout(()=>fabSuggest(n),0);document.getElementById('fabPanel').style.display='';document.getElementById('fabWho').textContent=n.name;renderTabs();renderLog();renderInfo();}
 // nome de líder clicável nos menus: abre a ficha do personagem
+// FAVORITOS: o jogador comanda todos, então marca com ⭐ quem quer acompanhar; a lista aparece no painel do mapa e o ⭐ nas abas de quem está na região
+function favList(){return world.favoritos=world.favoritos||[];}
+function favIs(id){return favList().includes(id);}
+function favToggle(id){const L=favList(),i=L.indexOf(id);if(i>=0)L.splice(i,1);else L.push(id);try{renderTabs();}catch(e){}renderInfo();}
+function favStatus(id){const n=byId(id);if(n)return {ok:true,txt:`${n.isChild?'criança':n.ageDays>=ELDER_AGE?'ancião(ã)':'adulto(a)'} · ${n.ageDays} anos · ${regionOf(n).name}${n.cmd?' · '+FAB[n.cmd.acao].label:''}`};
+  if(world.deadNames&&world.deadNames[id])return {ok:false,txt:'morreu 🕊️'};
+  try{const k=DORM.slot&&DORM.slot.get(id);if(k!=null&&DORM.live[k])return {ok:true,compact:true,reg:DORM.reg[k],txt:`${DORM.age[k]} anos · ${MAP.regions[DORM.reg[k]].name} · longe da câmera`};}catch(e){}
+  return {ok:false,txt:'sem notícias'};}
+function favHTML(){const L=favList();if(!L.length)return `<div class="hint" style="margin-top:6px">⭐ Nenhum favorito ainda. Abra a ficha de um personagem e toque em ⭐ para acompanhá-lo aqui.</div>`;
+  return `<div class="box"><b style="font-size:14px">⭐ Favoritos</b>${L.map(id=>{const st=favStatus(id),n=byId(id);const nm=n?leaderLink(n):nameOf(id);
+    return `<div class="row"><span>${nm}</span><span>${st.txt}${st.compact?` <a href="#" onclick="livroIrRegiao(${st.reg});return false" title="ir à região">📍</a>`:''} <a href="#" onclick="favToggle('${id}');return false" title="tirar dos favoritos">✖</a></span></div>`;}).join('')}</div>`;}
 function irFicha(id){const n=byId(id);if(!n||n._dead)return;try{livroFecha();}catch(e){}follow(n);}
 function leaderLink(l,txt){return l?`<a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" title="abrir a ficha" onclick="irFicha('${l.id}');return false">${txt!=null?txt:N(l)}</a>`:'';}
 function showIsland(){mode='ilha';document.getElementById('fabPanel').style.display='none';renderTabs();renderLog();renderInfo();}
@@ -3352,22 +3363,22 @@ function renderMapInfo(){
     const people=NPCS.filter(n=>n.region===r.id),ad=people.filter(n=>!n.isChild);
     const fams={};people.forEach(n=>{const k=n.surname||rootOf(n).name;fams[k]=(fams[k]||0)+1;});
     const roles={};ad.forEach(n=>{const ro=roleOf(n);if(ro)roles[ro.e]=(roles[ro.e]||0)+1;});
-    const leader=byId(world.gov.leader);
+    const tot=regionPop(r.id),adT=regionAdults(r.id),fR=regionFac(r),gv=fR?facGov(fR):world.gov,lid=gv&&gv.leader!=null?gv.leader:null,lObj=lid!=null?byId(lid):null,distantes=tot>people.length;
     html+=`<div class="box"><b style="font-size:15px">📍 ${r.name}</b>${r.id===world.active?' <span class="chip">você está olhando aqui</span>':''}
       ${regionFac(r)?`<div class="row"><span>Povo</span><span><span style="color:${regionFac(r).color}">■</span> ${regionFac(r).name}${r.id===regionFac(r).capital?' (capital)':''}</span></div>`:''}
       <div class="row"><span>Terreno</span><span>${resLabel(r)}</span></div>
-      <div class="row"><span>População</span><span>${people.length?`${ad.length} adultos · ${people.length-ad.length} crianças (cabem ~${regionCap(r)})`:'ninguém mora aqui'}</span></div>
+      <div class="row"><span>População</span><span>${tot?`${adT} adultos · ${tot-adT} crianças (cabem ~${regionCap(r)})${tot>regionCap(r)?' · superlotada':''}`:'ninguém mora aqui'}</span></div>
       ${r.eco&&r.eco.m<0.97?`<div class="row"><span>🌲 Natureza</span><span>mata ${Math.round(r.eco.flo*100)}% · pesca ${Math.round(r.eco.pes*100)}% · solo ${Math.round(r.eco.solo*100)}%</span></div>`:''}${r.imp>0.005?`<div class="row"><span>🚚 Rota comercial</span><span>+${Math.round(r.imp*100)}% de comida importada</span></div>`:''}
-      ${people.length?`<div class="row"><span>🍖 Reserva</span><span>${r.reserva} porções${r.hunger?' · passando fome':''}</span></div>
+      ${tot?`<div class="row"><span>🍖 Reserva</span><span>${r.reserva} porções${r.hunger?' · passando fome':''}</span></div>
       <div class="row"><span>Fundado</span><span>dia ${r.founded}${r.founders?` por ${r.founders.map(nameOf).join(', ')}`:''}</span></div>
-      <div class="row"><span>🌳 Famílias</span><span>${Object.entries(fams).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k} (${v})`).join(', ')}</span></div>
-      <div class="row"><span>💼 Funções</span><span>${Object.entries(roles).map(([e,v])=>`${e}${v}`).join(' ')||'—'}</span></div>
-      ${leader&&leader.region===r.id?`<div class="row"><span>👑 Sede do governo</span><span>${N(leader)}</span></div>`:''}`:''}
+      <div class="row"><span>🌳 Famílias${distantes?' (vistas de perto)':''}</span><span>${Object.entries(fams).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k} (${v})`).join(', ')}</span></div>
+      <div class="row"><span>💼 Funções${distantes?' (vistas de perto)':''}</span><span>${Object.entries(roles).map(([e,v])=>`${e}${v}`).join(' ')||'—'}</span></div>
+      ${fR&&fR.capital===r.id?`<div class="row"><span>👑 Sede do governo</span><span>${lid==null?'sem governante':lObj?leaderLink(lObj):nameOf(lid)}</span></div>`:''}`:''}
       ${regionBuildsHTML(r)}<div class="row"><span>Vizinhos</span><span>${r.nb.map(id=>MAP.regions[id].name).join(', ')||'—'}${r.sea.length?` · pelo mar: ${r.sea.length}`:''}</span></div>
-      ${started&&people.length&&r.id!==world.active?`<div style="margin-top:6px"><button onclick="visit(MAP.regions[${r.id}])">🔍 Ver de perto</button></div>`:''}
+      ${started&&tot&&r.id!==world.active?`<div style="margin-top:6px"><button onclick="visit(MAP.regions[${r.id}])">🔍 Ver de perto</button></div>`:''}
       ${!started?`<div style="margin-top:6px"><button onclick="startAt(MAP.regions[${r.id}])">🥚 Começar aqui</button></div>`:''}</div>`;
   }
-  if(started)html+=fantasyHTML();
+  if(started)html+=favHTML()+fantasyHTML();
   html+=`<div class="hint" style="margin-top:6px">Legenda: <span style="color:#3a78c4">■</span> mar · <span style="color:#d8c48a">■</span> praia · <span style="color:#8cc45e">■</span> campo · <span style="color:#3f8a44">■</span> floresta · <span style="color:#9a9a78">■</span> colina · <span style="color:#8c8278">■</span> montanha · <span style="color:#e8c878">■</span> deserto · <span style="color:#c8c460">■</span> savana · <span style="color:#28783c">■</span> selva · <span style="color:#b0beb4">■</span> tundra · ● povoado na cor do seu povo (branco = onde você está) · ⚔️ guerra</div>`;
   if(started&&world.factions)html+=factionsHTML();
   if(started)html+=`<div style="margin-top:6px"><b style="font-size:14px">Povoados</b>${occ.length>15?`<div class="hint">os 15 maiores de ${occ.length.toLocaleString('pt-BR')}</div>`:''}${occ.sort((a,b)=>regionPop(b.id)-regionPop(a.id)).slice(0,15).map(x=>`<div class="row"><span>${x.id===world.active?'🔸':'•'} ${x.name}</span><span>${regionPop(x.id)} pessoas · ${x.reserva}🍖</span></div>`).join('')}</div>
@@ -4515,7 +4526,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
   const rels=Object.entries(n.rel).filter(([id,v])=>Math.abs(v)>=15&&byId(id)).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([id,v])=>`${(nameAnyId(id)||"alguém")} ${v>50?'💖':v>15?'🙂':v>-40?'😒':'😠'}`).join(' · ')||'—';
   const wants=has('troca')?Object.entries(n.wants).filter(([k,v])=>v>=15&&itemAvail(k)&&!n.items.includes(k)).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${ITEMS[k].e} ${ITEMS[k].name} (${Math.round(v)}%)`).join(' · '):'';
   document.getElementById('info').innerHTML=`
-   ${fichaCard(n)}${cardTabs()}
+   ${fichaCard(n)}<div style="margin:2px 0"><button class="sug" onclick="favToggle('${n.id}')">${favIs(n.id)?'⭐ Favorito (tirar)':'☆ Favoritar'}</button></div>${cardTabs()}
    <div class="hint">${n.isChild?'criança':n.ageDays>=ELDER_AGE?'ancião(ã)':'adulto(a)'} · ${n.ageDays} anos · geração ${n.gen}${n.species?` · ${ESPECIE[n.species].nome} do ${ESPECIE[n.species].mundo}`:n.foreign?' · veio de outras terras':''}${world.gov.leader===n.id?' · 👑 '+govTitle():''}</div>
    <div>💼 <b>${n.isChild?'criança: brinca e aprende':r?`${r.e} ${roleName(r,n)} ${lk>25?'😍':lk<-25?'😮‍💨':'😐'}`:'ainda sem função'}</b> · 🪪 ${n.identity||'<span class="hint">sem identidade</span>'}</div>
    ${n.fame?`<div>🏆 Lembrado(a) como ${n.fame}</div>`:''}
