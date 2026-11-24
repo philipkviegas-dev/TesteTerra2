@@ -667,7 +667,7 @@ function spoilFood(){ // comida estraga, menos depois dos potes de barro
   occupied().forEach(r=>{if(r.reserva>0)r.reserva=Math.max(0,Math.floor(r.reserva*(1-rate)));});
   NPCS.forEach(n=>{if(n.food>2&&Math.random()<rate*2)n.food--;});
 }
-function gainFood(n,y,isRole){y=Math.max(1,Math.round(y*season().food*regionFoodMul(n.region)));
+function gainFood(n,y,isRole){y=Math.max(1,Math.round(y*season().food*regionFoodMul(n.region)*(typeof chovendo==='function'&&chovendo()?(has('agricultura')?1.12:.85):1)));
   const share=clamp(0.25+0.5*T(n,'bondade')+(isRole?0.35:0),0,1);
   const toRes=Math.round(y*share);
   world.reserva=Math.min(world.reserva+toRes,resCap());n.food=Math.min(n.food+y-toRes,foodCap());
