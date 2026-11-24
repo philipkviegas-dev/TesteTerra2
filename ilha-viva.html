@@ -4652,7 +4652,7 @@ function menteQ(n){const M=MENTE,x=menteFeat(n),h1=new Float32Array(M.H),h2=new 
   for(let a=0;a<M.NA;a++){let v=M.b3[a];for(let i=0;i<M.H;i++)v+=h2[i]*M.W3[i*M.NA+a];q[a]=v;}M._h2=h2;q._h=h2;return q;}
 // escolhe o que fazer no tempo livre: valor aprendido + sonho/meta + um pouco de acaso
 function mentePick(n,w){LEARN.menteSettle(n);const q=menteQ(n),allowed=w.map(x=>x[0]).concat('socializar');const chuvaPesa=chovendo();
-  const sc=allowed.map(k=>{let v=q[MENTE_ACTS.indexOf(k)];if(n.meta&&FAB[n.meta.acao].skill===k)v+=1.2;else if(n.dream&&n.dream.act===k)v+=0.8;if(chuvaPesa)v+=({coletar:-.35,cacar:-.45,pescar:-.3,lascar:-.3,explorar:-.4,socializar:.25,arte:.3,experimentar:.15,plantar:.1})[k]||0;return [k,v];});
+  const sc=allowed.map(k=>{let v=q[MENTE_ACTS.indexOf(k)];if(n.meta&&FAB[n.meta.acao].skill===k)v+=1.2;else if(n.dream&&n.dream.act===k)v+=0.8;v+=(({Inverno:{coletar:-.25,cacar:-.2,pescar:-.3,explorar:-.3,socializar:.2,arte:.2,experimentar:.1},'Verão':{pescar:.3,explorar:.15,cacar:.05}})[season().name]||{})[k]||0;if(chuvaPesa)v+=({coletar:-.35,cacar:-.45,pescar:-.3,lascar:-.3,explorar:-.4,socializar:.25,arte:.3,experimentar:.15,plantar:.1})[k]||0;return [k,v];});
   const m=Math.max(...sc.map(x=>x[1]));n.menteTop=sc.slice().sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);const pk=pickW(sc.map(([k,v])=>[k,Math.exp((v-m)/MENTE_TEMP)]));LEARN.menteMark(n,pk);return pk;}
 
 
