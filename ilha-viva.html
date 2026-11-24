@@ -690,7 +690,7 @@ function decide(n){
   if(n.isChild)return childDecide(n);
   if(n.preso){n.cmd=null;return setTask(n,'dormir',n.home,'preso(a) por '+n.preso.motivo,'⛓️');}
   if(n.cmd&&AI_RECUSA&&refuses(n))n.cmd=null;
-  if(n.cmd&&!isNight()&&!n.hurt)return setTask(n,'comando',n.cmd.place,n.cmd.label,'✨');
+  if(n.cmd&&!isNight()&&!n.hurt&&n.needs.fome>=8)return setTask(n,'comando',n.cmd.place,n.cmd.label,'✨');
   const nd=n.needs;
   if(isNight())return setTask(n,'dormir',n.home,'dormindo','😴');
   if(n.hurt>0)return setTask(n,'dormir',n.home,'se recuperando','🤕');
@@ -2552,6 +2552,7 @@ function fabulaChance(n,p){
   if(n.needs.fome<25){parts.push(['fome',-0.1]);c-=0.1;}
   if(n.needs.energia<25){parts.push(['cansaço',-0.1]);c-=0.1;}
   if(p.ajuste){parts.push([p.motivo||'avaliação da Fábula',p.ajuste]);c+=p.ajuste;}
+  if(p.det){parts.push(['determinação',p.det]);c+=p.det;}
   if(!p.possivel){parts.push(['isso ainda não existe nesta era',-1]);c=0.03;}
   return {chance:Math.max(0.03,Math.min(0.97,c)),parts:parts.sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4)};
 }
@@ -2573,7 +2574,7 @@ async function fabulaCommand(n,text,isMeta){
 function startCommand(n,p,text,auto){
   if(n.preso){if(!auto)setFabOut(`⛓️ ${n.name} está preso(a) por ${n.preso.motivo} e não pode cumprir ordens.`);return;}
   const A=FAB[p.acao],{chance,parts}=fabulaChance(n,p);
-  const cmd={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,chance,parts,possivel:p.possivel,falta:p.falta,auto,motivo:p.motivo,ia:p.ia,efeito:p.efeito,nome:p.nome};
+  const cmd={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,chance,parts,possivel:p.possivel,falta:p.falta,auto,motivo:p.motivo,ajuste:p.ajuste||0,det:p.det||0,tent:p.tent||0,ia:p.ia,efeito:p.efeito,nome:p.nome};
   if(n.cmd){n.cmdQueue=(n.cmdQueue||[]).slice(0,2);n.cmdQueue.push(cmd);if(!auto)setFabOut(`⏳ ${n.name} ainda está ocupado(a). O comando entrou na fila (${n.cmdQueue.length}).`);return;}
   launch(n,cmd);
 }
@@ -2733,7 +2734,20 @@ function fabulaResolve(n){
     llm('Você é Fábula, a narradora de um jogo fofo e cômico estilo Tomodachi Life. Reescreva o resultado em 1 ou 2 frases curtas, divertidas, em português do Brasil. Não mude os fatos.',`Comando: "${cmd.text}". Resultado: ${res}`,false)
       .then(t2=>{entry.text=`✨ ${val?'🌞':'🌧️'} <b>${N(n)}</b>: ${t2.trim()} <span class="hint">(${Math.round(cmd.chance*100)}% · ${val?'positivo':'negativo'} · narrado pela IA)</span>`;renderLog();if(!cmd.auto)setFabOut(`${val?'🌞':'🌧️'} ${t2.trim()}`);}).catch(()=>{});
   }
-  if(n.cmdQueue&&n.cmdQueue.length){const nx=n.cmdQueue.shift();const p={acao:nx.acao,alvo:byId(nx.alvo),funcao:ROLES.find(r=>r.id===nx.funcao),possivel:nx.possivel,ajuste:0};const c=fabulaChance(n,p);launch(n,{...nx,chance:c.chance,parts:c.parts});}
+  // INSISTÊNCIA: o que o jogador manda (ou a meta) o personagem tenta de tudo para cumprir; falhou, tenta de novo mais determinado(a)
+  if(!val&&cmd.possivel&&!cmd.auto&&!n.preso&&!n.dead&&!n._dead&&byId(n.id)){
+    const tent=(cmd.tent||0)+1,max=10;
+    if(tent<=max&&!(A.target&&!t)){
+      const det=Math.min(0.4,tent*0.07),p2={acao:cmd.acao,alvo:t,funcao:ROLES.find(r=>r.id===cmd.funcao),possivel:true,ajuste:cmd.ajuste||0,motivo:cmd.motivo,det,efeito:cmd.efeito,nome:cmd.nome};
+      const c2=fabulaChance(n,p2);const nx={...cmd,tent,det,chance:c2.chance,parts:c2.parts};
+      // faltou poder para a ordem (guerra/paz sem governar): primeiro vai atrás do poder
+      if(['guerra','paz'].includes(cmd.acao)&&!facs().some(f=>f.alive&&facGov(f).leader===n.id)){const pl={acao:'liderar',possivel:true,ajuste:0,det},cl=fabulaChance(n,pl);n.cmdQueue=[{text:'conquistar a liderança para cumprir: '+cmd.text,acao:'liderar',possivel:true,auto:false,tent:0,chance:cl.chance,parts:cl.parts},nx];}
+      else n.cmdQueue=[nx].concat(n.cmdQueue||[]);
+      think(n,R(['Não vou desistir. Vou tentar de novo.','Se não deu agora, dá na próxima.','Eu prometi cumprir isso. Vou até o fim.']),'💪');
+      log('',`💪 ${N(n)} <b>não desiste</b> de “${cmd.text}” (tentativa ${tent+1}, determinação +${Math.round(det*100)}%).`,[n.id]);shape(n,'diligencia',1,'insistiu no que lhe pediram');
+    }else if(tent>max){log('',`😮‍💨 ${N(n)} tentou ${max+1} vezes “${cmd.text}” e não conseguiu. Só mesmo um milagre agora.`,[n.id]);}
+  }
+  if(n.cmdQueue&&n.cmdQueue.length){const nx=n.cmdQueue.shift();const p={acao:nx.acao,alvo:byId(nx.alvo),funcao:ROLES.find(r=>r.id===nx.funcao),possivel:nx.possivel,ajuste:nx.ajuste||0,motivo:nx.motivo,det:nx.det||0,efeito:nx.efeito,nome:nx.nome};const c=fabulaChance(n,p);launch(n,{...nx,chance:c.chance,parts:c.parts});}
   else checkMeta(n);
   if(!n.cmd)decide(n);
 }
@@ -2770,7 +2784,8 @@ function beliefMorning(){NPCS.forEach(n=>{if(!n.belief||n.isChild||Math.random()
 function metaMorning(n){
   if(!n.meta||n.isChild||n.cmd||n.hurt)return;
   checkMeta(n);if(!n.meta)return;
-  if(Math.random()<.6){const m=n.meta;if(m.step==='liderar'&&facs().some(f=>f.alive&&facGov(f).leader===n.id))m.step=null;const p={acao:m.step||m.acao,alvo:byId(m.alvo),funcao:ROLES.find(r=>r.id===m.funcao),possivel:true,ajuste:0};if(FAB[m.acao].target&&!p.alvo)return;startCommand(n,p,m.text,true);}
+  // a meta é tentada TODO dia; cada dia sem conseguir aumenta a determinação (até +30%)
+  {const m=n.meta;if(m.step==='liderar'&&facs().some(f=>f.alive&&facGov(f).leader===n.id))m.step=null;m.tent=(m.tent||0)+1;const det=Math.min(0.3,(m.tent-1)*0.03);const p={acao:m.step||m.acao,alvo:byId(m.alvo),funcao:ROLES.find(r=>r.id===m.funcao),possivel:true,ajuste:0,det};if(FAB[m.acao].target&&!p.alvo)return;startCommand(n,p,m.text,true);}
 }
 function setFabOut(html){const el=document.getElementById('fabOut');if(el)el.innerHTML=html;}
 

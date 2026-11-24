@@ -191,3 +191,15 @@ A área de uma região comporta 60 pessoas (`REGION_CAP`). Nascimentos **não** 
 - **Nomes**: pílulas de tamanho fixo na tela (nome + selo colorido com a população, borda na cor do povo), ordenadas por prioridade (selecionada, onde você está, capitais, mais populosas) e posicionadas sem se sobrepor (acima, abaixo, direita, esquerda; as que não cabem somem até dar zoom). Cada pílula é clicável.
 - **Seleção imantada**: o ponteiro escolhe, nesta ordem, selo de guerra, nome, povoado mais perto (até 22 px) e só então a célula do mapa. Vale para passar o mouse, clicar, duplo clique e toque duplo.
 - **Guerras**: linha vermelha tracejada na frente real entre regiões vizinhas dos dois povos, anel vermelho nas capitais e um selo ⚔ pulsante com "A × B" no meio da frente. Clicar no selo abre o painel da guerra (início, população, regiões, frente). Respeita as camadas "guerra" e "nomes".
+
+## 12. Quem recebe uma ordem faz de tudo para cumpri-la (implementado)
+
+Comando ou meta dado pelo jogador deixa de ser "tenta uma vez e pronto".
+
+- **Insistência:** se a tentativa falha (e o comando é possível, o alvo existe, a pessoa não está presa), ela tenta de novo com **determinação** (+7% por falha, até +40%), passando à frente da fila. Até 10 novas tentativas; depois desiste, com registro no diário ("só um milagre agora").
+- **Poder que falta:** guerra/paz sem governar → antes vai **conquistar a liderança**, depois retoma a ordem.
+- **Metas:** tentadas **todo dia** (antes 60%), com +3% de determinação por dia sem sucesso (até +30%).
+- **Fome extrema** (<8) interrompe o comando para comer; depois ele volta.
+- **Limites mantidos:** recusa moral (roubar/brigar/guerra para gente muito bondosa), prisão cancela, noite e ferimentos pausam.
+
+**Viver e temer perder:** ganha confiança/diligência e realização ao cumprir; arrisca ferimentos, crime/prisão, fome e cansaço, e a frustração de desistir (memória negativa). Entra na IA pela memória (`remember`/`LEARN.teachE`) e pelos traços (`shape` diligência).
