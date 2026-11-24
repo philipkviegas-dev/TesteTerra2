@@ -118,6 +118,8 @@
   @media(max-width:700px){header{position:static}.hg[data-t]:before{display:none}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   .stage{position:relative}
+  @media(max-width:700px){header{position:static}.hg{flex-wrap:wrap;max-width:100%}.deuzbox{flex:1 1 100%;min-width:0}.deuzbox input{width:auto;flex:1;min-width:0}}
+  @media(min-width:901px){.stage{position:sticky;top:var(--hh,130px);margin-top:4px}}
   #hud{position:absolute;top:8px;left:8px;right:8px;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
   #hud:empty{display:none}
   .hp{font:400 14px 'Lilita One','Baloo 2',sans-serif;color:#e8f1ff;background:linear-gradient(#27406bee,#1d2a44ee);border:2px solid #0b1220;border-radius:999px;padding:2px 10px;box-shadow:0 2px 0 #0006;display:inline-flex;align-items:center;gap:6px}
@@ -139,8 +141,8 @@
   <h1>🏝️ Ilha Viva</h1>
   <span class="pill era" id="era"></span>
   <span class="pill" id="clock"></span>
-  <span class="hg" data-t="Tempo"><button id="pause">⏸ Pausar</button>
-  <button data-speed="1" class="on">1×</button><button data-speed="3">3×</button><button data-speed="8">8×</button><button data-speed="20">20×</button><button data-speed="50">50×</button></span>
+  <span class="hg" data-t="Tempo"><button id="pause" title="Pausar ou retomar o tempo">⏸ Pausar</button>
+  <button title="Velocidade normal" data-speed="1" class="on">1×</button><button title="Velocidade 3× (1 dia = 1 ano)" data-speed="3">3×</button><button title="Velocidade 8× (1 dia = 1 ano)" data-speed="8">8×</button><button title="Velocidade 20× (1 dia = 1 ano)" data-speed="20">20×</button><button title="Velocidade 50× (1 dia = 1 ano)" data-speed="50">50×</button></span>
   <span class="hg" data-t="Visão"><button id="viewMapa" class="on">🗺️ Mapa</button><button id="viewRegiao">🔍 Região</button><button id="zIn" title="Aproximar o mapa" onclick="mzZoom(1.5)">➕</button><button id="zOut" title="Afastar o mapa" onclick="mzZoom(1/1.5)">➖</button><button id="zRst" title="Mapa inteiro" onclick="mzReset()">⌖</button></span>
   <span class="hg" data-t="Camadas"><button class="on" id="lyFac" title="Mostrar/ocultar as cores dos países" onclick="toggleLayer('fac')">🏳️</button><button class="on" id="lyWar" title="Mostrar/ocultar guerras e catástrofes" onclick="toggleLayer('war')">⚔️</button><button class="on" id="lyNom" title="Mostrar/ocultar os nomes" onclick="toggleLayer('nom')">🔤</button><button class="on" id="lyDec" title="Mostrar/ocultar construções e decoração" onclick="toggleLayer('dec')">🏰</button><button class="on" id="lyRot" title="Mostrar/ocultar rotas comerciais" onclick="toggleLayer('rot')">🚚</button><button id="somBtn" title="Ligar/desligar os sons de conquistas e eras" onclick="toggleSom()">🔇</button></span>
   <span class="hg" data-t="Poderes"><button id="event" title="Um acaso qualquer da Deuz">🎲 Evento</button><span class="deuzbox"><select id="aiPick" title="Para quem é o pedido"><option value="deuz">🎲 Deuz</option><option value="arq">🏗️ Arquiteto</option><option value="fan">🔮 Fantasy</option></select><input id="deuzIn" placeholder="🎲 Peça à Deuz: &quot;meteoro em Kaloor&quot;, &quot;uma peste leve&quot;…" autocomplete="off"><button id="deuzGo">Pedir</button></span></span>
@@ -157,11 +159,11 @@
       <div class="seg"><button id="modeIlha" class="on">🌍 Mundo inteiro</button><button id="modeMorador">👤 Acompanhar um morador</button></div>
       <div id="who" class="avatars"></div>
     </div>
-    <div class="panel" id="lrnBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🧠 IAs aprendendo</b><button onclick="document.getElementById('lrnBox').style.display='none'">✖</button></div>
+    <div class="panel" id="lrnBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🧠 IAs aprendendo</b><button title="Fechar" aria-label="Fechar" onclick="document.getElementById('lrnBox').style.display='none'">✖</button></div>
       <div class="hint" style="margin:4px 0">Todas as IAs do jogo aprendem enquanto você joga e guardam o que aprenderam neste navegador, para o próximo jogo começar mais esperto.</div>
       <div id="lrnList"></div>
       <div style="margin-top:6px"><button onclick="LEARN.exportar()" title="Baixa um arquivo com o que as IAs aprenderam aqui, para juntar ao das outras pessoas e evoluir o jogo">⬇ Exportar aprendizado</button> <button onclick="LEARN.reset()">🗑 Voltar às IAs de fábrica</button></div></div>
-    <div class="panel" id="tomBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🎭 Tom do mundo: <span id="tomNome"></span></b><button onclick="document.getElementById('tomBox').style.display='none'">✖</button></div>
+    <div class="panel" id="tomBox" style="display:none"><div style="display:flex;justify-content:space-between"><b>🎭 Tom do mundo: <span id="tomNome"></span></b><button title="Fechar" aria-label="Fechar" onclick="document.getElementById('tomBox').style.display='none'">✖</button></div>
       <div class="hint" style="margin:4px 0">Você escolhe o equilíbrio entre realidade, ficção e fantasia. Com tudo em 0% o mundo é realista: só a história, a ciência e o acaso comuns.</div>
       <label>🧙 Fantasia (magia, dragões, outros mundos) <b id="tomMv"></b><input id="tomM" type="range" min="0" max="100" step="5" style="width:100%" oninput="setTom(+this.value,+document.getElementById('tomF').value)"></label>
       <label>🔬 Ficção (supertecnologia: robôs, lasers, naves, IA) <b id="tomFv"></b><input id="tomF" type="range" min="0" max="100" step="5" style="width:100%" oninput="setTom(+document.getElementById('tomM').value,+this.value)"></label>
@@ -199,6 +201,7 @@
 </main>
 <footer>Escolha no mapa onde dez nativos vão acordar, sem saber nada além de falar. Role a roda do mouse (ou use 🗺️/🔍) para alternar entre a região, com os bonecos, e o mapa, só com estatísticas. Fora da vista, cada habitante vira uma linha de dados; quando uma região enche ou passa fome, famílias migram para as vizinhas. <b>Deuz</b> sorteia os acasos, <b>Chronos</b> conduz a história do fogo à internet, <b>Estoria</b> escreve a memória de cada um, <b>Tea</b> cuida das famílias e nomes, e <b>Fábula</b> transforma seus comandos em eventos. Personalidade nasce zerada e se forma com a vida; o DNA passa só sensibilidade e aparência. Todos sabem que vão morrer um dia, mas não quando nem onde: a morte é aleatória, e idade, fome, ferimentos, trabalhos perigosos e descobertas (ervas, medicina) só mudam a chance — que nunca é zero.</footer>
 <script>
+(()=>{const h=document.querySelector('header'),f=()=>document.documentElement.style.setProperty('--hh',(h.offsetHeight+10)+'px');f();addEventListener('resize',f);new ResizeObserver(f).observe(h);})();
 // ÍNDICE DO CÓDIGO — procure por [Sxx] (ex.: "[S12]") para ir direto ao setor; sub-blocos usam "// ----".
 //   [S01] UTILIDADES
 //   [S02] PERSONALIDADE (mesmo modelo de antes)

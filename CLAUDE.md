@@ -47,3 +47,7 @@ Mente: erro 0,180 (prever só pela média de cada ação: 0,221).
 - Cada pessoa é um indivíduo próprio mesmo longe da câmera ("Livro do Mundo", fichas compactas).
 - Culturas começam iguais (dos 10 fundadores) e divergem; há leis, regimes, diplomacia, guerras e secessões.
 - Próximo patch combinado: a história deve levar ao menos 5 mil anos até os dias de hoje.
+
+## Onde achar as coisas em `ilha-viva.html`
+O script começa com um **índice**: setores numerados `[S01]`…`[S51]`, e sub-blocos `// ---- … ----` nos setores grandes.
+Para ir a um setor, procure por `[S25]` (por exemplo). Ao criar um setor novo, numere-o e acrescente ao índice.
