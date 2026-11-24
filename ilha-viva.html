@@ -3216,7 +3216,7 @@ function renderMapInfo(){
 // mesma regra de filhos para quem está na tela e para quem está no Livro: olhar não muda o destino de ninguém
 function familyYear(){NPCS.forEach(a=>{if(a.sex!=='F'||a.isChild||a.expecting||a.ageDays>=FERT_MAX)return;const b=byId(a.partner);if(!b||b.region!==a.region||b.isChild)return;
   const full=regionPop(a.region)>=REGION_CAP;let p=0.62*(a.ageDays<38?1:0.55)*(a.kids.length>=9?0.3:1)*(full?0.3:1)*((a.food+b.food>1||a.needs.fome>40)?1:0.6);
-  if(a.hurt||b.hurt)p*=0.5;if(totalPop()>=POP_CAP)p=0;
+  if(a.hurt||b.hurt)p*=0.5;p*=({Primavera:1.12,Inverno:.88})[season().name]||1;if(totalPop()>=POP_CAP)p=0;
   if(Math.random()<p){a.expecting=1;log(here(a)?'big':'',`🍼 ${N(a)} está esperando um bebê de ${N(b)}${here(a)?'':` (em ${regionOf(a).name})`}. O bebê nasce no próximo ano.`,[a.id,b.id]);if(here(a)){think(a,'Vamos ter um bebê!!','🥹');think(b,'Vou ter um filho!','🥹');}}});}
 function fertility(f,m){
   if(f.isChild||m.isChild||f.expecting||f.ageDays>=FERT_MAX||m.ageDays>=ELDER_AGE+10)return 0;
