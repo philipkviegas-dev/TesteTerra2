@@ -638,7 +638,10 @@ function favStatus(id){const n=byId(id);if(n)return {ok:true,txt:`${n.isChild?'c
 function favHTML(){const L=favList();if(!L.length)return `<div class="hint" style="margin-top:6px">⭐ Nenhum favorito ainda. Abra a ficha de um personagem e toque em ⭐ para acompanhá-lo aqui.</div>`;
   return `<div class="box"><b style="font-size:14px">⭐ Favoritos</b>${L.map(id=>{const st=favStatus(id),n=byId(id);const nm=n?leaderLink(n):nameOf(id);
     return `<div class="row"><span>${nm}</span><span>${st.txt}${st.compact?` <a href="#" onclick="livroIrRegiao(${st.reg});return false" title="ir à região">📍</a>`:''} <a href="#" onclick="favToggle('${id}');return false" title="tirar dos favoritos">✖</a></span></div>`;}).join('')}</div>`;}
-function irFicha(id){const n=byId(id);if(!n||n._dead)return;try{livroFecha();}catch(e){}follow(n);}
+function irFicha(id){let n=byId(id);
+  try{if(n&&!here(n)&&regionPop(n.region))visit(regionOf(n));else if(!n){const k=DORM.slot&&DORM.slot.get(id);if(k!=null&&DORM.live[k])visit(MAP.regions[DORM.reg[k]]);}}catch(e){}
+  n=byId(id);if(!n||n._dead)return;try{livroFecha();}catch(e){}
+  if(view==='mapa')setView('regiao');follow(n);}
 function leaderLink(l,txt){return l?`<a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" title="abrir a ficha" onclick="irFicha('${l.id}');return false">${txt!=null?txt:N(l)}</a>`:'';}
 function showIsland(){mode='ilha';document.getElementById('fabPanel').style.display='none';renderTabs();renderLog();renderInfo();}
 document.getElementById('modeIlha').onclick=showIsland;
@@ -3354,7 +3357,7 @@ function facBoxHTML(f){const rs=facRegions(f),pop=rs.reduce((s,q)=>s+regionPop(q
   return `<div class="box" style="border:2px solid ${f.color}"><div style="display:flex;justify-content:space-between"><b style="font-size:15px"><span style="color:${f.color}">■</span> ${f.name}</b><button onclick="mapFac=null;renderInfo()">Fechar</button></div>
     <div class="row"><span>Habitantes</span><span>${pop.toLocaleString('pt-BR')} em ${rs.length} região(ões)</span></div>
     ${cap?`<div class="row"><span>Capital</span><span><a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" onclick="livroIrRegiao(${cap.id});return false">${cap.name}</a></span></div>`:''}
-    <div class="row"><span>👑 Governante</span><span>${lid==null?'sem governante':lo?leaderLink(lo):nameOf(lid)}</span></div>
+    <div class="row"><span>👑 Governante</span><span>${lid==null?'sem governante':lo?leaderLink(lo):`<a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" title="abrir a ficha" onclick="irFicha('${lid}');return false">${nameOf(lid)}</a>`}</span></div>
     ${guerras.length?`<div class="row"><span>⚔️ Em guerra com</span><span>${guerras.slice(0,6).join(', ')}${guerras.length>6?` e mais ${guerras.length-6}`:''}</span></div>`:''}
     ${factionDetail(f)}</div>`;}
 function renderMapInfo(){
