@@ -1093,6 +1093,140 @@ function finResumo(n){
   if(n.cred!=null&&(n.dep||n.emp||n.cred!==50))p.push(`crédito ${Math.round(n.cred)}/100`);
   return p.join(' · ');}
 
+// ---------------------------------------------------------------------
+// ESPORTES: lazer (treinar, jogar, torcer, apostar) e profissão (atleta e treinador de verdade)
+// quer: diversão, vitória, fama, prêmio, rival  ·  teme perder: lesão, rank, fama, patrocínio, dinheiro apostado
+// ---------------------------------------------------------------------
+const ESP=[
+ {id:'corrida',n:'corrida',e:'🏃',pn:'de corrida',f:.9,r:.08},
+ {id:'luta',n:'luta',e:'🤼',pn:'de luta',f:1,r:.2},
+ {id:'salto',n:'salto',e:'🦘',pn:'de salto',f:.9,r:.1},
+ {id:'natacao',n:'natação',e:'🏊',pn:'de natação',res:'mar',f:.9,r:.06},
+ {id:'lancamento',n:'lançamento de pedras',e:'🪨',pn:'de lançamento',f:.8,r:.07},
+ {id:'arco',n:'tiro com arco',e:'🏹',pn:'de arco',tech:'lanca',f:.6,r:.05},
+ {id:'lanca',n:'arremesso de lança',e:'🔱',pn:'de lança',tech:'lanca',f:.8,r:.12},
+ {id:'remo',n:'remo',e:'🚣',pn:'de remo',tech:'barcos',res:'mar',f:.9,r:.06},
+ {id:'bigas',n:'corrida de bigas',e:'🏇',pn:'de corrida de bigas',tech:'roda',f:.6,r:.22,eq:1},
+ {id:'cavalos',n:'corrida de cavalos',e:'🐎',pn:'de corrida de cavalos',tech:'roda',f:.6,r:.18,eq:1},
+ {id:'justa',n:'justa',e:'🛡️',pn:'de justa',tech:'ferro',f:.9,r:.25,eq:1},
+ {id:'esgrima',n:'esgrima',e:'🤺',pn:'de esgrima',tech:'ferro',f:.7,r:.1},
+ {id:'pelota',n:'jogo de pelota',e:'🏐',pn:'de pelota',tech:'ceramica',f:.8,r:.14,eq:1},
+ {id:'xadrez',n:'xadrez',e:'♟️',pn:'de xadrez',tech:'matematica',f:.05,r:0},
+ {id:'ginastica',n:'ginástica',e:'🤸',pn:'de ginástica',tech:'vapor',f:.9,r:.1},
+ {id:'ciclismo',n:'ciclismo',e:'🚴',pn:'de ciclismo',tech:'vapor',f:.9,r:.12},
+ {id:'boxe',n:'boxe',e:'🥊',pn:'de boxe',tech:'vapor',f:1,r:.22},
+ {id:'futebol',n:'futebol',e:'⚽',pn:'de futebol',tech:'radio',f:.8,r:.12,eq:1},
+ {id:'basquete',n:'basquete',e:'🏀',pn:'de basquete',tech:'radio',f:.8,r:.08,eq:1},
+ {id:'beisebol',n:'beisebol',e:'⚾',pn:'de beisebol',tech:'radio',f:.7,r:.07,eq:1},
+ {id:'volei',n:'vôlei',e:'🏐',pn:'de vôlei',tech:'radio',f:.7,r:.05,eq:1},
+ {id:'tenis',n:'tênis',e:'🎾',pn:'de tênis',tech:'radio',f:.8,r:.05},
+ {id:'automobilismo',n:'automobilismo',e:'🏎️',pn:'de automobilismo',tech:'eletricidade',f:.5,r:.25,eq:1},
+ {id:'artistica',n:'natação artística',e:'🩱',pn:'de natação artística',tech:'eletricidade',res:'mar',f:.9,r:.04},
+ {id:'esports',n:'e-sports',e:'🎮',pn:'de e-sports',tech:'internet',f:.1,r:0,eq:1}];
+const ESP_MAP={};ESP.forEach(s=>ESP_MAP[s.id]=s);
+const ESP_PROF={};
+function espOk(s,n){return(!s.tech||has(s.tech))&&(!s.res||regionAllows(n?regionOf(n):activeRegion(),s.res));}
+function spOf(n){return n.sp||(n.sp={lv:{},k:null,v:0,d:0,t:0,fama:0,les:0});}
+function espLv(n,s){return(n.sp&&n.sp.lv[s.id])||0;}
+function espDe(p){if(p._es!==undefined)return p._es;let r=null;
+  if(/^(Atleta|Treinador)\b/.test(p.name)){const nm=p.name.toLowerCase();r=ESP.find(s=>nm.endsWith(s.pn))||null;}
+  p._es=r;return r;}
+function espTreina(n,s,g){const p=spOf(n);p.lv[s.id]=clamp((p.lv[s.id]||0)+g);if(!p.k)p.k=s.id;if(s.f>.5&&Math.random()<.3)n.skill.cacar=clamp(n.skill.cacar+.4);}
+function espEscolhe(n,o){const p=n.sp;let best=null,bv=-1e9;
+  for(const s of ESP){if(!espOk(s,n))continue;const v=(p?(p.lv[s.id]||0)+(p.k===s.id?25:0):0)+(o&&o.sp?(o.sp.lv[s.id]||0)*.4:0)+(s.eq?4:0)+Math.random()*16;if(v>bv){bv=v;best=s;}}
+  return best;}
+function espForca(n,s){return espLv(n,s)+s.f*((n.skill.cacar||0)*.2+T(n,'coragem')*10)+(1-s.f)*(T(n,'curiosidade')*14+T(n,'diligencia')*8)-(n.hurt?25:0)+Math.random()*28;}
+function espPago(n,v){v=Math.max(0,Math.round(v));if(!v)return 0;if(has('moeda'))n.coins=(n.coins||0)+v;else n.food=Math.min(foodCap(),(n.food||0)+Math.max(1,Math.round(v/3)));return v;}
+function espLesao(n,s,k){ // chance de se machucar; atleta com fama e lesão grave perde a carreira
+  if(!s.r)return 0;const p=spOf(n);
+  if(Math.random()>=s.r*k*(n.ageDays>ELDER_AGE?1.8:1)*(world.hasHealer?.7:1)*(has('medicina')?.8:1))return 0;
+  const dias=Math.max(1,Math.round(rnd(1,2+s.r*18)));p.les=(p.les||0)+1;
+  hurt(n,dias,`se machucou praticando ${s.n}`);
+  const r=roleOf(n);
+  if(r&&r.gen&&espDe(r)===s&&dias>=4&&Math.random()<.35){ // fim de carreira
+    n.role=null;n.missed=0;const f=p.fama>=20;p.pat=0;
+    log(f?'big':'',`🩹 ${N(n)} sofreu uma lesão grave e encerrou a carreira de ${r.name.toLowerCase()}.`,[n.id]);weekNote('feito',`${n.name} encerrou a carreira por lesão`);
+    remember(n,`uma lesão acabou com minha carreira de ${r.name}`,9);think(n,'Treinei a vida inteira para isso... e acabou assim.','😞');shape(n,'ambicao',-2,'perdeu a carreira esportiva');p.fama=Math.round(p.fama*.5);}
+  else if(p.fama>=20||(roleOf(n)&&roleOf(n).gen&&espDe(roleOf(n))))think(n,'Será que volto a jogar como antes?','😟');
+  return dias;}
+function espEstrela(rid){const L=members(rid).filter(o=>!o.isChild&&o.sp&&o.sp.fama>=12&&!o.hurt);let b=null;L.forEach(o=>{if(!b||o.sp.fama>b.sp.fama)b=o;});return b;}
+function espOpts(n,add,m,c,L2){
+  if(n.isChild)return;const s=espEscolhe(n,null);if(!s)return;const p=n.sp,lv=p?(p.lv[s.id]||0):0,fun=100-n.needs.diversao,medo=medoPerder(n);
+  const base=3+fun*.2+8*c.cor+lv*.05+(p&&p.k?4:0)-10*medo*s.r*(1+(p&&p.les||0)*.3)-(isNight()?25:0);
+  const riv=p&&p.rev&&byId(p.rev);
+  if(riv&&!riv._dead&&!riv.isChild&&riv.region===n.region&&!riv.hurt)add('vida:esporte',base+16+8*c.cor,`quer a revanche contra ${riv.name}`,riv);
+  else{const o=pickFriend(n,-5);if(o&&!o.hurt)add('vida:esporte',base+3*c.soc+(s.eq?3:0),`quer jogar ${s.n} com ${o.name}`,o);}
+  add('vida:esporte',base-4,`quer treinar ${s.n}`);
+  const st=espEstrela(n.region);if(st&&st!==n&&!isNight())add('vida:torcer',4+fun*.2+9*c.soc+(n.rel[st.id]||0)*.08,`quer ver ${st.name} jogar ${ESP_MAP[st.sp.k]?ESP_MAP[st.sp.k].n:'esporte'}`,st);}
+Object.assign(VIDA,{
+ esporte:{e:'🏅',place:'campo',verb:o=>o?`jogando com ${o.name}`:'treinando um esporte',fx:(n,o)=>{
+  const s=espEscolhe(n,o);if(!s)return;n.needs.diversao=clamp(n.needs.diversao+12);n.needs.energia=clamp(n.needs.energia-5);
+  espTreina(n,s,2+Math.max(0,T(n,'diligencia')));
+  if(!o||!near(n,o)||o.isChild){if(Math.random()<.1)shape(n,'diligencia',.5,`treinou ${s.n}`);espLesao(n,s,.4);return;}
+  const a=espForca(n,s),b=espForca(o,s),w=a>=b?n:o,l=w===n?o:n;
+  n.needs.diversao=clamp(n.needs.diversao+6);o.needs.diversao=clamp(o.needs.diversao+10);espTreina(o,s,2);
+  const pw=spOf(w),pl=spOf(l);pw.v++;pl.d++;pw.fama=Math.min(100,pw.fama+.4);pl.rev=w.id;if(pw.rev===l.id)pw.rev=null;
+  relate(o,n,2);relate(n,o,2);relate(l,w,T(l,'bondade')>0?1:-3);relate(w,l,1);shape(w,'coragem',.6,`venceu no ${s.n}`);
+  let aposta=0;if(has('moeda')&&T(n,'ambicao')>0&&T(o,'ambicao')>-.3){aposta=Math.min(4,Math.floor(Math.min(n.coins||0,o.coins||0)*.1));if(aposta>=1){l.coins-=aposta;w.coins=(w.coins||0)+aposta;}else aposta=0;}
+  remember(w,`venci ${l.name} no ${s.n}${aposta?` e ganhei ${aposta}`:''}`,aposta?5:4,l.id);remember(l,`perdi para ${w.name} no ${s.n}${aposta?` e paguei ${aposta}`:''}`,aposta?6:5,w.id);
+  if(aposta&&(l.coins||0)<4)think(l,'Não devia ter apostado...','😬');
+  if(aposta||Math.random()<.25)log('',`${s.e} ${N(w)} venceu ${N(l)} no ${s.n}${aposta?` (aposta de ${aposta})`:''}.`,[n.id,o.id]);
+  members(n.region).forEach(x=>{if(x!==n&&x!==o&&!x.isChild&&near(n,x))x.needs.diversao=clamp(x.needs.diversao+3);});
+  espLesao(n,s,1);espLesao(o,s,1);}},
+ torcer:{e:'📣',place:'campo',verb:o=>o?`torcendo por ${o.name}`:'indo ver um jogo',fx:(n,o)=>{
+  n.needs.diversao=clamp(n.needs.diversao+14);n.needs.social=clamp(n.needs.social+10);
+  if(!o||o.isChild)return;relate(n,o,1.5);const s=ESP_MAP[o.sp&&o.sp.k];
+  if(has('moeda')&&T(n,'ambicao')>0&&(n.coins||0)>=8&&Math.random()<.45){const ap=Math.min(4,Math.floor(n.coins*.12)),ganha=Math.random()<.5+((o.sp&&o.sp.fama)||0)/250;
+    if(ap>=1){if(ganha){n.coins+=ap;remember(n,`apostei em ${o.name} e ganhei ${ap}`,4,o.id);think(n,'Sabia que ele(a) ia ganhar!','🤑');}else{n.coins-=ap;remember(n,`apostei em ${o.name} e perdi ${ap}`,5,o.id);think(n,`Perdi ${ap} nessa aposta...`,'😖');if((n.coins||0)<5)shape(n,'ambicao',-.5,'perdeu apostando');}}}
+  else if(s&&Math.random()<.2)think(n,`Que jogo de ${s.n}!`,'📣');}}});
+function torneioRegiao(rid){ // a cada 4 anos, onde há gente suficiente praticando o mesmo esporte
+  const T_=world.torneios=world.torneios||{};if(T_[rid]==null){T_[rid]=day;return;}if(day-T_[rid]<4)return;T_[rid]=day;
+  const ms=members(rid).filter(o=>!o.isChild&&!o.hurt&&o.sp&&o.sp.k&&espOk(ESP_MAP[o.sp.k]||{}));if(ms.length<3)return;
+  const cont={};ms.forEach(o=>{cont[o.sp.k]=(cont[o.sp.k]||0)+1;});
+  const k=Object.keys(cont).sort((a,b)=>cont[b]-cont[a])[0];if(cont[k]<3)return;const s=ESP_MAP[k];
+  const ps=ms.filter(o=>o.sp.k===k).map(o=>({o,v:espForca(o,s)})).sort((a,b)=>b.v-a.v);
+  const w=ps[0].o,seg=ps[1].o,pop=members(rid).filter(x=>!x.isChild).length;
+  const pool=Math.round((6+ps.length*3+pop*.4)*(has('moeda')?Math.max(.6,world.preco||1):1));
+  const g=espPago(w,pool*.6),g2=espPago(seg,pool*.25);const pw=spOf(w);pw.t++;pw.v++;pw.fama=Math.min(100,pw.fama+10);spOf(seg).fama=Math.min(100,seg.sp.fama+3);
+  ps.slice(2).forEach(x=>{x.o.sp.fama=Math.min(100,x.o.sp.fama+1);x.o.sp.d++;shape(x.o,'coragem',-.2,'perdeu um torneio');});
+  seg.sp.d++;seg.sp.rev=w.id;pw.rev=null;
+  remember(w,`venci o torneio de ${s.n} de ${regNome(rid)}`,8);remember(seg,`fui vice no torneio de ${s.n}`,6,w.id);think(w,'Campeão! Todo esse treino valeu a pena.','🏆');think(seg,`Fiquei em segundo... ano que vem ${w.name} não escapa.`,'😤');
+  shape(w,'ambicao',1,'ganhou um torneio');ps.forEach(x=>{if(Math.random()<.5)espLesao(x.o,s,.7);});
+  if(pw.t>=2&&!w.fame)w.fame=`campeão(ã) de ${s.n}`;
+  members(rid).forEach(x=>{if(x.isChild||ps.some(q=>q.o===x))return;x.needs.diversao=clamp(x.needs.diversao+10);x.needs.social=clamp(x.needs.social+6);
+    if(has('moeda')&&(x.coins||0)>=8&&T(x,'ambicao')>0&&Math.random()<.25){const alvo=R(ps).o,ap=Math.min(4,Math.floor(x.coins*.12));if(ap>=1){if(alvo===w){x.coins+=ap*2;remember(x,`apostei em ${w.name} no torneio e ganhei ${ap*2}`,5,w.id);}else{x.coins-=ap;remember(x,`perdi ${ap} apostando no torneio`,5);}}}});
+  const txt=`🏆 Torneio de ${s.n} em ${regNome(rid)}: ${N(w)} venceu ${ps.length} competidores${g?` e levou ${g}${has('moeda')?REGMON[regMon()].sym:' de comida'}`:''}.${pw.t>=2?` É o ${pw.t}º título!`:''}`;
+  log('big',txt,[w.id,seg.id]);weekNote('feito',`${w.name} foi campeão de ${s.n} em ${regNome(rid)}`);}
+function espTick(n){ // todo dia, por habitante
+  if(n.isChild||n.region==null)return;const p=n.sp;
+  if(p){const r=roleOf(n),es=r&&r.gen?espDe(r):null;
+    if(es&&n.ageDays>ELDER_AGE-8&&Math.random()<.12){n.role=null;n.missed=0;log('',`🏅 ${N(n)} se aposentou como ${r.name.toLowerCase()}.`,[n.id]);remember(n,`me aposentei dos esportes como ${r.name}`,7);think(n,'Foi uma boa carreira.','🏅');}
+    if(n.ageDays>ELDER_AGE){for(const k in p.lv)p.lv[k]=Math.max(0,p.lv[k]-.8);}
+    if(p.fama>0&&!(es&&r))p.fama=Math.max(0,p.fama-.3);}
+  torneioRegiao(n.region);}
+function espProf(n,r){ // o ofício de verdade: atleta compete e treina; treinador forma gente
+  const s=espDe(r);if(!s||!espOk(s,n))return;const p=spOf(n),sal=n._sal||5;
+  if(/^Treinador/.test(r.name)){
+    espTreina(n,s,.5);p.fama=Math.min(100,p.fama+.2);
+    const al=members(n.region).filter(o=>o!==n&&!o.isChild&&!o.hurt&&(o.sp?espLv(o,s)<espLv(n,s)+10:true)).sort(()=>Math.random()-.5).slice(0,2);
+    al.forEach(o=>{espTreina(o,s,3);relate(o,n,2);remember(o,`${n.name} me treinou em ${s.n}`,4,n.id);if(has('moeda')&&(o.coins||0)>=1){o.coins--;n.coins=(n.coins||0)+1;}if(!o.sp.k)o.sp.k=s.id;});
+    return;}
+  espTreina(n,s,3+Math.max(0,T(n,'diligencia')));
+  const lv=espLv(n,s);
+  const opp=members(n.region).filter(o=>o!==n&&!o.isChild&&!o.hurt&&espLv(o,s)>=10).sort((a,b)=>Math.abs(espLv(a,s)-lv)-Math.abs(espLv(b,s)-lv))[0];
+  if(opp){const a=espForca(n,s),b=espForca(opp,s),ganhou=a>=b;
+    const premio=Math.round(sal*(.3+Math.random()*.5)*(1+p.fama/100));
+    if(ganhou){const g=espPago(n,premio);p.v++;p.fama=Math.min(100,p.fama+2);spOf(opp).d++;opp.sp.rev=n.id;shape(n,'ambicao',.3,'venceu uma partida');
+      if(Math.random()<.2){remember(n,`venci ${opp.name} no ${s.n} e ganhei ${g}`,5,opp.id);log('',`${s.e} ${N(n)} venceu ${N(opp)} no ${s.n} e ganhou ${g}.`,[n.id,opp.id]);}}
+    else{p.d++;p.fama=Math.max(0,p.fama-1);p.rev=opp.id;espPago(n,premio*.25);remember(n,`perdi para ${opp.name} no ${s.n}`,5,opp.id);if(p.fama>=15)think(n,'Não posso perder assim... minha fama e meus patrocínios dependem disso.','😰');}}
+  else espPago(n,sal*.15); // exibição
+  if(has('moeda')){ // patrocínio: vem com a fama, some com ela
+    if(p.fama>=30&&!n.hurt){if(!p.pat){p.pat=1;log('',`💰 ${N(n)} ganhou um patrocínio por causa do ${s.n}.`,[n.id]);remember(n,`consegui um patrocínio no ${s.n}`,6);}espPago(n,p.fama*.08);}
+    else if(p.pat&&(p.fama<18||n.hurt>3)){p.pat=0;think(n,'Perdi o patrocinador...','😞');remember(n,'perdi o patrocínio',6);}}
+  espLesao(n,s,1.2);}
+function espResumo(n){const p=n.sp;if(!p||!p.k)return '';const s=ESP_MAP[p.k];if(!s)return '';
+  return `${s.e} ${s.n} nível ${Math.round(p.lv[s.id]||0)} · ${p.v}V/${p.d}D${p.t?` · ${p.t} título(s)`:''}${p.fama>=5?` · fama ${Math.round(p.fama)}`:''}${p.les?` · ${p.les} lesão(ões)`:''}${p.pat?' · patrocinado':''}`;}
+
 function ecoOpts(n,add,m,c,L2){
   const dev=L2.find(o=>o.deve&&Object.values(o.deve).some(d=>d.a===n.id));
   if(dev)add('vida:cobrar',14+8*Math.max(0,-c.bon)+(medoPerder(n)>.5?6:0),`${dev.name} lhe deve e ainda não pagou`,dev);
@@ -1101,6 +1235,7 @@ function ecoOpts(n,add,m,c,L2){
     if(alvo)add('vida:negociar',16+10*c.soc+8*Math.max(0,T(n,'ambicao')),`quer fazer negócio com ${alvo.name}`,alvo);
   }
   try{finOpts(n,add);}catch(e){}
+  try{espOpts(n,add,m,c,L2);}catch(e){}
 }
 function lifeOpts(n,add,m,c){
   const nd=n.needs,{soc,cor,cur,dil,bon,gk}=c,fun=100-nd.diversao;
@@ -1462,7 +1597,7 @@ function romance(a,b){
   return true;
 }
 function morningLife(n){
-  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}try{finTick(n);}catch(e){}}
+  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}try{finTick(n);}catch(e){}try{espTick(n);}catch(e){}}
   if(n.isChild){
     if(n.ageDays>=CHILD_DAYS){n.isChild=false;log('big',`🎓 ${N(n)} cresceu e virou adulto(a)! Na próxima conversa da tribo vai escolher sua função.`,[n.id]);think(n,'Cresci! Agora é comigo.','🎓');remember(n,'virei adulto(a)',9);}
     return;
@@ -2591,7 +2726,7 @@ function fam(d,list){for(const raw of list.split(',')){const [nm,rq,at,em]=raw.t
 function cruza(d,pref,itens,ligacao){for(const pf of pref.split(',')){const [pn,ptr,prq]=pf.trim().split(':');
   for(const raw of itens.split(',')){const [it,rq,at,em]=raw.trim().split('|');if(!it)continue;
     const rqs=[prq,rq,d.rq].filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).join('+')||null;
-    P({...d,name:`${pn} ${ligacao||'de'} ${it}`,tr:ptr?+ptr:d.tr,rq:rqs,ate:at||d.ate,e:em||d.e});}}}
+    P({...d,name:`${pn} ${/^(de|do|da|dos|das|em) /.test(it)?'':(ligacao||'de')+' '}${it}`,tr:ptr?+ptr:d.tr,rq:rqs,ate:at||d.ate,e:em||d.e});}}}
 function montaProfissoes(){
  // ---------- ALIMENTO: lavoura ----------
  cruza({s:'food',k:'plantar',t:'diligencia',o:'food',pl:'campo',res:'fertil',e:'🌾',rq:'agricultura'},'Cultivador:2,Colhedor:1',
@@ -2672,6 +2807,7 @@ function montaProfissoes(){
 }
 montaProfissoes();
 const PROF_SK={};PROFS.forEach(p=>(PROF_SK[p.skill]=PROF_SK[p.skill]||[]).push(p));
+PROFS.forEach(p=>{const s=espDe(p);if(s){(ESP_PROF[s.id]=ESP_PROF[s.id]||[]).push(p);if(s.r>=.15)p.risky=true;}});
 // ---------- censo, vagas e salário ----------
 const _cen=new Map();
 function profCenso(rid){let c=_cen.get(rid);if(c&&c.d===day)return c;
@@ -2680,7 +2816,7 @@ function profCenso(rid){let c=_cen.get(rid);if(c&&c.d===day)return c;
   c={d:day,pop:Math.max(1,ms.length+((DORM.pop&&rid>=0&&DORM.pop[rid])||0)),cnt,oc};_cen.set(rid,c);return c;}
 function vagas(p,c){return Math.max(1,Math.ceil(c.pop*(SETOR_D[setorDe(p)]||.05)*(p.w||1)*.3));}
 function setorLivre(p,c){const s=setorDe(p);return (c.oc[s]||0)<Math.ceil(c.pop*(SETOR_D[s]||.05)*1.6)+1;}
-function rankIdx(n,p){const sk=n.skill[p.skill]||0;return sk<25?0:sk<50?1:sk<75?2:3;}
+function rankIdx(n,p){let sk=n.skill[p.skill]||0;const es=n.sp&&espDe(p);if(es)sk=Math.max(sk,espLv(n,es));return sk<25?0:sk<50?1:sk<75?2:3;}
 function urgencia(p,rid,c){const reg=MAP.regions[rid]||{};const s=setorDe(p);let u=1;
   if(s==='food'&&(reg.reserva||0)<c.pop)u=1.35;
   else if(s==='heal'){const h=members(rid).filter(o=>o.hurt>0).length;u=1+Math.min(.5,h*.1);}
@@ -2702,6 +2838,7 @@ function qualifica(n,p){
   const reg=regionOf(n);if(p.res&&!regionAllows(reg,p.res))return 'a região não tem '+p.res;
   if(n.ageDays<CHILD_DAYS+Math.max(0,p.tier-3)*4)return 'ainda é jovem para o cargo';
   if((n.skill[p.skill]||0)<p.minSk)return `precisa de ${p.minSk} em ${p.skill}`;
+  const es=espDe(p);if(es){const need=p.name.startsWith('Atleta')?18:30;if(espLv(n,es)<need)return `precisa de nível ${need} em ${es.n}`;}
   if(p.tmin!=null&&T(n,'coragem')<p.tmin)return 'falta coragem';
   if(p.cap&&has('moeda')&&(n.coins||0)<p.cap){n._capNeed=Math.min(n._capNeed||1e9,p.cap);return `precisa de ${p.cap} de capital`;}
   if(p.out!=='food'&&p.tier>=3||reqList(p).length>1){const need=Math.round((p.tier-1)*(p.tier-1)*3+3*Math.max(0,reqList(p).length-1));if(profCenso(n.region).pop<need)return 'o povo é pequeno demais para sustentar isso';}
@@ -2718,12 +2855,13 @@ function profWork(n,r,compact){
   if(!r.gen)return;
   const ri=rankIdx(n,r);if(n.rk==null)n.rk=ri;else if(ri>n.rk){n.rk=ri;if(ri>=2){log('',`${r.e} ${N(n)} agora é ${RANKS[ri][0]} em ${r.name.toLowerCase()}.`,[n.id]);remember(n,`virei ${RANKS[ri][0]} de ${r.name}`,6);shape(n,'ambicao',1,'subiu de nível no ofício');}}
   if(compact)return;
+  try{espProf(n,r);}catch(e){}
   if(r.out==='craft'&&Math.random()<.1&&n.items.length<8){const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=R(ks);n.items.push(k);if(Math.random()<.3)think(n,`Fiz ${ITEMS[k].name} no meu ofício.`,ITEMS[k].e);}}
   if(r.ens){const al=members(n.region).filter(o=>o!==n&&!o.isChild&&(o.skill[r.skill]||0)<(n.skill[r.skill]||0)-8);
     if(al.length){const o=R(al);o.skill[r.skill]=clamp(o.skill[r.skill]+2);relate(o,n,3);remember(o,`${n.name} me ensinou ${r.skill}`,4,n.id);}}}
 // ---------- mercado de empregos (diário) ----------
 function pontoOferta(n,p,rid,c){const sal=salario(p,n,rid,true);
-  return sal*(deveTotal(n)>0?1.35:1)+25*T(n,p.trait)+.25*(n.liking[p.skill]||0)+.2*(n.jobLike[p.id]||0)-(p.risky?10*medoPerder(n):0)+(n.skill[p.skill]||0)*.15;}
+  return sal*(deveTotal(n)>0?1.35:1)+25*T(n,p.trait)+.25*(n.liking[p.skill]||0)+.2*(n.jobLike[p.id]||0)-(p.risky?10*medoPerder(n):0)+(n.skill[p.skill]||0)*.15+(n.sp&&espDe(p)?.3*espLv(n,espDe(p)):0);}
 function profTick(n){
   if(n.isChild||n.role==='governante'||n.region==null)return;
   const cur=roleOf(n);
@@ -2734,6 +2872,7 @@ function profTick(n){
   if(Math.random()>(desemp?.5:.07+((n.renda||9)<4&&deveTotal(n)>0?.1:0)))return;
   const c=profCenso(n.region),sk=Object.entries(n.skill).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
   let cand=[];for(let i=0;i<8;i++){const L=PROF_SK[R(sk)];if(L&&L.length)cand.push(R(L));}for(let i=0;i<6;i++)cand.push(R(PROFS));
+  if(n.sp&&n.sp.k&&ESP_PROF[n.sp.k])ESP_PROF[n.sp.k].forEach(x=>cand.push(x));
   availableRoles().filter(x=>x.id!=='governante').slice(0,40).sort(()=>Math.random()-.5).slice(0,3).forEach(x=>cand.push(x));
   let best=null,bs=-1e9;
   for(const p of cand){if(!p||(cur&&p.id===cur.id))continue;if(qualifica(n,p))continue;if((c.cnt[p.id]||0)>=vagas(p,c)||!setorLivre(p,c))continue;
@@ -3652,6 +3791,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    ${n.fame?`<div>🏆 Lembrado(a) como ${n.fame}</div>`:''}
    <div>🎯 ${n.action} · 🍖 ${n.food}${has('moeda')?` · 🪙 ${Math.round(n.coins)}`:''}${n.hurt?' · 🤕 machucado(a)':''}</div>
    ${!n.isChild&&n.role&&n.role!=='governante'?`<div>💼 ${profResumo(n)}</div>`:''}
+   ${n.sp&&n.sp.k?`<div>🏅 ${espResumo(n)}</div>`:''}
    ${!n.isChild&&(n.dep||n.emp)?`<div>🏦 ${finResumo(n)}</div>`:''}
    ${!n.isChild&&has('troca')?`<div>🧾 Bens ~${Math.round(patrimonio(n))}${deveTotal(n)>0?` · 📕 deve ${Math.round(deveTotal(n))}`:''}${medoPerder(n)>.4?' · 😰 tem muito a perder':''}</div>`:''}
    ${(()=>{const d=deathRisk(n);const top=Object.entries(d.parts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>({acaso:'acaso',idade:'idade',infancia:'infância',fome:'fome',ferimento:'ferimento',caca:'caça',mar:'mar',exploracao:'exploração',fabrica:'fábrica',frio:'frio'}[k])).join(', ');const mt=n.menteTop?`<div>🧠 A mente de ${n.name} acha que agora o melhor é: <b>${n.menteTop.map(k=>k==='socializar'?'conversar':verb(k)).join(' · ')}</b></div>`:'';return mt+`<div>🕯️ Chance de morrer hoje: <b>${(d.total*100).toFixed(d.total<0.01?2:1)}%</b> <span class="hint">(${top})</span></div>`;})()}
@@ -3746,7 +3886,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||n.dep||n.emp||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{dep:n.dep,emp:n.emp,bk:n.bk,cred:n.cred,prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||n.dep||n.emp||n.sp||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{sp:n.sp,dep:n.dep,emp:n.emp,bk:n.bk,cred:n.cred,prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3762,7 +3902,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.dep)n.dep=ex.dep;if(ex.emp)n.emp=ex.emp;if(ex.bk!=null)n.bk=ex.bk;if(ex.cred!=null)n.cred=ex.cred;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.sp)n.sp=ex.sp;if(ex.dep)n.dep=ex.dep;if(ex.emp)n.emp=ex.emp;if(ex.bk!=null)n.bk=ex.bk;if(ex.cred!=null)n.cred=ex.cred;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
