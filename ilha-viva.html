@@ -438,7 +438,7 @@ const ITEMS={
  celular:{e:'📱',name:'celular',req:'internet',price:45,fun:35,status:true,aff:{sociabilidade:1}},
 };
 const itemAvail=k=>has('troca')&&has(ITEMS[k].req);
-const priceOf=k=>{const b=has('moeda')?{res:'coins',amt:ITEMS[k].price*3,sym:'🪙'}:{res:'food',amt:ITEMS[k].price,sym:'🍖'};b.amt=Math.max(1,Math.round(b.amt*mercadoMult(k)));return b;};
+const priceOf=k=>{const b=has('moeda')?{res:'coins',amt:ITEMS[k].price*3,sym:(typeof REGMON!=='undefined'&&REGMON[regMon()]?REGMON[regMon()].sym:'🪙')}:{res:'food',amt:ITEMS[k].price,sym:'🍖'};b.amt=Math.max(1,Math.round(b.amt*mercadoMult(k)*(has('moeda')?(world.preco||1):1)));return b;};
 const canPay=(n,k)=>{const p=priceOf(k);return n[p.res]>=p.amt+(p.res==='food'?1:0);};
 
 // =====================================================================
@@ -879,7 +879,7 @@ function mercadoMult(k){ // preço do dia: sobe com o desejo do povo, cai quando
   let dono=0,w=0,N_=0;for(const n of NPCS){if(n.isChild||n._dead)continue;N_++;if(n.items.includes(k))dono++;w+=n.wants[k]||0;}
   N_=Math.max(1,N_);return ECO.m[k]=Math.round(clamp(.8+.7*(w/N_)/50-.6*(dono/N_),.6,1.8)*100)/100;}
 function patrimonio(n){ // o que a pessoa tem a perder, na moeda corrente
-  const mo=has('moeda');let v=mo?(n.coins||0):(n.food||0)*3;
+  const mo=has('moeda');let v=mo?(n.coins||0)+(n.dep||0)-(n.emp?n.emp.v:0):(n.food||0)*3;
   for(const k of n.items)if(ITEMS[k])v+=priceOf(k).amt*(mo?1:3);
   return v;}
 function deveTotal(n){let t=0;for(const k in (n.deve||{}))t+=n.deve[k].v;return t;}
@@ -887,8 +887,9 @@ function medoPerder(n){ // 0..1,5: bens, família, dívida e susto recente com r
   if(n._mp&&n._mp.d===day)return n._mp.v;
   const filhos=n.kids.filter(id=>{const o=byId(id);return o&&o.isChild;}).length;
   const bens=Math.min(1,patrimonio(n)/(has('moeda')?60:20)),fam=Math.min(.5,filhos*.15+(n.partner?.1:0));
-  const susto=n.alerta!=null&&day-n.alerta<10?.3:0,div=deveTotal(n)>0?.2:0;
-  const v=Math.min(1.5,(bens+fam+susto+div)*(1-.35*clamp(T(n,'coragem'),-1,1)));
+  const susto=n.alerta!=null&&day-n.alerta<10?.3:0,div=(deveTotal(n)>0||n.emp)?.2:0;
+  const bk=n.dep>0&&bancoDe(n.bk)&&bancoDe(n.bk).conf<50?.15:0;
+  const v=Math.min(1.5,(bens+fam+susto+div+bk)*(1-.35*clamp(T(n,'coragem'),-1,1)));
   n._mp={d:day,v};return v;}
 function quitar(dev,c,key){const d=dev.deve[key];if(!d)return;dev[d.res]-=d.v;c[d.res]+=d.v;delete dev.deve[key];if(!Object.keys(dev.deve).length)delete dev.deve;
   relate(c,dev,6);relate(dev,c,2);remember(dev,`paguei o que devia a ${c.name}`,5,c.id);remember(c,`${dev.name} me pagou o que devia`,5,c.id===dev.id?null:dev.id);shape(dev,'confianca',1,'pagou o que devia');
@@ -925,13 +926,14 @@ function negociar(n,o){ // um tem o que o outro quer: preço pelo mercado, regat
   let f=1+.3*T(V,'ambicao')-.3*T(C,'ambicao')-(V.rel[C.id]||0)/300+(C.needs.fome<30?.15:0)+(it.status?.1:0);
   f=clamp(f,.7,1.6);const preco=Math.max(1,Math.round(p.amt*f));
   const mover=()=>{V.items.splice(V.items.indexOf(k),1);if(V.holding===k)V.holding=null;C.items.push(k);C.wants[k]=0;C.needs.diversao=clamp(C.needs.diversao+it.fun*.5);};
+  if(res==='coins'&&C.coins<preco&&C.dep>0)try{sacar(C,preco-C.coins);}catch(e){}
   if(C[res]>=preco+min){
     C[res]-=preco;V[res]+=preco;mover();relate(V,C,3);relate(C,V,f>1.3?-1:3);
     log('',`🤝 ${N(C)} comprou ${it.name} de ${N(V)} por ${preco}${p.sym}.`,[C.id,V.id]);
     remember(C,`comprei ${it.name} de ${V.name}`,5,V.id);remember(V,`vendi ${it.name} para ${C.name}`,4,C.id);
     think(C,f>1.3?`Paguei caro, mas é meu.`:`Bom negócio!`,it.e);shape(V,'ambicao',.4,'fez negócio');
   }else if((V.rel[C.id]||0)>=20&&T(V,'bondade')>-.1&&deveTotal(C)===0&&C.items.length<8){
-    mover();C.deve=C.deve||{};C.deve[V.id]={a:V.id,v:preco,res,dia:day};relate(V,C,2);relate(C,V,4);
+    mover();C.deve=C.deve||{};C.deve[V.id]={a:V.id,v:(res==='coins'&&has('escrita')?Math.round(preco*1.12):preco),res,dia:day};relate(V,C,2);relate(C,V,4);
     log('',`📝 ${N(V)} vendeu ${it.name} a ${N(C)} no fiado (${preco}${p.sym}).`,[C.id,V.id]);
     remember(C,`levei ${it.name} no fiado de ${V.name}`,6,V.id);remember(V,`vendi no fiado para ${C.name}`,5,C.id);
     think(C,`Preciso pagar ${V.name} direitinho...`,'📝');
@@ -944,6 +946,153 @@ Object.assign(VIDA,{
  negociar:{e:'🤝',place:'centro',verb:o=>o?`indo negociar com ${o.name}`:'indo negociar',fx:(n,o)=>{if(!o||!near(n,o))return;negociar(n,o);}},
  cobrar:{e:'💰',place:'centro',verb:o=>o?`indo cobrar ${o.name}`:'indo cobrar uma dívida',fx:(n,o)=>{if(!o||!near(n,o))return;cobrar(n,o);}},
 });
+// =====================================================================
+// SISTEMA MONETÁRIO E BANCÁRIO, por época: escambo → moeda → bancos → papel-moeda → banco central → digital
+// =====================================================================
+const REGMON=[
+ {id:'nenhum',nome:'sem dinheiro',e:'🌿',sym:'🍖'},
+ {id:'escambo',nome:'escambo',e:'🤝',sym:'🍖'},
+ {id:'metal',nome:'moedas de metal',e:'🪙',sym:'🪙'},
+ {id:'banco',nome:'bancos e crédito',e:'🏦',sym:'🪙'},
+ {id:'papel',nome:'papel-moeda',e:'💵',sym:'💵'},
+ {id:'central',nome:'banco central',e:'🏛️',sym:'💵'},
+ {id:'digital',nome:'dinheiro digital',e:'💳',sym:'💳'}];
+const REGIME_TXT={
+ 3:'🏦 Com leis e matemática, nascem os cambistas e os primeiros bancos: quem tem moedas sobrando pode guardá-las e render juros, e quem precisa pode pedir emprestado — pagando juros. Mas banco quebra, e dívida cobra.',
+ 4:'💵 Com a imprensa, os bancos passam a emitir cédulas. É prático… mas dinheiro demais faz os preços subirem (inflação) e o dinheiro guardado valer menos.',
+ 5:'🏛️ Surge o banco central: os depósitos passam a ter seguro, os juros são controlados e os preços ficam mais estáveis.',
+ 6:'💳 O dinheiro vira digital: depósitos e crédito instantâneos, empréstimo mais fácil — e mais gente endividada.'};
+function regMon(){
+  if(!has('troca'))return 0;if(!has('moeda'))return 1;
+  if(has('computador'))return 6;if(has('vapor')&&has('imprensa'))return 5;if(has('imprensa'))return 4;
+  if(has('matematica')&&has('leis'))return 3;return 2;}
+const regNome=rid=>(MAP.regions[rid]&&MAP.regions[rid].name)||'a região';
+const bancoDe=rid=>world.bancos&&rid!=null?world.bancos[rid]:null;
+function finMundo(){ // uma vez por dia: muda o regime, mede o dinheiro em circulação e ajusta os preços
+  if(world._finD===day)return;world._finD=day;
+  const r=regMon();
+  if(world.regMon==null)world.regMon=r;
+  else if(r>world.regMon){world.regMon=r;if(REGIME_TXT[r])log('big',REGIME_TXT[r],[]);}
+  if(r<2)return;
+  const ad=NPCS.filter(n=>!n.isChild&&!n._dead);if(!ad.length)return;
+  let m=0;for(const n of ad)m+=(n.coins||0)+(n.dep||0);m/=ad.length;
+  const ref=25+22*(world.era||0);
+  let alvo=clamp(.85+.3*(m/ref),.8,r>=4?2.2:1.5);if(r>=5)alvo=1+(alvo-1)*.4;
+  const p0=world.preco||1;world.preco=Math.round((p0+(alvo-p0)*.12)*1000)/1000;
+  if(r>=4&&world.preco>1.4&&day-(world._inflD||-99)>40){world._inflD=day;log('big','📈 Os preços dispararam: tem dinheiro demais correndo e cada moeda vale menos. Quem poupou perde; quem devia sai ganhando.',[]);}
+}
+function finAbala(x){if(!world.bancos)return;for(const k in world.bancos)world.bancos[k].conf=Math.max(0,world.bancos[k].conf-x);}
+function novoBanco(n){
+  const rid=n.region,f=Math.min(n.coins,Math.max(50,Math.round(n.coins*.6)));n.coins-=f;
+  world.bancos=world.bancos||{};
+  world.bancos[rid]={dono:n.id,cash:f,dep:0,emp:0,conf:70,taxa:Math.round((.12+.08*Math.max(0,T(n,'ambicao')))*100)/100,fund:day,quebras:0};
+  n.fame=n.fame||'quem fundou um banco';shape(n,'ambicao',3,'fundou um banco');remember(n,`fundei um banco em ${regNome(rid)}`,8);
+  log('big',`🏦 ${N(n)} fundou um <b>banco</b> em ${regNome(rid)}: guarda o dinheiro dos outros e empresta a juros de ${Math.round(world.bancos[rid].taxa*100)}% ao ano.`,[n.id]);
+  weekNote('gov',`${n.name} fundou um banco`);}
+function fechaBanco(rid,b,why){
+  for(const n of NPCS)if(n.bk===rid){if(n.dep>0&&b.cash>0){const x=Math.min(n.dep,b.cash);b.cash-=x;n.coins+=x;}n.dep=0;delete n.emp;n.bk=null;}
+  delete world.bancos[rid];log('',`🏦 O banco de ${regNome(rid)} fechou as portas (${why}).`,[]);}
+function quebraBanco(rid,b){
+  const seguro=regMon()>=5,tot=Math.max(1,b.dep),frac=clamp(b.cash/tot,0,1);let perdas=0,n_=0;
+  for(const n of NPCS){if(n.bk!==rid)continue;
+    if(n.dep>0){const rec=n.dep*(seguro?Math.max(.9,frac):frac);perdas+=n.dep-rec;n_++;n.coins=(n.coins||0)+Math.round(rec);
+      shape(n,'confianca',-4,'perdeu dinheiro na quebra do banco');n.alerta=day;
+      remember(n,`o banco quebrou e perdi ${Math.round(n.dep-rec)} do que tinha guardado`,9,b.dono);think(n,'Perdi o que guardei no banco...','😱');n.dep=0;}
+    if(n.emp){delete n.emp;} n.bk=null;}
+  const d=byId(b.dono);if(d){remember(d,'meu banco quebrou',9);shape(d,'ambicao',-2,'o banco quebrou');relate(d,d,0);NPCS.forEach(o=>{if(o.bk==null&&(o.dep||0)===0)return;});}
+  for(const k in world.bancos)if(+k!==+rid)world.bancos[k].conf=Math.max(0,world.bancos[k].conf-12);
+  delete world.bancos[rid];world.quebras=(world.quebras||0)+1;
+  log('big',`💥 O banco de ${regNome(rid)} <b>quebrou</b>! ${n_} pessoa(s) perderam ${Math.round(perdas)} do que tinham guardado${seguro?' (o seguro do banco central cobriu quase tudo)':''}.`,d?[d.id]:[]);
+  weekNote('gov',`o banco de ${regNome(rid)} quebrou`);}
+function bancoDia(rid,b){
+  if(b.d===day)return;b.d=day;const r=regMon();
+  let d=byId(b.dono);
+  if((!d||d._dead)&&!(DORM.slotOf&&DORM.slotOf(b.dono)>=0)){
+    const s=members(rid).filter(o=>!o.isChild&&!o._dead).sort((a,c)=>(c.coins||0)-(a.coins||0))[0];
+    if(s&&T(s,'ambicao')>-.2){b.dono=s.id;d=s;log('',`🏦 ${N(s)} assumiu o banco de ${regNome(rid)}.`,[s.id]);}
+    else{fechaBanco(rid,b,'sem dono');return;}}
+  const R0=MAP.regions[rid];let dc=.8;
+  if(R0&&R0.guerra)dc-=2.5;if(d&&T(d,'bondade')<-.3)dc-=.4;
+  const inad=b.emp>0?(b._atr||0)/b.emp:0;dc-=Math.min(5,inad*6);b._atr=0;if(r>=5)dc+=.6;
+  b.conf=clamp(b.conf+dc,0,100);
+  b.taxa=clamp(b.taxa,.06,r>=5?.15:.4);
+  const res=b.dep*(r>=5?.08:.15),sobra=b.cash-res-30;
+  if(sobra>20&&d){const l=Math.floor(sobra*.1);b.cash-=l;d.coins=(d.coins||0)+l;}
+  if(b.conf<=12&&b.dep>0)quebraBanco(rid,b);}
+function sacar(n,v){ // tira dinheiro do banco para pagar algo; se o banco não tem caixa, forma fila e perde a confiança
+  const b=bancoDe(n.bk);if(!b||!(n.dep>0))return 0;const x=Math.min(n.dep,Math.ceil(v));
+  if(b.cash>=x){n.dep-=x;b.dep-=x;b.cash-=x;n.coins=(n.coins||0)+x;if(n.dep<.5){n.dep=0;if(!n.emp)n.bk=null;}return x;}
+  b.conf=Math.max(0,b.conf-3);think(n,'O banco não tem como me pagar agora!','😨');return 0;}
+function limiteCredito(n,b){
+  const livre=Math.max(0,b.cash-b.dep*(regMon()>=5?.08:.15));
+  const lim=(25+patrimonio(n)*.6+(n.dep||0)*.9)*clamp((n.cred==null?50:n.cred)/50,.2,1.6)*(regMon()>=6?1.5:1);
+  return Math.floor(Math.min(lim,livre));}
+function desejoCaro(n){let best=null;for(const k in n.wants||{}){if(!ITEMS[k]||!itemAvail(k)||n.items.includes(k)||(n.wants[k]||0)<35)continue;const a=priceOf(k).amt;if(!best||n.wants[k]>best.w)best={k,amt:a,w:n.wants[k]};}return best;}
+function finPlano(n){
+  const b=bancoDe(n.region);if(!b||regMon()<3)return null;if(n.bk!=null&&n.bk!==n.region)return null;
+  const co=n.coins||0,medo=medoPerder(n);let best=null;
+  const put=(tipo,valor,motivo,score)=>{if(valor>0&&(!best||score>best.score))best={tipo,valor,motivo,score};};
+  if(n.emp)put('pagar',Math.min(co,n.emp.v),'quer quitar o que deve ao banco',10+16*medo+12*(n.emp.atraso||0));
+  else if(b.conf>=30&&(n.cred==null?50:n.cred)>=25){
+    const lim=limiteCredito(n,b);
+    if(n._capNeed){const v=Math.ceil(n._capNeed-co+5);if(v>0&&v<=lim)put('pedir',v,'precisa de capital para abrir um negócio',16+10*Math.max(0,T(n,'ambicao'))-12*medo);}
+    const g=desejoCaro(n);if(g&&g.amt>co&&deveTotal(n)===0){const v=Math.ceil(g.amt-co);if(v<=lim)put('pedir',v,`quer muito ${ITEMS[g.k].name} e não tem como pagar`,10+8*Math.max(0,T(n,'ambicao'))+g.w*.1-14*medo);}}
+  if(co>=30&&b.conf>=40)put('depositar',Math.floor(co*(.4+.3*medo)),'quer guardar o dinheiro em lugar seguro',4+14*Math.min(1,co/80)*(.4+medo));
+  return best;}
+function finOpts(n,add){const p=finPlano(n);if(p)add('vida:banco',p.score,p.motivo);}
+Object.assign(VIDA,{
+ banco:{e:'🏦',place:'centro',verb:()=>'indo ao banco',fx:n=>{
+  const p=finPlano(n),b=bancoDe(n.region);if(!p||!b)return;const dono=byId(b.dono);
+  if(p.tipo==='depositar'){const v=Math.floor(p.valor);n.coins-=v;n.dep=(n.dep||0)+v;n.bk=n.region;b.dep+=v;b.cash+=v;
+    shape(n,'diligencia',.6,'guardou dinheiro no banco');remember(n,`guardei ${v} no banco de ${regNome(n.region)}`,4,dono&&dono.id);
+    log('',`🏦 ${N(n)} guardou ${v}${REGMON[regMon()].sym} no banco.`,[n.id]);think(n,`Guardado, e ainda rende ${Math.round(b.taxa*40)}% ao ano.`,'🏦');}
+  else if(p.tipo==='pedir'){const v=Math.min(Math.floor(p.valor),limiteCredito(n,b));
+    if(v<3){think(n,'O banco negou o empréstimo...','😞');n.cred=Math.max(0,(n.cred==null?50:n.cred)-1);return;}
+    const tx=clamp(b.taxa*(1+(50-(n.cred==null?50:n.cred))/100),.06,regMon()>=5?.18:.5);
+    n.coins=(n.coins||0)+v;n.emp={v,v0:v,dia:day,taxa:Math.round(tx*100)/100,atraso:0};n.bk=n.region;b.cash-=v;b.emp+=v;n._capNeed=null;
+    remember(n,`peguei ${v} emprestado no banco a ${Math.round(tx*100)}% ao ano`,6,dono&&dono.id);shape(n,'ambicao',.8,'pediu crédito');
+    log('',`🏦 ${N(n)} pegou ${v}${REGMON[regMon()].sym} emprestado no banco, a ${Math.round(tx*100)}% ao ano.`,[n.id]);think(n,'Agora preciso pagar direitinho, ou perco tudo.','😬');}
+  else if(p.tipo==='pagar'){const v=Math.min(n.coins,n.emp.v);n.coins-=v;n.emp.v-=v;b.cash+=v;b.emp=Math.max(0,b.emp-v);
+    if(n.emp.v<.5){quitaBanco(n,b);}else think(n,`Ainda devo ${Math.round(n.emp.v)} ao banco.`,'📝');}
+ }}});
+function quitaBanco(n,b){delete n.emp;if(!n.dep)n.bk=null;n.cred=Math.min(100,(n.cred==null?50:n.cred)+6);shape(n,'confianca',1,'quitou o empréstimo');
+  remember(n,'quitei o empréstimo do banco',6);log('',`🏦 ${N(n)} quitou o empréstimo do banco.`,[n.id]);think(n,'Livre da dívida!','😌');}
+function finTick(n){ // todo dia, por habitante: juros, parcelas, corrida ao banco, fundação de bancos
+  finMundo();if(n._capNeed&&(n.coins||0)>=n._capNeed)n._capNeed=null;const r=regMon();if(r<3)return;
+  const rid=n.region,b=bancoDe(rid);if(b)bancoDia(rid,b);
+  let hb=n.bk!=null?bancoDe(n.bk):null;
+  if(n.bk!=null&&!hb&&(n.dep||n.emp)){ // o banco deixou de existir sem este habitante saber
+    if(n.dep>0){think(n,'Meu banco sumiu com o meu dinheiro...','😱');shape(n,'confianca',-3,'perdeu o dinheiro do banco');}
+    n.dep=0;delete n.emp;n.bk=null;hb=null;}
+  if(hb){
+    if(n.dep>0&&hb.conf>25){const j=n.dep*hb.taxa*.4;n.dep+=j;hb.dep+=j;
+      if(world.preco>1.3&&Math.random()<.04)think(n,'Meu dinheiro guardado vale cada vez menos...','📉');}
+    if(n.dep>5&&hb.conf<50&&Math.random()<(50-hb.conf)/70*(.4+.6*medoPerder(n))){
+      const x=sacar(n,n.dep);if(x>0){hb.conf=Math.max(0,hb.conf-2);think(n,'Melhor tirar tudo antes que o banco quebre!','😰');
+        if(!hb._corrida||day-hb._corrida>15){hb._corrida=day;log('big',`🏃 Corrida ao banco de ${regNome(n.bk)}: o povo está sacando tudo com medo de perder o dinheiro!`,[n.id]);}}}
+    const e=n.emp;
+    if(e){const jr=e.v*e.taxa;e.v+=jr;hb.emp+=jr;const want=Math.max(2,e.v*.2);
+      if((n.coins||0)>=want){const pg=Math.min(n.coins,want);n.coins-=pg;e.v-=pg;hb.cash+=pg;hb.emp=Math.max(0,hb.emp-pg);e.atraso=0;n.cred=Math.min(100,(n.cred==null?50:n.cred)+.5);if(e.v<.5)quitaBanco(n,hb);}
+      else{e.atraso=(e.atraso||0)+1;hb._atr=(hb._atr||0)+e.v;if(e.atraso===2)think(n,'Não tenho como pagar a parcela do banco...','😰');
+        if(e.atraso>=4){ // calote: o banco toma o que pode e a reputação some
+          const it=n.items.slice().sort((a,c)=>ITEMS[c].price-ITEMS[a].price)[0],dono=byId(hb.dono);let tomou='';
+          if(it){n.items.splice(n.items.indexOf(it),1);if(n.holding===it)n.holding=null;tomou=ITEMS[it].name;if(dono&&!dono.items.includes(it))dono.items.push(it);hb.cash+=Math.round(priceOf(it).amt*.5);}
+          hb.emp=Math.max(0,hb.emp-e.v);hb.conf=Math.max(0,hb.conf-3);delete n.emp;if(!n.dep)n.bk=null;n.cred=Math.max(0,(n.cred==null?50:n.cred)-30);n.alerta=day;
+          shape(n,'confianca',-2,'deu calote no banco');remember(n,`não paguei o banco${tomou?` e perdi ${tomou}`:''}`,9,dono&&dono.id);if(dono)remember(dono,`${n.name} deu calote no banco`,6,n.id);
+          think(n,'O banco tomou o que eu tinha...','😭');log('big',`📕 ${N(n)} não pagou o empréstimo${tomou?` e o banco ficou com ${tomou}`:''}. Ficou com o nome sujo.`,[n.id]);}}}}
+  if(!b&&!n.isChild&&(n.coins||0)>=70&&T(n,'ambicao')>0&&Math.random()<.03){if(members(rid).length>=12)novoBanco(n);}
+}
+function finHerda(n,heirs){ // dinheiro no banco e dívida passam aos herdeiros
+  const b=bancoDe(n.bk);if(!b)return;const h=heirs&&heirs[0];
+  if(n.dep>0){if(h&&(h.bk==null||h.bk===n.bk)){h.dep=(h.dep||0)+n.dep;h.bk=n.bk;}else{b.dep-=n.dep;if(h){const x=Math.min(n.dep,b.cash);b.cash-=x;h.coins=(h.coins||0)+x;}}}
+  if(n.emp){if(h&&!h.emp&&(h.bk==null||h.bk===n.bk)){h.emp=n.emp;h.bk=n.bk;}else{b.emp=Math.max(0,b.emp-n.emp.v);b.conf=Math.max(0,b.conf-2);}}}
+function finResumo(n){
+  const b=n.bk!=null?bancoDe(n.bk):null,p=[];
+  if(n.dep>0.5)p.push(`depósito ${Math.round(n.dep)}${REGMON[regMon()].sym}${b?` (banco com ${Math.round(b.conf)}% de confiança)`:''}`);
+  if(n.emp)p.push(`deve ${Math.round(n.emp.v)}${REGMON[regMon()].sym} ao banco a ${Math.round(n.emp.taxa*100)}% ao ano${n.emp.atraso?' — ATRASADO':''}`);
+  if(n.cred!=null&&(n.dep||n.emp||n.cred!==50))p.push(`crédito ${Math.round(n.cred)}/100`);
+  return p.join(' · ');}
+
 function ecoOpts(n,add,m,c,L2){
   const dev=L2.find(o=>o.deve&&Object.values(o.deve).some(d=>d.a===n.id));
   if(dev)add('vida:cobrar',14+8*Math.max(0,-c.bon)+(medoPerder(n)>.5?6:0),`${dev.name} lhe deve e ainda não pagou`,dev);
@@ -951,6 +1100,7 @@ function ecoOpts(n,add,m,c,L2){
     const alvo=L2.find(o=>(n.rel[o.id]||0)>-30&&(n.items.some(k=>ITEMS[k]&&!o.items.includes(k)&&(o.wants[k]||0)>=25)||o.items.some(k=>ITEMS[k]&&!n.items.includes(k)&&(n.wants[k]||0)>=25)));
     if(alvo)add('vida:negociar',16+10*c.soc+8*Math.max(0,T(n,'ambicao')),`quer fazer negócio com ${alvo.name}`,alvo);
   }
+  try{finOpts(n,add);}catch(e){}
 }
 function lifeOpts(n,add,m,c){
   const nd=n.needs,{soc,cor,cur,dil,bon,gk}=c,fun=100-nd.diversao;
@@ -1312,7 +1462,7 @@ function romance(a,b){
   return true;
 }
 function morningLife(n){
-  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}}
+  n.ageDays++;if(n.hurt>0)n.hurt--;if(!n.isChild&&!AI_OLD){try{goalsTick(n);}catch(e){}try{ecoTick(n);}catch(e){}try{profTick(n);}catch(e){}try{finTick(n);}catch(e){}}
   if(n.isChild){
     if(n.ageDays>=CHILD_DAYS){n.isChild=false;log('big',`🎓 ${N(n)} cresceu e virou adulto(a)! Na próxima conversa da tribo vai escolher sua função.`,[n.id]);think(n,'Cresci! Agora é comigo.','🎓');remember(n,'virei adulto(a)',9);}
     return;
@@ -1387,6 +1537,7 @@ function die(n,cause,where){
   if(heirs.length){const f=Math.floor(n.food/heirs.length),c=Math.floor(n.coins/heirs.length);heirs.forEach(h=>{h.food+=f;h.coins+=c;});if(n.items.length){heirs[0].items.push(...n.items.filter(k=>!heirs[0].items.includes(k)));}}
   else world.reserva=Math.min(resCap(),world.reserva+n.food);
   if(n.deve&&heirs.length){const h0=heirs[0];h0.deve=h0.deve||{};for(const k in n.deve)h0.deve[k]=n.deve[k];}
+  try{finHerda(n,heirs);}catch(e){}
   n._dead=true;SWEEP=true;IDX.delete(n.id);RC.dirty=true;
   log('big',`🕊️ ${N(n)} morreu ${cause}${where?` (${where.toLowerCase().startsWith('a')||where.toLowerCase().startsWith('o')?'em ':'em '}${where})`:''} aos ${n.ageDays} anos${n.kids.length?`, deixando ${n.kids.length} filho(s)`:''}.${n.fame?` Será lembrado(a) como ${n.fame}.`:''}`,[n.id,...n.kids]);
   // relíquias passam adiante: o herdeiro é um filho vivo (ou o cônjuge); sem ninguém, ela fica enterrada com o dono
@@ -1662,7 +1813,7 @@ const COLLECTIVE=[
  {id:'invasao',era:[2,7],w:1,drama:.9,fn(){const def=adults().filter(n=>roleOf(n)&&roleOf(n).out==='guard').length*2+adults().reduce((s,n)=>s+T(n,'coragem'),0)+rnd(-2,4);
    if(def>3){const h=adults().sort((a,b)=>T(b,'coragem')-T(a,'coragem'))[0];log('big',`⚔️ Guerreiros de outras terras tentaram invadir — e foram expulsos! ${N(h)} lutou na frente de todos.`,[h.id]);shape(h,'coragem',6,'defendeu o povo');NPCS.forEach(o=>relate(o,h,8));remember(h,'defendi meu povo de invasores',10);h.fame=h.fame||'herói(na) da defesa da ilha';}
    else{const lost=Math.round(world.reserva*0.5);world.reserva-=lost;const v=someone();log('big',`⚔️ Invasores de outras terras levaram ${lost} porções da reserva!`,v?[v.id]:[]);if(v){hurt(v,2,'foi ferido(a) na invasão');if(Math.random()<.15)die(v,'defendendo o povo dos invasores',look(v.target).label);}const l=byId(world.gov.leader);if(l){NPCS.forEach(o=>relate(o,l,-8));worldSay(`O povo culpa ${l.name} por não ter protegido a ilha.`);}}}},
- {id:'crise',era:[3,9],w:1,drama:.6,cond:()=>has('moeda'),fn(){NPCS.forEach(n=>n.coins=Math.floor(n.coins*0.6));log('big','📉 Uma crise econômica! O dinheiro passou a valer muito menos.');NPCS.forEach(n=>{if(T(n,'ambicao')>0.2)shape(n,'confianca',-3,'crise');});}},
+ {id:'crise',era:[3,9],w:1,drama:.6,cond:()=>has('moeda'),fn(){NPCS.forEach(n=>n.coins=Math.floor(n.coins*0.6));try{finAbala(25);}catch(e){}log('big','📉 Uma crise econômica! O dinheiro passou a valer muito menos.');NPCS.forEach(n=>{if(T(n,'ambicao')>0.2)shape(n,'confianca',-3,'crise');});}},
  {id:'greve',era:[7,9],w:1,drama:.5,cond:()=>has('vapor'),fn(){const ws=adults().filter(n=>n.role==='operario');if(!ws.length)return;ws.forEach(n=>{n.workedToday=true;shape(n,'coragem',3,'fez greve');});log('big',`✊ Greve! ${ws.map(N).join(', ')} pararam a fábrica pedindo melhores condições.`,ws.map(n=>n.id));const l=byId(world.gov.leader);if(l)ws.forEach(w=>relate(w,l,-5));}},
  {id:'inovacao',era:[5,9],w:1,drama:.2,fn(){world.kp+=30;log('big','📰 Chegaram notícias de inventos de outras terras. O povo aprendeu muito de uma vez.');}},
  {id:'pandemia',era:[8,9],w:.6,drama:.9,fn(){const vs=adults().filter(()=>Math.random()<.4);vs.forEach(v=>v.hurt=has('medicina')?1:3);log('big',`😷 Uma epidemia atingiu ${vs.length} pessoas. ${has('medicina')?'Os médicos conseguiram controlar.':''}`,vs.map(v=>v.id));adults().filter(n=>n.role==='medico').forEach(m=>{NPCS.forEach(o=>relate(o,m,8));});}},
@@ -2552,7 +2703,7 @@ function qualifica(n,p){
   if(n.ageDays<CHILD_DAYS+Math.max(0,p.tier-3)*4)return 'ainda é jovem para o cargo';
   if((n.skill[p.skill]||0)<p.minSk)return `precisa de ${p.minSk} em ${p.skill}`;
   if(p.tmin!=null&&T(n,'coragem')<p.tmin)return 'falta coragem';
-  if(p.cap&&has('moeda')&&(n.coins||0)<p.cap)return `precisa de ${p.cap} de capital`;
+  if(p.cap&&has('moeda')&&(n.coins||0)<p.cap){n._capNeed=Math.min(n._capNeed||1e9,p.cap);return `precisa de ${p.cap} de capital`;}
   if(p.out!=='food'&&p.tier>=3||reqList(p).length>1){const need=Math.round((p.tier-1)*(p.tier-1)*3+3*Math.max(0,reqList(p).length-1));if(profCenso(n.region).pop<need)return 'o povo é pequeno demais para sustentar isso';}
   return null;}
 const profAtual=n=>{const r=roleOf(n);return r&&r.gen?r:null;};
@@ -3501,6 +3652,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    ${n.fame?`<div>🏆 Lembrado(a) como ${n.fame}</div>`:''}
    <div>🎯 ${n.action} · 🍖 ${n.food}${has('moeda')?` · 🪙 ${Math.round(n.coins)}`:''}${n.hurt?' · 🤕 machucado(a)':''}</div>
    ${!n.isChild&&n.role&&n.role!=='governante'?`<div>💼 ${profResumo(n)}</div>`:''}
+   ${!n.isChild&&(n.dep||n.emp)?`<div>🏦 ${finResumo(n)}</div>`:''}
    ${!n.isChild&&has('troca')?`<div>🧾 Bens ~${Math.round(patrimonio(n))}${deveTotal(n)>0?` · 📕 deve ${Math.round(deveTotal(n))}`:''}${medoPerder(n)>.4?' · 😰 tem muito a perder':''}</div>`:''}
    ${(()=>{const d=deathRisk(n);const top=Object.entries(d.parts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>({acaso:'acaso',idade:'idade',infancia:'infância',fome:'fome',ferimento:'ferimento',caca:'caça',mar:'mar',exploracao:'exploração',fabrica:'fábrica',frio:'frio'}[k])).join(', ');const mt=n.menteTop?`<div>🧠 A mente de ${n.name} acha que agora o melhor é: <b>${n.menteTop.map(k=>k==='socializar'?'conversar':verb(k)).join(' · ')}</b></div>`:'';return mt+`<div>🕯️ Chance de morrer hoje: <b>${(d.total*100).toFixed(d.total<0.01?2:1)}%</b> <span class="hint">(${top})</span></div>`;})()}
    ${n.cmd?`<div>✨ <b>Fazendo agora:</b> ${FAB[n.cmd.acao].label} · chance ${Math.round(n.cmd.chance*100)}%${n.cmdQueue&&n.cmdQueue.length?` · ${n.cmdQueue.length} na fila`:''}</div>`:''}
@@ -3594,7 +3746,7 @@ const DORM={
     this.col[i]=this.palIdx('col',n.color);this.hair[i]=this.palIdx('hair',n.hair);this.foreign[i]=({elfo:2,inseto:3,atlante:4,meioelfo:5,meioatlante:6})[n.species]||(n.foreign?1:0);this.name[i]=n.name;this.sur[i]=n.surname||null;
     TK.forEach((k,t)=>{this.tr[i*NT+t]=n.traits[k];this.sens[i*NT+t]=Math.max(1,Math.min(255,Math.round(n.sens[k]*100)));});
     const rels=Object.entries(n.rel).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,DR);rels.forEach(([k,v],s)=>{this.relId[i*DR+s]=this.num(k);this.relVal[i*DR+s]=Math.round(v);});
-    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
+    if((n.items&&n.items.length)||n.coins||n.diary&&(n.diary.years.length||n.diary.months.length)||n.fame||n.dream||(n.poderes&&n.poderes.length)||n.rancor||n.aprende||n.crimes||n.ensinou||n.preso||n.deve||n.dep||n.emp||(n.role&&PROF_MAP.has(n.role)))this.extra.set(id,{dep:n.dep,emp:n.emp,bk:n.bk,cred:n.cred,prof:PROF_MAP.has(n.role)?n.role:undefined,deve:n.deve,preso:n.preso,ensinou:n.ensinou,poderes:n.poderes,rancor:n.rancor,aprende:n.aprende,crimes:n.crimes,items:n.items,coins:n.coins,fame:n.fame,dream:n.dream,identity:n.identity,diary:{days:[],weeks:[],months:n.diary.months.slice(-12),years:n.diary.years.slice(-40),marcos:n.diary.marcos.slice(-10)}});
     const top=[...n.memories].sort((a,b)=>b.imp-a.imp).slice(0,3).map(m=>({text:m.text,imp:m.imp,day:m.day}));if(top.length)this.marcos.set(id,top);
     this.count(i,1);return i;},
   // ---- ficha -> objeto completo
@@ -3610,7 +3762,7 @@ const DORM={
       mem.push({text:txt,imp:this.memI[k],day:this.memY[k],who:t<1000&&t!==6&&t!==7&&t!==8&&t!==10&&w>=0?'n'+w:undefined});}
     (this.marcos.get(id)||[]).forEach(m=>mem.push({...m}));n.memories=mem.sort((a,b)=>b.day-a.day);
     n.diary.marcos=(this.marcos.get(id)||[]).map(m=>({day:m.day,text:m.text}));
-    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
+    const ex=this.extra.get(id);if(ex){n.items=ex.items||[];n.coins=ex.coins||0;n.fame=ex.fame||null;n.dream=ex.dream||null;n.identity=ex.identity||null;n.diary=ex.diary;if(ex.poderes)n.poderes=ex.poderes;if(ex.rancor)n.rancor=ex.rancor;if(ex.aprende)n.aprende=ex.aprende;if(ex.crimes)n.crimes=ex.crimes;if(ex.ensinou)n.ensinou=ex.ensinou;if(ex.preso)n.preso=ex.preso;if(ex.deve)n.deve=ex.deve;if(ex.dep)n.dep=ex.dep;if(ex.emp)n.emp=ex.emp;if(ex.bk!=null)n.bk=ex.bk;if(ex.cred!=null)n.cred=ex.cred;if(ex.prof)n.role=ex.prof;this.extra.delete(id);}
     n.x=-9999;n.y=-9999;
     this.count(i,-1);this.live[i]=0;this.slot.delete(id);this.marcos.delete(id);
     NPCS.push(n);IDX.set(n.id,n);if(world.tree&&!world.tree[n.id])teaRecord(n);return n;},
