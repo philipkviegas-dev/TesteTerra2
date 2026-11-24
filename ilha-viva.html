@@ -4542,7 +4542,12 @@ const DORM={
   yearStart(){if(this.job)this.finish();if(!this.alive)return;this.ensureRegions();
     const R=MAP.regions.length,cnt=new Int32Array(R+1);for(let i=0;i<this.n;i++)if(this.live[i])cnt[this.reg[i]+1]++;for(let r=0;r<R;r++)cnt[r+1]+=cnt[r];
     const bidx=new Int32Array(cnt[R]),fill=cnt.slice();for(let i=0;i<this.n;i++)if(this.live[i])bidx[fill[this.reg[i]]++]=i;
-    this.bstart=cnt;this.bidx=bidx;this.rfac=new Array(R);for(let r=0;r<R;r++)if(cnt[r+1]>cnt[r])this.rfac[r]=regionFac(MAP.regions[r])||null;this.stats={births:0,deaths:0,couples:0,moves:0,founded:[],stories:[],pev:0,rev:{},revEx:[]};
+    this.bstart=cnt;this.bidx=bidx;this.rfac=new Array(R);for(let r=0;r<R;r++)if(cnt[r+1]>cnt[r])this.rfac[r]=regionFac(MAP.regions[r])||null;this.stats={births:0,deaths:0,couples:0,moves:0,desemp:0,founded:[],stories:[],pev:0,rev:{},revEx:[]};
+    // superpopulação: acima da área da região (60) falta emprego e comida e as doenças correm mais; abaixo, nada muda
+    this.crowd=new Float32Array(R);this.seedPeste=null;this.nCrowd=0;let worst=-1,wc=0;
+    for(let r=0;r<R;r++){if(cnt[r+1]<=cnt[r])continue;const c=Math.max(0,regionPop(r)/REGION_CAP-1);if(c<=0)continue;this.crowd[r]=c;this.nCrowd++;if(c>wc){wc=c;worst=r;}}
+    this.worstCrowd=worst;
+    if(worst>=0&&wc>0.25&&(world.disasters||[]).filter(d=>d.type==='peste'&&!d.done).length<2){for(let r=0;r<R;r++){const c=this.crowd[r];if(c>0.25&&Math.random()<0.03*Math.min(c,2)){this.seedPeste=r;break;}}}
     this.rev=new Int32Array(R);for(let r=0;r<R;r++){if(cnt[r+1]<=cnt[r]||Math.random()>0.06)continue;const k=pickAcaso(true,MAP.regions[r]);if(k<0)continue;
       this.rev[r]=k+1;const ef=ACASOS.ev[k][7];if(ef.kp)world.kp+=ef.kp;acasoCult(r,ef.cult);const cn=ACASOS.cats[ACASOS.ev[k][1]];this.stats.rev[cn]=(this.stats.rev[cn]||0)+1;if(this.stats.revEx.length<3&&Math.random()<.2)this.stats.revEx.push(cap(acasoText(k,MAP.regions[r])));}this.job={i:0,end:this.n,t0:performance.now(),ms:0};},
   pick(r){const a=this.bstart[r],b=this.bstart[r+1];if(b<=a)return -1;const i=this.bidx[a+((Math.random()*(b-a))|0)];return this.live[i]&&this.reg[i]===r?i:-1;},
@@ -4557,8 +4562,12 @@ const DORM={
       let who=-1;if(ef.rel){const j=this.pick(r);if(j>=0&&j!==i){who=this.id[j];this.relate(i,who,ef.rel);this.relate(j,this.id[i],ef.rel*0.6);}}
       this.remember(i,1000+k,ef.imp||6,who);if(ef.die&&Math.random()<ef.die&&canKill()){this.die(i);return;}}}
     // trabalho e comida: o lugar define o que dá para tirar da terra
+    const crowd=this.crowd?this.crowd[r]:0;
     if(adult){const k=(R0.res.mar?1:0)+(R0.res.floresta?1:0)+(R0.res.fertil?1:0)+(R0.res.pedra?0.5:0)+(has('agricultura')&&R0.res.fertil?1.5:0);
-      const sf=season().food||1,dens=Math.min(1,REGION_CAP/Math.max(1,regionPop(r))),ok=Math.random()<Math.min(0.95,(0.45+0.08*k+this.tr[i*NT+6]/300)*sf*dens*regionFoodMul(r)*(RE?(RE.mul||1):1));this.food[i]=Math.min(30,this.food[i]+(ok?6:2));this.shape(i,6,ok?0.6:-0.5);
+      const sf=season().food||1,dens=Math.min(1,REGION_CAP/Math.max(1,regionPop(r))),ok=Math.random()<Math.min(0.95,(0.45+0.08*k+this.tr[i*NT+6]/300)*sf*dens*regionFoodMul(r)*(RE?(RE.mul||1):1));
+      // sem emprego: a parte dos adultos que não cabe nas vagas da região (crowd/(1+crowd)) passa o ano sem renda
+      const semEmprego=crowd>0&&Math.random()<crowd/(1+crowd);if(semEmprego){this.stats.desemp++;this.shape(i,0,-0.6);this.shape(i,5,-0.8);this.shape(i,1,0.5);if(Math.random()<.04)this.remember(i,6,6,-1);}
+      this.food[i]=Math.min(30,this.food[i]+((ok&&!(semEmprego&&Math.random()<0.5))?6:2));this.shape(i,6,ok&&!semEmprego?0.6:-0.5);
       const F=this.rfac&&this.rfac[r];if(F&&F.culture&&ag<25){const v=F.culture.v;this.shape(i,1,v.guerra/250);this.shape(i,0,v.coletivismo/250);this.shape(i,2,v.comercio/250);this.shape(i,4,v.liberdade/250);this.shape(i,6,v.tradicao/250);}
       if(this.food[i]<3&&hasLaw(F,'partilha')&&Math.random()<.6)this.food[i]=3;
       if(this.food[i]>=3)this.food[i]-=3;else{this.food[i]=0;this.shape(i,0,-1.5);this.shape(i,5,-1);if(Math.random()<.3)this.remember(i,6,6,-1);}}
@@ -4591,7 +4600,8 @@ const DORM={
       if(empty&&group.length<4)return;}
     group.forEach(g=>{this.count(g,-1);this.reg[g]=best;this.count(g,1);this.remember(g,empty?10:7,9,best);this.shape(g,1,3);this.shape(g,4,2);});this.stats.moves+=group.length;
     if(empty){to.founded=day;to.reserva=8;to.faction=R0.faction;world.facDirty=true;world.facVer=(world.facVer||0)+1;this.stats.founded.push(`${this.sur[i]?'a família '+this.sur[i]:this.name[i]} em ${to.name}`);}},
-  deathRoll(i,ag){if(totalPop()<=SURV_FLOOR&&ag<90)return;let risk=0.0015+(ag>35?0.0022*Math.exp((ag-60)/6.5):0)+(ag<5?0.006:0)+(this.food[i]===0&&ag>=CHILD_DAYS?0.006:0);
+  deathRoll(i,ag){if(totalPop()<=SURV_FLOOR&&ag<90)return;let risk=0.0015+(ag>35?0.0022*Math.exp((ag-60)/6.5):0)+(ag<5?0.006:0)+(this.food[i]===0&&ag>=CHILD_DAYS?0.006*(1+(this.crowd?this.crowd[this.reg[i]]:0)):0);
+    {const c=this.crowd?Math.min(3,this.crowd[this.reg[i]]):0;if(c>0)risk*=1+0.8*c;} // aglomeração: esgoto, água ruim e contágio
     if(has('medicina'))risk*=0.6;else if(has('ervas'))risk*=0.85;{const rr=MAP.regions[this.reg[i]];if(rr.bfx)risk*=rr.bfx.health;}if(Math.random()<risk)this.die(i);},
   stories(t){this.stats.stories.push(t);},
   yearEnd(){const S=this.stats,J=this.job;this.job=null;this.lastYear={...S,ms:Math.round(J.ms),pop:this.alive};
@@ -4601,6 +4611,10 @@ const DORM={
     if(S.founded.length){log('big',`🧳 Novos povoados: ${S.founded.slice(0,3).join('; ')}${S.founded.length>3?` e mais ${S.founded.length-3}`:''}.`,[]);weekNote('migr',S.founded[0]);}
     S.stories.forEach(t=>log('',t,[]));
     const rv=Object.entries(S.rev);if(rv.length||S.pev)log('',`🎲 Deuz pelo mundo neste ano: ${rv.reduce((a,b)=>a+b[1],0)} acontecimentos em regiões (${rv.map(([k,v])=>`${ACASO_CL[k]||k} ${v}`).join(', ')})${S.revEx.length?`. Por exemplo: ${S.revEx.join('; ')}`:''}. E ${S.pev.toLocaleString('pt-BR')} acasos na vida de pessoas comuns.`,[]);
+    if(this.nCrowd){const w=this.worstCrowd>=0?MAP.regions[this.worstCrowd]:null;
+      log(this.nCrowd>=5?'big':'',`🏚️ Superlotação: ${this.nCrowd} região(ões) com gente demais${w?`; a pior é ${w.name}, com ${regionPop(w.id)} pessoas para uma área de ${REGION_CAP}`:''}. ${S.desemp.toLocaleString('pt-BR')} adultos sem emprego, comida mais curta e doenças se espalhando mais.`,[]);
+      if(this.seedPeste!=null&&MAP.regions[this.seedPeste]&&!MAP.regions[this.seedPeste].insect){const R0=MAP.regions[this.seedPeste],c=this.crowd[this.seedPeste];log('big',`😷 Aglomeração em ${R0.name} (${regionPop(R0.id)} pessoas): a doença correu solta.`,[]);startDisaster('peste',R0,c>1?2:1);}}
+    this.seedPeste=null;
     // regiões com fome (para a política)
     if(this.n>this.cap*0.7&&this.alive<this.n*0.5)this.compactSlots();},
   compactSlots(){let w=0;const slot=new Map();for(let i=0;i<this.n;i++){if(!this.live[i])continue;if(w!==i)this.copySlot(i,w);slot.set(this.id[w],w);w++;}this.n=w;this.slot=slot;this.name.length=w;this.sur.length=w;},

@@ -179,3 +179,10 @@ Tudo está em `ilha-viva.html`, ligado a `politicsYear()`. Decisões padrão usa
 - **Rotas:** só entre regiões vizinhas (ou por mar com barcos) de povos com acordo de comércio, salto direto, sem caminho em vários trechos. Carga até 10, 90% chega, `imp` até +0,2 na comida da região que recebe. Guerra corta a rota ('cortada'); assalto reduz a carga e pode matar o caravaneiro (15%). Camada 🚚 no mapa e aba "Rotas e tronos" no Livro.
 - **Sucessão:** em vez de "intervenção" entre povos, foi feita **vassalagem** (tributo de 10%, rebelião mais provável com fome ou relação ruim). Herdeiro atualizado todo ano; crise com 2–3 pretendentes resolvida em 1–3 anos por acordo (40%), golpe ou guerra civil. O golpe cego de 3% foi trocado por golpe com causa (fome, descontentamento, ambição de um rival). Vale só para povos de IA; o povo do jogador segue as conversas da tribo.
 - **Testado no navegador:** rotas abrem, entregam, fecham na guerra e reabrem; herdeiro assume sem crise; crise abre e se resolve; vassalo se rebela e declara guerra; golpe acontece com fome; `serialize` guarda `eco` e as rotas; saves antigos carregam porque todos os campos novos são opcionais.
+
+## 10. Superpopulação (implementado)
+A área de uma região comporta 60 pessoas (`REGION_CAP`). Nascimentos **não** foram mexidos; acima de 60 há prejuízos proporcionais a `crowd = pop/60 − 1` (calculado por região em `DORM.yearStart`):
+- **Desemprego:** `crowd/(1+crowd)` dos adultos fica sem vaga; colhe só metade das vezes e perde bondade/confiança (agressividade sobe), com lembrança de fome.
+- **Fome:** a morte por fome (comida 0) é multiplicada por `1+crowd`.
+- **Doenças:** o risco de morte anual sobe `1+0,8·min(crowd,3)` (medicina/ervas ainda reduzem); região com `crowd>0,25` tem 3%·min(crowd,2) por ano de gerar uma peste local (leve; média se `crowd>1`), no máximo 2 pestes ativas.
+- O Livro registra "🏚️ Superlotação" por ano. A saída por migração segue valendo.
