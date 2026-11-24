@@ -626,6 +626,9 @@ function renderTabs(){
   document.getElementById('modeMorador').classList.toggle('on',mode==='morador');
 }
 function follow(n){mode='morador';selected=n;cardTab='ficha';setTimeout(()=>fabSuggest(n),0);document.getElementById('fabPanel').style.display='';document.getElementById('fabWho').textContent=n.name;renderTabs();renderLog();renderInfo();}
+// nome de líder clicável nos menus: abre a ficha do personagem
+function irFicha(id){const n=byId(id);if(!n||n._dead)return;try{livroFecha();}catch(e){}follow(n);}
+function leaderLink(l,txt){return l?`<a href="#" style="color:inherit;font-weight:bold;text-decoration:underline dotted" title="abrir a ficha" onclick="irFicha('${l.id}');return false">${txt!=null?txt:N(l)}</a>`:'';}
 function showIsland(){mode='ilha';document.getElementById('fabPanel').style.display='none';renderTabs();renderLog();renderInfo();}
 document.getElementById('modeIlha').onclick=showIsland;
 document.getElementById('modeMorador').onclick=()=>{if(!started)return;if(view==='mapa')setView('regiao');follow((selected&&here(selected)&&byId(selected.id))||hereNPCs()[0]);};
@@ -4125,7 +4128,7 @@ function factionsHTML(){
   const mine=facById(regionFac(activeRegion())?regionFac(activeRegion()).id:0);
   return `<div style="margin-top:6px"><b style="font-size:14px">🏴 Povos e facções</b>${(()=>{const al=facs().filter(f=>f.alive);return al.length>10?`<div class="hint">os 10 maiores de ${al.length} povos</div>`:'';})()}${facs().filter(f=>f.alive).map(f=>[f,facRegions(f).length]).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([f])=>{const l=byId(facGov(f).leader);const ppl=(facPeople(f).length+dormAdultsOf(f)+facRegions(f).reduce((s,r)=>s+(DORM.pop?DORM.pop[r.id]-DORM.ad[r.id]:0),0)).toLocaleString('pt-BR');
     const st=mine&&f!==mine?(atWar(f,mine)?'⚔️ em guerra':relF(f,mine)<-30?'😠 tensão':relF(f,mine)>30?'🤝 amigos':'☮️ paz'):'';
-    return `<div class="row"><span><span style="color:${f.color}">■</span> ${f.name}</span><span>${ppl} pessoas · ${facRegions(f).length} reg.${l?` · ${N(l)}`:''}${st?' · '+st:''}</span></div>${factionDetail(f)}`;}).join('')}</div>`;
+    return `<div class="row"><span><span style="color:${f.color}">■</span> ${f.name}</span><span>${ppl} pessoas · ${facRegions(f).length} reg.${l?` · ${leaderLink(l)}`:''}${st?' · '+st:''}</span></div>${factionDetail(f)}`;}).join('')}</div>`;
 }
 
 // =====================================================================
@@ -4517,7 +4520,7 @@ function renderIsland(){
       <div class="row"><span>Próxima era ${NE?`(${NE.e} ${NE.name})`:''}</span><span>${nextKeys}</span></div>
       <div style="margin-top:2px">${[...world.disc].map(id=>{const d=DISC.find(x=>x.id===id);return `<span class="chip" title="${d.name}">${d.e}</span>`;}).join('')||'<span class="hint">nenhuma descoberta ainda</span>'}</div></div>
     ${regionFac(activeRegion())?`<div class="row" style="margin-top:6px"><span>🏴 Povo</span><span><span style="color:${regionFac(activeRegion()).color}">■</span> ${regionFac(activeRegion()).name}${Object.keys(regionFac(activeRegion()).wars).filter(id=>facById(+id)).length?' · ⚔️ em guerra com '+Object.keys(regionFac(activeRegion()).wars).filter(id=>facById(+id)).map(id=>facById(+id).name).join(', '):''}</span></div>`:''}
-    <div class="row"><span>👑 Governo</span><span>${byId(world.gov.leader)?`${N(byId(world.gov.leader))} · ${govTitle()}`:'ninguém lidera'}</span></div>
+    <div class="row"><span>👑 Governo</span><span>${byId(world.gov.leader)?`${leaderLink(byId(world.gov.leader))} · ${govTitle()}`:'ninguém lidera'}</span></div>
     <div class="row"><span>🍖 Reserva da tribo</span><span>${world.reserva} porções</span></div>
     <div class="row"><span>🔥 Fogo</span><span>${!has('fogo')?'ainda não descoberto':world.fireOut?'apagado!':'aceso'}</span></div>
     <div class="row"><span>💖 Mais querido(a) · 😠 menos</span><span>${loved?N(loved):'—'} · ${hated?N(hated):'—'}</span></div>
@@ -5488,7 +5491,7 @@ function livroReliquias(){const L=world.relics||[];if(!L.length)return '<div cla
   return `<div class="box"><b>🏺 ${String(r.nome).replace(/</g,'&lt;')}</b> <span class="hint">· ano ${r.dia}</span><br>${dono}</div>`;}).join('');}
 function livroPovos(){const L=facs().filter(f=>f.alive);if(!L.length)return '<div class="hint">Ainda não há povos organizados.</div>';
   return L.map(f=>{const pop=facRegions(f).reduce((s,r)=>s+regionPop(r.id),0),l=byId(facGov(f).leader),c=facCult(f);const gue=Object.keys(f.wars||{}).map(id=>facById(+id)).filter(Boolean).map(x=>x.name);
-    return `<div class="box"><b><span style="color:${f.color}">●</span> ${f.name}</b> <span class="hint">· ${pop.toLocaleString('pt-BR')} hab. · ${facRegions(f).length} região(ões)${l?` · ${facTitle(f)}: ${l.name}${l.surname?' '+l.surname:''}`:''}${gue.length?' · ⚔️ em guerra com '+gue.join(', '):''}</span>${factionDetail(f)}${c.lingua?`<div class="hint" style="margin-left:12px">🗣️ Língua: ${c.lingua}${c.religiao?` · 🙏 ${c.religiao}`:''}</div>`:''}</div>`;}).join('');}
+    return `<div class="box"><b><span style="color:${f.color}">●</span> ${f.name}</b> <span class="hint">· ${pop.toLocaleString('pt-BR')} hab. · ${facRegions(f).length} região(ões)${l?` · ${facTitle(f)}: ${leaderLink(l,l.name+(l.surname?' '+l.surname:''))}`:''}${gue.length?' · ⚔️ em guerra com '+gue.join(', '):''}</span>${factionDetail(f)}${c.lingua?`<div class="hint" style="margin-left:12px">🗣️ Língua: ${c.lingua}${c.religiao?` · 🙏 ${c.religiao}`:''}</div>`:''}</div>`;}).join('');}
 // ---- Livro: busca, autoteste e pular anos
 const escH=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let livroBusca='';
