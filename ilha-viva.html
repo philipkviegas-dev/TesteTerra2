@@ -1484,7 +1484,7 @@ function doActivity(n,k){
   if(world.droughtUntil>day&&A.food)chance-=0.15;
   heat(k,1);
   if(Math.random()<chance){
-    if(A.food){const y=Math.max(1,Math.round(A.food*(has('ferramentas')?1.3:1)*(k==='pescar'&&has('barcos')?1.5:1)*lugMul(A.place)));gainFood(n,y,false);}
+    if(A.food){const y=Math.max(1,Math.round(A.food*(has('ferramentas')?1.3:1)*(k==='pescar'&&has('barcos')?1.5:1)*lugMul(A.place)*(k==='pescar'?({seco:.4,alagado:.6})[lugEst('rio')]||1:1)));gainFood(n,y,false);}
     if(A.kp)world.kp+=A.kp*(1+n.skill[k]/150)*(1+0.4*T(n,'curiosidade'))*(n.isChild?0.5:1);
     if(A.shelter)world.shelter=Math.min(world.shelter+1,10+NPCS.length);
     if(A.fun)nd.diversao=clamp(nd.diversao+A.fun);
