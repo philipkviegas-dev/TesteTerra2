@@ -52,6 +52,9 @@
   .bar{height:7px;background:#f0e6d6;border-radius:6px;overflow:hidden;margin:1px 0 5px}
   .bar>i{display:block;height:100%;transition:width .5s ease;background-image:linear-gradient(#fff4,#0002)}
   .bar>i.crit{animation:critPulse 1s ease-in-out infinite}
+  .bar>i:not(.crit){background-image:linear-gradient(100deg,transparent 40%,#fff6 50%,transparent 60%),linear-gradient(#fff4,#0002);background-size:220% 100%,100% 100%;background-repeat:no-repeat;animation:barShine 3.2s linear infinite}
+  @keyframes barShine{from{background-position:130% 0,0 0}to{background-position:-30% 0,0 0}}
+  @media (prefers-reduced-motion:reduce){.bar>i:not(.crit){animation:none}}
   @keyframes critPulse{50%{filter:brightness(1.5) saturate(1.4)}}
   .tbar{position:relative;height:9px;background:#f0e6d6;border-radius:6px;margin:1px 0 5px}
   .tbar:after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:#cbb89a}
@@ -1824,6 +1827,7 @@ function morningLife(n){
   if(n.kids.length)g-=n.kids.length*1.5;
   n.family=clamp(n.family+Math.max(0,g)+rnd(0,2));
   n.desejo=Math.min(n.partner?100:80,(n.desejo||0)+(n.partner?rnd(18,32):rnd(6,10))+10*T(n,'confianca')-(n.hurt?15:0)-(n.ageDays>ELDER_AGE?12:0));
+  if(n.luto&&day-n.luto<5){n.desejo=0;if(day-n.luto===3)think(n,'Ainda sinto a casa vazia sem ele(a)...','🥀');}
   if(n.family>=50&&!n.familyThought){n.familyThought=1;think(n,n.partner?`Eu queria ter filhos com ${(nameAnyId(n.partner)||"alguém")}.`:'Às vezes penso em ter filhos... deixar algo meu no mundo.','👶');}
   if(!n.partner){if(n.ex){const e=byId(n.ex);if(!e||e.dead||e.partner){n.ex=null;}else if((n.rel[e.id]||0)>55&&(e.rel[n.id]||0)>55&&Math.random()<0.03){n.partner=e.id;e.partner=n.id;n.ex=e.ex=null;log('big',`💞 ${N(n)} e ${N(e)} voltaram a ficar juntos.`,[n.id,e.id]);[n,e].forEach(x=>{shape(x,'confianca',3,'reconciliação');remember(x,`voltei com ${(x===n?e:n).name}`,8,(x===n?e:n).id);});weekNote('couple',`${n.name} e ${e.name} reataram`);}}return;}
   const p=byId(n.partner);if(!p){n.partner=null;return;}
@@ -1901,7 +1905,7 @@ function die(n,cause,where){
     else{if(R_){R_.dono=null;R_.donoNome='enterrada';}log('big',`🏺 <b>${n.relic}</b> foi enterrada com ${n.name}, sem herdeiros.`,[]);}}catch(e){console.error(e);}}
   const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));
   close.forEach(o=>{
-    if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);}
+    if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);o.luto=day;o.desejo=0;}
     else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);}
     else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);}
     else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);}
