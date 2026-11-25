@@ -49,7 +49,9 @@
   .name{font-weight:700}
   #info{font-size:14px}
   .bar{height:7px;background:#f0e6d6;border-radius:6px;overflow:hidden;margin:1px 0 5px}
-  .bar>i{display:block;height:100%}
+  .bar>i{display:block;height:100%;transition:width .5s ease;background-image:linear-gradient(#fff4,#0002)}
+  .bar>i.crit{animation:critPulse 1s ease-in-out infinite}
+  @keyframes critPulse{50%{filter:brightness(1.5) saturate(1.4)}}
   .tbar{position:relative;height:9px;background:#f0e6d6;border-radius:6px;margin:1px 0 5px}
   .tbar:after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:#cbb89a}
   .tbar>i{position:absolute;top:0;bottom:0;border-radius:6px}
@@ -4642,7 +4644,7 @@ cv.addEventListener('wheel',e=>{e.preventDefault();if(started&&view==='regiao'){
 cv.onclick=e=>{if(MZ.moved){MZ.moved=false;return;}const [x,y]=evXY(e);
   if(view==='mapa'||!started){const pk=mapPick(e);if(pk.war){mapWar={a:pk.war.a,b:pk.war.b};mapSel=MAP.regions[pk.war.a.capital]||mapSel;renderInfo();}else if(pk.r){mapWar=null;mapSel=pk.r;renderInfo();}return;}
   const n=hereNPCs().find(n=>Math.hypot(n.x-x,n.y-8-y)<26);if(n)follow(n);else if(mode==='morador')showIsland();};
-function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i style="width:${clamp(v)}%;background:${c}"></i></div>`;}
+function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i${v<25?' class="crit"':''} style="width:${clamp(v)}%;background-color:${c}"></i></div>`;}
 function tbar(n,k){const v=n.traits[k],pos=v>=0,w=Math.abs(v)/2;const lab=Math.abs(v)>=25?TRAITS[k][pos?0:1]:'—';const sv=n.sens[k],sm=sv>=1.6?' 🩹':sv<=0.6?' 🪨':'';
   return `<div class="row"><span>${TRAIT_NAMES[k]}${sm}</span><span>${lab}</span></div><div class="tbar"><i style="left:${pos?50:50-w}%;width:${w}%;background:${pos?'#6fcf97':'#ff8a80'}"></i></div>`;}
 let cardTab='ficha';
