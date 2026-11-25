@@ -4689,6 +4689,8 @@ cv.onclick=e=>{if(MZ.moved){MZ.moved=false;return;}const [x,y]=evXY(e);
 let hoverNpc=null;
 cv.addEventListener('mousemove',e=>{if(!started||view==='mapa'){if(hoverNpc){hoverNpc=null;}return;}const [x,y]=evXY(e);const n=hereNPCs().find(n=>Math.hypot(n.x-x,n.y-8-y)<26)||null;hoverNpc=n;cv.style.cursor=n?'pointer':'';});
 cv.addEventListener('mouseleave',()=>{hoverNpc=null;cv.style.cursor='';});
+const clickFx=[];cv.addEventListener('mousedown',e=>{if(!started||view==='mapa')return;const [x,y]=evXY(e);clickFx.push({x,y,t0:performance.now()});if(clickFx.length>6)clickFx.shift();});
+function drawClickFx(){const now=performance.now();for(let i=clickFx.length-1;i>=0;i--){const f=clickFx[i],q=(now-f.t0)/500;if(q>=1){clickFx.splice(i,1);continue;}ctx.save();ctx.strokeStyle=`rgba(255,247,200,${.8*(1-q)})`;ctx.lineWidth=2.5*(1-q)+.5;ctx.beginPath();ctx.ellipse(f.x,f.y,6+q*22,(6+q*22)*.45,0,0,7);ctx.stroke();ctx.restore();}}
 function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i${v<25?' class="crit"':''} style="width:${clamp(v)}%;background-color:${c}"></i></div>`;}
 function tbar(n,k){const v=n.traits[k],pos=v>=0,w=Math.abs(v)/2;const lab=Math.abs(v)>=25?TRAITS[k][pos?0:1]:'—';const sv=n.sens[k],sm=sv>=1.6?' 🩹':sv<=0.6?' 🪨':'';
   return `<div class="row"><span>${TRAIT_NAMES[k]}${sm}</span><span>${lab}</span></div><div class="tbar"><i style="left:${pos?50:50-w}%;width:${w}%;background:${pos?'#6fcf97':'#ff8a80'}"></i></div>`;}
@@ -5970,7 +5972,7 @@ function qualAjusta(dt){if(QL>=2||speed>1||paused||document.hidden||dt>200)retur
 function loop(t){
   const raw=Math.min(50,t-last)/16.67;qualAjusta(t-last);last=t;
   if(!paused){const t0=performance.now();for(let i=0;i<speed;i++){update(raw);if(i>=1&&performance.now()-t0>14)break;}DORM.pump(BOOKWAIT?40:speed>=20?12:7);}
-  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}try{drawVinheta();}catch(e){}}
+  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}try{drawClickFx();}catch(e){}try{drawVinheta();}catch(e){}}
   hudClock();
   if(++tick%15===0){if(!paused||tick%60===0){const inf=document.getElementById('info'),st=inf?inf.scrollTop:0;renderInfo();if(inf)inf.scrollTop=st;}hudUpdate();}
   requestAnimationFrame(loop);

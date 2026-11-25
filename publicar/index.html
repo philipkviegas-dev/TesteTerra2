@@ -92,6 +92,8 @@
   .panel,details.panel{position:relative;background:linear-gradient(var(--parch),var(--parch2));border:3px solid #1b110a;border-radius:16px;box-shadow:inset 0 0 0 3px var(--gold2),inset 0 0 18px #c9962b55,0 6px 0 #0006;padding:12px 14px}
   details.panel>summary{cursor:pointer;list-style:none;font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;letter-spacing:.4px;display:flex;align-items:center;gap:6px;margin:-12px -14px;padding:8px 14px;border-radius:12px;background:linear-gradient(var(--navy2),var(--navy));color:var(--gold);text-shadow:0 2px 0 #000a}
   details.panel>summary b{font-weight:400}
+  .pill{transition:filter .15s,transform .15s}
+  .pill:hover{filter:brightness(1.15);transform:translateY(-1px)}
   details.panel>summary{transition:filter .15s}
   details.panel>summary:hover{filter:brightness(1.18)}
   details.panel>summary:active{filter:brightness(.92)}
@@ -1826,7 +1828,7 @@ function morningLife(n){
   if(!n.partner)return;
   const p=byId(n.partner);if(!p){n.partner=null;return;}
   n.coupleDays++;
-  if(n.rel[p.id]<10&&p.rel[n.id]<25){log('big',`💔 ${N(n)} e ${N(p)} se separaram.`,[n.id,p.id]);n.partner=p.partner=null;[n,p].forEach(x=>{shape(x,'confianca',-6,'separação');remember(x,'me separei',9);});return;}
+  if(n.rel[p.id]<10&&p.rel[n.id]<25){log('big',`💔 ${N(n)} e ${N(p)} se separaram.`,[n.id,p.id]);n.partner=p.partner=null;[n,p].forEach(x=>{shape(x,'confianca',-6,'separação');remember(x,`me separei de ${(x===n?p:n).name}`,9,(x===n?p:n).id);});weekNote('separacao',`${n.name} e ${p.name} se separaram`);[n,p].forEach(x=>x.kids.map(byId).filter(k=>k&&!k.isChild&&k!==n&&k!==p).forEach(k=>{think(k,'Meus pais se separaram...','💔');remember(k,`meus pais ${n.name} e ${p.name} se separaram`,7);}));return;}
   if(n.expecting){n.expecting--;if(n.expecting===0)birth(n,p);}
 }
 function birth(mom,dad){
@@ -3679,6 +3681,7 @@ function chronicle(){
   const cm=by('cometa');if(cm.length)parts.push(cm[cm.length-1].text);const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
   const ct=by('catastrofe');if(ct.length)parts.push('tragédia: '+[...new Set(ct.map(x=>x.text))].slice(-3).join('; '));
+  const sp_=by('separacao');if(sp_.length)parts.push(`${sp_.length} casal(is) se separaram`);
   const pe=by('peste');if(pe.length)parts.push(pe[pe.length-1].text);
   const es=by('esporte');if(es.length)parts.push(es.slice(-2).map(x=>x.text).join('; '));
   const bk=by('economia');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
@@ -4624,6 +4627,7 @@ function drawWorld(t){
   if(dark>0){ctx.fillStyle=`rgba(20,20,70,${dark})`;ctx.fillRect(0,0,W,H);if(!chuva){const k=Math.min(1,(dark-.12)/.3);if(k>0){ctx.fillStyle='#fff';for(let i=0;i<QN(40);i++){ctx.globalAlpha=k*(.35+.45*Math.abs(Math.sin((t||0)/900+i*1.7)));const x=(i*149.3)%W,y=(i*71.9)%(H*.45);ctx.fillRect(x,y,1.6+(i%3)*.5,1.6+(i%3)*.5);}ctx.globalAlpha=1;{const cy=((t||0)/1000)%9;if(cy<.9&&!chuva){ctx.save();const q=cy/.9,seed=Math.floor((t||0)/9000),sx=(seed*263)%(W*.7)+W*.2-q*0,x0=sx+q*170,y0=40+(seed*97)%(H*.25)+q*80;const gr=ctx.createLinearGradient(x0,y0,x0-90,y0-38);gr.addColorStop(0,`rgba(255,255,255,${k*(1-q)})`);gr.addColorStop(1,'rgba(255,255,255,0)');ctx.strokeStyle=gr;ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0-90,y0-38);ctx.stroke();ctx.restore();}}
   if(started&&season().name!=='Inverno'&&(activeRegion()||{}).mainBiome!=='deserto'){for(let i=0;i<QN(14);i++){const x=(i*173+Math.sin((t||0)/1300+i*2.1)*40+(t||0)/60)%W,y=H*.35+((i*97)%(H*.6))+Math.cos((t||0)/1100+i)*18,br=.5+.5*Math.sin((t||0)/500+i*3.3);if(br<.25)continue;const g=ctx.createRadialGradient(x,y,0,x,y,7);g.addColorStop(0,`rgba(230,255,120,${.9*br*k})`);g.addColorStop(1,'rgba(230,255,120,0)');ctx.fillStyle=g;ctx.fillRect(x-7,y-7,14,14);}}}}
   for(const id in PLACES){const p=PLACES[id],es=lugEst(id);if(es==="devastado"||es==="queimado")continue;const g=ctx.createRadialGradient(p.x,p.y+8,2,p.x,p.y+8,52);g.addColorStop(0,`rgba(255,205,110,${Math.min(.6,dark*1.4)})`);g.addColorStop(1,"rgba(255,205,110,0)");ctx.fillStyle=g;ctx.fillRect(p.x-56,p.y-44,112,104);}
+  if(started&&has('fogo')&&!world.fireOut&&(dark>0.05||season().name==='Inverno')){ctx.save();for(const id in PLACES){const p=PLACES[id],es=lugEst(id);if(es==='devastado'||es==='queimado')continue;for(let i=0;i<3;i++){const q=(((t||0)/2600)+i/3+p.x*.013)%1;ctx.globalAlpha=.22*Math.sin(q*Math.PI);ctx.fillStyle='#cfd4da';ctx.beginPath();ctx.arc(p.x+16+Math.sin(q*5+p.y)*5+q*10,p.y-34-q*38,3+q*7,0,7);ctx.fill();}}ctx.restore();}
     if(has('fogo')&&!world.fireOut&&!has('eletricidade')){const g=ctx.createRadialGradient(500,360,10,500,360,150);g.addColorStop(0,'rgba(255,170,60,.45)');g.addColorStop(1,'rgba(255,170,60,0)');ctx.fillStyle=g;ctx.fillRect(350,210,300,300);}}
 }
 function drawNPC(n,t){
@@ -4685,6 +4689,8 @@ cv.onclick=e=>{if(MZ.moved){MZ.moved=false;return;}const [x,y]=evXY(e);
 let hoverNpc=null;
 cv.addEventListener('mousemove',e=>{if(!started||view==='mapa'){if(hoverNpc){hoverNpc=null;}return;}const [x,y]=evXY(e);const n=hereNPCs().find(n=>Math.hypot(n.x-x,n.y-8-y)<26)||null;hoverNpc=n;cv.style.cursor=n?'pointer':'';});
 cv.addEventListener('mouseleave',()=>{hoverNpc=null;cv.style.cursor='';});
+const clickFx=[];cv.addEventListener('mousedown',e=>{if(!started||view==='mapa')return;const [x,y]=evXY(e);clickFx.push({x,y,t0:performance.now()});if(clickFx.length>6)clickFx.shift();});
+function drawClickFx(){const now=performance.now();for(let i=clickFx.length-1;i>=0;i--){const f=clickFx[i],q=(now-f.t0)/500;if(q>=1){clickFx.splice(i,1);continue;}ctx.save();ctx.strokeStyle=`rgba(255,247,200,${.8*(1-q)})`;ctx.lineWidth=2.5*(1-q)+.5;ctx.beginPath();ctx.ellipse(f.x,f.y,6+q*22,(6+q*22)*.45,0,0,7);ctx.stroke();ctx.restore();}}
 function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i${v<25?' class="crit"':''} style="width:${clamp(v)}%;background-color:${c}"></i></div>`;}
 function tbar(n,k){const v=n.traits[k],pos=v>=0,w=Math.abs(v)/2;const lab=Math.abs(v)>=25?TRAITS[k][pos?0:1]:'—';const sv=n.sens[k],sm=sv>=1.6?' 🩹':sv<=0.6?' 🪨':'';
   return `<div class="row"><span>${TRAIT_NAMES[k]}${sm}</span><span>${lab}</span></div><div class="tbar"><i style="left:${pos?50:50-w}%;width:${w}%;background:${pos?'#6fcf97':'#ff8a80'}"></i></div>`;}
@@ -5269,7 +5275,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',economia:'economia',catastrofe:'catastrofe',esporte:'esporte',peste:'catastrofe'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',economia:'economia',catastrofe:'catastrofe',esporte:'esporte',peste:'catastrofe',separacao:'amor'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
@@ -5722,7 +5728,9 @@ function opinioesYear(){
     else if(o.v>=50){if(L&&L!==n)relate(n,L,1);if(Math.random()<.03){think(n,`Vivo bem sob este governo. Tenho muito a perder.`,'🥳');}}
   }
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
-  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3)F.humor=Math.round(reg[k].s/reg[k].c);}
+  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3){const ant=F.humor==null?0:F.humor;F.humor=Math.round(reg[k].s/reg[k].c);
+    if(ant>-30&&F.humor<=-30){log('big',`😠 O povo de ${F.name} está descontente com o governo.`,[]);weekNote('gov',`o povo de ${F.name} ficou descontente com o governo`);}
+    else if(ant<=-30&&F.humor>-10){log('',`🙂 O povo de ${F.name} se acalmou com o governo.`,[]);weekNote('gov',`o povo de ${F.name} se acalmou`);}}}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 function fichaSentimentos(n){
   let pares=[];try{const pop={};
@@ -5964,7 +5972,7 @@ function qualAjusta(dt){if(QL>=2||speed>1||paused||document.hidden||dt>200)retur
 function loop(t){
   const raw=Math.min(50,t-last)/16.67;qualAjusta(t-last);last=t;
   if(!paused){const t0=performance.now();for(let i=0;i<speed;i++){update(raw);if(i>=1&&performance.now()-t0>14)break;}DORM.pump(BOOKWAIT?40:speed>=20?12:7);}
-  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}try{drawVinheta();}catch(e){}}
+  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}try{drawClickFx();}catch(e){}try{drawVinheta();}catch(e){}}
   hudClock();
   if(++tick%15===0){if(!paused||tick%60===0){const inf=document.getElementById('info'),st=inf?inf.scrollTop:0;renderInfo();if(inf)inf.scrollTop=st;}hudUpdate();}
   requestAnimationFrame(loop);
