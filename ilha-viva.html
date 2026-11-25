@@ -2677,6 +2677,7 @@ function fabulaChance(n,p){
   if(['liderar','lei','governo','exercito'].includes(p.acao)){const x=popularity(n)/150;parts.push(['popularidade',x]);c+=x;
     const f=facOf(n);if(f&&facGov(f).leader===n.id){parts.push(['é quem governa',0.2]);c+=0.2;}else if(p.acao!=='liderar'){parts.push(['não manda no povo',-0.1]);c-=0.1;}}
   if((p.acao==='guerra'||p.acao==='paz')&&!facs().some(f=>f.alive&&facGov(f).leader===n.id)){parts.push(['não governa nenhum povo (vai tentar liderar antes)',-0.45]);c-=0.45;}
+  if(p.acao==='guerra'){const mf=facs().find(f=>f.alive&&facGov(f).leader===n.id);if(mf&&!facs().some(f=>f.alive&&f!==mf)){parts.push(['não há outro povo para combater',-0.45]);c-=0.45;}}
   if(p.acao==='exercito'&&world.era<1){parts.push(['ainda não há quem lute em formação',-0.2]);c-=0.2;}
   if(p.acao==='projeto'&&p.catg==='fantasia'){const x=Math.min(0.2,(world.arcano||0)/150)-0.3;parts.push(['o impossível ainda é raro',x]);c+=x;}
   if(p.acao==='filho'&&!n.partner){parts.push(['não tem companheiro(a)',-0.4]);c-=0.4;}
