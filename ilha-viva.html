@@ -5783,7 +5783,7 @@ function sentimentosYear(){
     for(let i=0;i<2;i++){
       const b=m[(Math.random()*m.length)|0];if(!b||b===a||b.isChild||b._dead)continue;
       const rab=a.rel[b.id]||0;
-      if(T(a,'bondade')>0.6&&rab<=-10&&rab>-45&&Math.random()<.04){relate(a,b,6);relate(b,a,3);remember(a,`perdoei ${b.name}`,5,b.id);remember(b,`${a.name} me perdoou`,5,a.id);if(logs++<3)log('dna',`🕊️ ${N(a)} perdoou ${N(b)}.`,[a.id,b.id]);continue;}
+      if(T(a,'bondade')>0.6&&rab<=-10&&rab>-45&&Math.random()<.04){relate(a,b,6);relate(b,a,3);remember(a,`perdoei ${b.name}`,5,b.id);remember(b,`${a.name} me perdoou`,5,a.id);shape(b,'bondade',1,'foi perdoado');if(logs++<3)log('dna',`🕊️ ${N(a)} perdoou ${N(b)}.`,[a.id,b.id]);continue;}
       const s=sentimento(a,b);if(!s)continue;
       const nb=N(b);
       if(s.k==='amizade'){relate(a,b,2);relate(b,a,1);
