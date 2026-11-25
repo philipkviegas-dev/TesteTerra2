@@ -4611,7 +4611,7 @@ function drawNPC(n,t){
   if(mode==='morador'&&selected===n){ctx.strokeStyle='#ff7a59';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19,8,0,0,7);ctx.stroke();}
   if(n.bubble){ctx.fillStyle='#fff';ctx.strokeStyle='#00000025';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+19,y-36,14,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+9,y-21,3,0,7);ctx.fill();ctx.font='16px serif';ctx.fillText(n.bubble,x+19,y-30);}
   const crowd=hereNPCs().length>25;
-  if(n.sayT>0&&n.say&&(!crowd||n===selected||parseInt(n.id.slice(1))%4===0)){ctx.font='600 12px "Baloo 2"';const sx=n.say.length>36?n.say.slice(0,35)+'…':n.say,w=ctx.measureText(sx).width+16;ctx.fillStyle='#fff';ctx.strokeStyle='#ff7a5988';rr(x-w/2,y-78,w,23,10);ctx.fill();ctx.stroke();ctx.fillStyle='#3b2f2a';ctx.fillText(sx,x,y-62);}
+  if(n.sayT>0&&n.say&&(!crowd||n===selected||parseInt(n.id.slice(1))%4===0)){ctx.font='600 12px "Baloo 2"';const sx=n.say.length>36?n.say.slice(0,35)+'…':n.say,w=ctx.measureText(sx).width+16;ctx.save();ctx.globalAlpha*=Math.min(1,n.sayT/25);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#ff7a5988';rr(x-w/2,y-78,w,23,10);ctx.fill();ctx.stroke();ctx.shadowColor='transparent';ctx.beginPath();ctx.moveTo(x-5,y-55.5);ctx.lineTo(x+5,y-55.5);ctx.lineTo(x,y-49);ctx.closePath();ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText(sx,x,y-62);ctx.restore();}
   if(s!==1)ctx.restore();
   if(n.task==='encontro'){ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('💞',n.x,n.y-56);}
   if(n.expecting){ctx.font='13px serif';ctx.textAlign='center';ctx.fillText('🍼',n.x-20,n.y-2);}
@@ -4974,8 +4974,8 @@ function disastersYear(){if(world.winter&&day>=world.winter.until){log('big','�
       const k=killIn(new Set(fresh),0.55,'atacado(a) pelos insetos');d.dead=(d.dead||0)+k.dead;fresh.forEach(id=>flee(id,'os insetos chegaram'));
       // os humanos contra-atacam pelas fronteiras
       let retaken=0;const strength=facs().filter(f=>f.alive).reduce((s,f)=>s+facStrength(f),0);
-      const bugs=d.sev*15000*(1+nxt.size/40)*(age<5?3:1);const human=strength*tech/(strength*tech+bugs);
-      [...nxt].forEach(id=>{const r=MAP.regions[id];const front=r.nb.some(o=>!MAP.regions[o].insect&&regionPop(o)>0);if(front&&Math.random()<Math.min(0.35,0.3*human)){r.insect=false;nxt.delete(id);retaken++;}});
+      const bugs=d.sev*Math.min(15000,2.5*strength*tech+30)*(1+nxt.size/40)*(age<5?3:1);const human=strength*tech/(strength*tech+bugs);
+      [...nxt].forEach(id=>{const r=MAP.regions[id];const front=r.nb.some(o=>!MAP.regions[o].insect&&regionPop(o)>0)||regionPop(id)>0; /* quem sobrou na própria região também resiste */if(front&&Math.random()<Math.min(0.35,0.3*human)){r.insect=false;nxt.delete(id);retaken++;}});
       d.regions=[...nxt];world.facDirty=true;
       if(fresh.length||retaken)log('big',`🪲 Guerra contra os insetos: ${fresh.length} região(ões) caíram${k.dead?` e ${k.dead} pessoas morreram`:''}; os humanos retomaram ${retaken}.`,[]);
       if(!d.regions.length){d.done=true;log('big',`🏆 <b>Os insetos foram expulsos!</b> A fenda em ${MAP.regions[d.origin].name} se fechou depois de ${age} anos. ${d.dead||0} pessoas morreram nessa guerra.`,[]);worldSay('A humanidade sobreviveu ao outro mundo. Por enquanto.','deuz');
