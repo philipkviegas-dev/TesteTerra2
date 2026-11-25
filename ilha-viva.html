@@ -2751,6 +2751,7 @@ function launch(n,cmd){
   log('fabula',`✨ <b>Fábula</b> · ${cmd.auto?'meta de ':'comando para '}${N(n)}: “${cmd.text}” → ${msg}`,[n.id].concat(alvo?[alvo.id]:[]));
   if(!cmd.auto)setFabOut(`✨ ${n.name}: ${msg} <button class="sug" onclick="fabCancelar('${n.id}')">✖ Cancelar</button>`);
 }
+function fabRepetir(){const u=window._fabUlt,n=u&&byId(u.id);if(!n)return;fabulaCommand(n,u.text);}
 function fabCancelar(id){const n=byId(id);if(!n||!n.cmd)return;const c=n.cmd;n.cmd=null;n.cmdQueue=[];n.task=null;think(n,'Ah, então deixa pra lá.','🤷');log('',`✖ O comando “${c.text}” para ${N(n)} foi cancelado.`,[n.id]);setFabOut(`✖ Comando cancelado. ${n.name} voltou à vida normal.`);decide(n);}
 function fabulaResolve(n){
   const cmd=n.cmd;n.cmd=null;const A=FAB[cmd.acao],t=byId(cmd.alvo);
@@ -2894,7 +2895,7 @@ function fabulaResolve(n){
   if(n.meta)n.meta.prog+=val?35:10;
   const entry={type:'fabula',text:`✨ ${val?'🌞':'🌧️'} <b>${N(n)}</b>: ${res} <span class="hint">(${Math.round(cmd.chance*100)}% de chance · marcado como ${val?'positivo':'negativo'} na memória)</span>`,who:[n.id].concat(t?[t.id]:[]),time:clockStr()};
   logData.unshift(entry);renderLog();
-  if(!cmd.auto)setFabOut(`${val?'🌞':'🌧️'} ${res}`);
+  if(!cmd.auto){window._fabUlt={id:n.id,text:cmd.text};setFabOut(`${val?'🌞':'🌧️'} ${res} <button class="sug" onclick="fabRepetir()">🔁 De novo</button>`);}
   if(selected===n)fabSuggest(n);
   if(llmOn()){
     llm('Você é Fábula, a narradora de um jogo fofo e cômico estilo Tomodachi Life. Reescreva o resultado em 1 ou 2 frases curtas, divertidas, em português do Brasil. Não mude os fatos.',`Comando: "${cmd.text}". Resultado: ${res}`,false)
@@ -3817,14 +3818,15 @@ function relF(a,b){return a.rel[b.id]||0;}
 function setRelF(a,b,v){a.rel[b.id]=b.rel[a.id]=clamp(v,-100,100);}
 function atWar(a,b){return !!a.wars[b.id];}
 function bordering(a,b){return facRegions(a).some(r=>r.nb.some(id=>MAP.regions[id].faction===b.id)||(has('barcos')&&r.sea.some(id=>MAP.regions[id].faction===b.id)));}
+function novoLiderAlivia(f,n){if(n&&f.humor!=null&&f.humor<=-30){f.humor=Math.min(100,f.humor+25);thinkOnce(n,'O povo espera de mim o que o governo anterior não deu.');remember(n,'assumi o governo com o povo descontente',5);}}
 function setFacLeader(f,n){
-  if(f.id===0){setLeader(n,null);return;}
+  if(f.id===0){setLeader(n,null);novoLiderAlivia(f,n);return;}
   const g=f.gov,old=byId(g.leader);
   if(old&&old!==n&&old.role==='governante'){old.role=old.prevRole||null;old.prevRole=null;}
   if(n&&n.role!=='governante'){n.prevRole=n.role;n.role='governante';}
   g.leader=n?n.id:null;g.since=day;g.leaderName=n?fullName(n):null;
   try{dinastiaRegistra(f,n);}catch(e){console.error(e);}
-  if(n&&f.humor!=null&&f.humor<=-30){f.humor=Math.min(100,f.humor+25);thinkOnce(n,'O povo espera de mim o que o governo anterior não deu.');remember(n,'assumi o governo com o povo descontente',5);}
+  novoLiderAlivia(f,n);
 }
 // facções escolhem seus líderes (a facção do jogador usa as conversas da tribo)
 function facLeaders(){
