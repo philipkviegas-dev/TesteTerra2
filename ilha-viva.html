@@ -3827,7 +3827,7 @@ function setRelF(a,b,v){a.rel[b.id]=b.rel[a.id]=clamp(v,-100,100);}
 function atWar(a,b){return !!a.wars[b.id];}
 function bordering(a,b){return facRegions(a).some(r=>r.nb.some(id=>MAP.regions[id].faction===b.id)||(has('barcos')&&r.sea.some(id=>MAP.regions[id].faction===b.id)));}
 function diagPovos(){RC.dirty=true;RC.tick=-1;const t=facs().filter(f=>f.alive).map(f=>({povo:f.name,regime:f.regime,humor:f.humor,queixa:f.queixa||'',protestos:f.protestos||0,ultimoProtesto:f.ultProtesto||'',lider:(()=>{const l=byId(f.gov&&f.gov.leader);return l?l.name:'ninguém';})(),anosNoCargo:f.gov&&f.gov.leader!=null?day-(f.gov.since||0):'',pessoas:facPeople(f).length}));console.table(t);return t;}
-function novoLiderAlivia(f,n){if(n&&f.humor!=null&&f.humor<=-30){f.humor=Math.min(100,f.humor+25);thinkOnce(n,'O povo espera de mim o que o governo anterior não deu.');remember(n,'assumi o governo com o povo descontente',5);}}
+function novoLiderAlivia(f,n){if(n&&(n.memories||[]).some(x=>/fui derrubado/.test(x.text||''))){n.memories=n.memories.filter(x=>!/fui derrubado/.test(x.text||''));remember(n,'voltei ao poder depois de ser derrubado(a)',9);thinkOnce(n,'Voltei ao poder. Desta vez não deixo escapar.');shape(n,'ambicao',1,'voltou ao poder');log('big',`👑 ${n.name} volta ao governo de ${f.name} depois de ter sido derrubado(a).`,[n.id]);weekNote('gov',`${n.name} voltou ao governo de ${f.name}`);}if(n&&f.humor!=null&&f.humor<=-30){f.humor=Math.min(100,f.humor+25);thinkOnce(n,'O povo espera de mim o que o governo anterior não deu.');remember(n,'assumi o governo com o povo descontente',5);}}
 function setFacLeader(f,n){
   if(f.id===0){setLeader(n,null);novoLiderAlivia(f,n);return;}
   const g=f.gov,old=byId(g.leader);
