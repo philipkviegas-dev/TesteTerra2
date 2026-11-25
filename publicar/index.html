@@ -5787,6 +5787,7 @@ function sentimentosYear(){
       const b=m[(Math.random()*m.length)|0];if(!b||b===a||b.isChild||b._dead)continue;
       const rab=a.rel[b.id]||0;
       if(T(a,'bondade')>0.6&&rab<=-10&&rab>-45&&Math.random()<.04){relate(a,b,6);relate(b,a,3);remember(a,`perdoei ${b.name}`,5,b.id);remember(b,`${a.name} me perdoou`,5,a.id);shape(b,'bondade',1,'foi perdoado');if(logs++<3)log('dna',`🕊️ ${N(a)} perdoou ${N(b)}.`,[a.id,b.id]);continue;}
+      if(a.saudade&&day-a.saudade.dia<=10&&rab>=30&&a.melhorAmigo!==b.id&&Math.random()<.25){relate(a,b,5);relate(b,a,4);remember(a,`${b.name} me consolou pela perda de ${a.saudade.nome}`,6,b.id);remember(b,`consolei ${a.name}, que perdeu ${a.saudade.nome}`,5,a.id);shape(b,'bondade',1,'consolou um amigo');if(logs++<3)log('dna',`🤗 ${N(b)} consolou ${N(a)} pela perda de ${a.saudade.nome}.`,[a.id,b.id]);continue;}
       const s=sentimento(a,b);if(!s)continue;
       const nb=N(b);
       if(s.k==='amizade'){relate(a,b,2);relate(b,a,1);
