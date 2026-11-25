@@ -5691,6 +5691,12 @@ function opinioesYear(){
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
   let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
+function fichaSentimentos(n){
+  let pares=[];try{const pop={};
+    pares=Object.entries(n.rel).filter(([id,v])=>Math.abs(v)>=10&&byId(id)).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,8)
+      .map(([id])=>{const o=byId(id),s=sentimento(n,o);return s?`${o.name} ${s.e} ${s.k}`:null;}).filter(Boolean);}catch(e){}
+  let g='';try{const o=opiniaoGov(n),r=opiniaoRot(o.v);g=`<div class="hint">🏛️ Governo e economia: ${r.e} ${r.t}${o.m.length?' ('+o.m.slice(0,3).join(', ')+')':''}</div>`;}catch(e){}
+  return `<div class="hint">💭 Sentimentos: ${pares.join(' · ')||'—'}</div>${g}`;}
 // [S51] CASAS (nomes de família), DINASTIAS, LINHA DO TEMPO, RESUMO DAS ERAS E LIVRO DO MUNDO
 // Cada pessoa nasce numa Casa; os 10 fundadores começam com Casas diferentes.
 // =====================================================================
