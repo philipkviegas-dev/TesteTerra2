@@ -4349,7 +4349,7 @@ function factionsHTML(){
   const mine=facById(regionFac(activeRegion())?regionFac(activeRegion()).id:0);
   return `<div style="margin-top:6px"><b style="font-size:14px">🏴 Povos e facções</b>${(()=>{const al=facs().filter(f=>f.alive);return al.length>10?`<div class="hint">os 10 maiores de ${al.length} povos</div>`:'';})()}${facs().filter(f=>f.alive).map(f=>[f,facRegions(f).length]).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([f])=>{const l=byId(facGov(f).leader);const ppl=(facPeople(f).length+dormAdultsOf(f)+facRegions(f).reduce((s,r)=>s+(DORM.pop?DORM.pop[r.id]-DORM.ad[r.id]:0),0)).toLocaleString('pt-BR');
     const st=mine&&f!==mine?(atWar(f,mine)?'⚔️ em guerra':relF(f,mine)<-30?'😠 tensão':relF(f,mine)>30?'🤝 amigos':'☮️ paz'):'';
-    return `<div class="row"><span><span style="color:${f.color}">■</span> ${facLink(f)}</span><span>${ppl} pessoas · ${facRegions(f).length} reg.${l?` · ${leaderLink(l)}`:''}${st?' · '+st:''}</span></div>${factionDetail(f)}`;}).join('')}</div>`;
+    return `<div class="row"><span><span style="color:${f.color}">■</span> ${facLink(f)}</span><span>${ppl} pessoas · ${facRegions(f).length} reg.${l?` · ${leaderLink(l)}`:''}${st?' · '+st:''}${f.humor==null?'':` · ${opiniaoRot(f.humor).e} povo ${opiniaoRot(f.humor).t}${f.humor<=-20&&f.queixa?` (queixa: ${f.queixa})`:''}`}</span></div>${factionDetail(f)}`;}).join('')}</div>`;
 }
 
 // =====================================================================
@@ -5747,13 +5747,13 @@ function opinioesYear(){
     if(n.isChild||n._dead)continue;
     const o=opiniaoGov(n),f=facOf(n);if(!f)continue;
     const g=facGov(f),L=g&&g.leader?byId(g.leader):null,k=f.id;
-    (reg[k]=reg[k]||{s:0,c:0});reg[k].s+=o.v;reg[k].c++;
+    (reg[k]=reg[k]||{s:0,c:0,mv:{}});reg[k].s+=o.v;reg[k].c++;if(o.v<=-20)o.m.forEach(t=>{if(!/^(governa|gosta|tem voz|vive bem|conta com|liberdade)/.test(t))reg[k].mv[t]=(reg[k].mv[t]||0)+1;});
     if(o.v<=-45){if(L&&L!==n)relate(n,L,-2);shape(n,'confianca',-1,'descontente com o governo');
       if(Math.random()<.04){think(n,`O governo me abandonou: ${o.m.slice(0,2).join(', ')}.`,'😠');remember(n,`estou revoltado(a) com o governo (${o.m[0]||'tudo'})`,6);if(nlog++<2)log('dna',`😠 ${N(n)} se revolta contra o governo (${o.m[0]||'descontente'}).`,[n.id]);}}
     else if(o.v>=50){if(L&&L!==n)relate(n,L,1);if(Math.random()<.03){think(n,`Vivo bem sob este governo. Tenho muito a perder.`,'🥳');}}
   }
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
-  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3){const ant=F.humor==null?0:F.humor;F.humor=Math.round(reg[k].s/reg[k].c);
+  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3){const ant=F.humor==null?0:F.humor;F.humor=Math.round(reg[k].s/reg[k].c);F.queixa=Object.entries(reg[k].mv).sort((x,y)=>y[1]-x[1]).map(x=>x[0])[0]||null;
     if(ant>-30&&F.humor<=-30){log('big',`😠 Em ${F.name} o povo está descontente com o governo.`,[]);weekNote('gov',`ficou descontente com o governo (${F.name})`);}
     else if(ant<=-30&&F.humor>-10){log('',`🙂 Em ${F.name} o povo se acalmou com o governo.`,[]);weekNote('gov',`se acalmou com o governo (${F.name})`);}
     else if(ant<40&&F.humor>=40){log('',`🎉 Em ${F.name} o povo está feliz com o governo e faz festa.`,[]);weekNote('festa',`fez festa em ${F.name}, satisfeito com o governo`);NPCS.forEach(n=>{if(!n._dead&&!n.isChild&&facOf(n)===F)n.needs.diversao=clamp(n.needs.diversao+5);});}}}
