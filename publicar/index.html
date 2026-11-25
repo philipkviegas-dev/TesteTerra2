@@ -1892,7 +1892,7 @@ function rollDeath0(n){
 }
 function die(n,cause,where){
   try{armaMorre(n);}catch(e){}try{if(here(n))sfx('morte');}catch(e){}
-  world.deadNames[n.id]=n.name;world.deaths++;weekNote('death',n.name);if(!n.isChild&&((n.fame)||popularity(n)>30))setNews(`${n.name} morreu.`,`Ainda não acredito que ${n.name} se foi.`,'🕯️');
+  world.deadNames[n.id]=n.name;world.deaths++;weekNote('death',n.name);try{LEARN.chr('death',`${n.name} morreu${cause?' de '+cause:''} aos ${Math.round(n.ageDays||0)} anos${n.fame?', '+n.fame:''}`);}catch(e){}if(!n.isChild&&((n.fame)||popularity(n)>30))setNews(`${n.name} morreu.`,`Ainda não acredito que ${n.name} se foi.`,'🕯️');
   const heirs=n.kids.map(byId).filter(x=>x&&!x.isChild);
   if(heirs.length){const f=Math.floor(n.food/heirs.length),c=Math.floor(n.coins/heirs.length);heirs.forEach(h=>{h.food+=f;h.coins+=c;});if(n.items.length){heirs[0].items.push(...n.items.filter(k=>!heirs[0].items.includes(k)));}}
   else world.reserva=Math.min(resCap(),world.reserva+n.food);
@@ -5734,6 +5734,8 @@ function opiniaoGov(n){ // -100..100 + motivos; suavizada em n.opin
   if(has('moeda')&&hasLaw(f,'imposto')){const pt=patrimonio(n);if(pt>25){v-=7;m.push('paga tributo pesado');}}
   if(hasLaw(f,'partilha')&&n.needs&&(n.needs.fome<55||(has('moeda')&&patrimonio(n)<4))){v+=6;m.push('conta com o celeiro comum');}
   if(hasLaw(f,'castigo')&&(T(n,'coragem')>.6||(n.crimes||0)>0)){v-=6;m.push('teme os castigos duros');}
+  if(hasLaw(f,'servico')&&T(n,'coragem')<.4&&!n.isChild){v-=5;m.push('teme o serviço de guerra');}
+  if(hasLaw(f,'assembleia')&&T(n,'sociabilidade')>.5){v+=4;m.push('tem voz na assembleia');}
   const fe=(f.laws||[]).length;if(fe>=3&&T(n,'ambicao')>.6){v-=6;m.push('leis demais');}
   v=clamp(Math.round(v),-100,100);
   n.opin=Math.round((n.opin==null?v:n.opin*.6+v*.4));
