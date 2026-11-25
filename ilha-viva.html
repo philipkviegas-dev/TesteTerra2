@@ -650,7 +650,8 @@ function shape(n,trait,amt,reason){
     think(n,MILESTONE[trait+sign],'🧬');remember(n,`percebi que sou ${label}`,8);}
   else if(!sign&&n.labels[trait]&&Math.abs(nv)<15)delete n.labels[trait];
 }
-function remember(n,text,imp,who){if(!n)return;if(imp==null){try{imp=estoriaWeigh(text).imp;}catch(e){imp=6;}}if(imp>=4)estoriaLog(n,text,imp);n.memories.unshift({text,imp,day,who});if(n.memories.length>30){n.memories.sort((a,b)=>b.imp-a.imp);n.memories.length=25;}}
+const EST_RUIM=/\b(traiu|trai|humilhou|amea[cç]ou|mentiu|menti|boato|provocou|perdi|quebrou|quebrei|estraguei|queimou|nunca me pagou|enrolou|descuido|calote|n[aã]o paguei|escondi)\b/i,EST_BOA=/\b(ajudou|ajudei|presente|consolou|consolei|perdoou|perdoei|cuidou|cuidei|homenageou|cozinhei|pagou|paguei|quitei|contei hist[oó]rias|descobri um|fundei)\b/i;
+function remember(n,text,imp,who,noLearn){if(!n)return;if(!noLearn){try{const r=EST_RUIM.test(text),b=EST_BOA.test(text);if(r!==b)LEARN.teachE(text,r?'ruim':'boa');}catch(e){}}if(imp==null){try{imp=estoriaWeigh(text).imp;}catch(e){imp=6;}}if(imp>=4)estoriaLog(n,text,imp);n.memories.unshift({text,imp,day,who});if(n.memories.length>30){n.memories.sort((a,b)=>b.imp-a.imp);n.memories.length=25;}}
 function think(n,text,e){if(!n)return;thinkOnce(n,text,e);}
 function thinkRaw(n,text,e){if(!n)return;if(world.active!=null&&!here(n)){n.lastThought=text;return;}n.bubble=e||'💭';n.bubbleT=150;log('think',`💭 ${N(n)}: “${text}”`,[n.id]);}
 function say(n,text){if(n){n.say=text;n.sayT=170;}}
@@ -2692,8 +2693,8 @@ function launch(n,cmd){
 function fabulaResolve(n){
   const cmd=n.cmd;n.cmd=null;const A=FAB[cmd.acao],t=byId(cmd.alvo);
   const ok=Math.random()<cmd.chance;let res='';
-  const pos=(txt,imp=8)=>{LEARN.teachE(txt,'boa');remember(n,txt,imp,t&&t.id);n.lastCmd={ok:true,text:txt};};
-  const neg=(txt,imp=8)=>{LEARN.teachE(txt,'ruim');remember(n,txt,imp,t&&t.id);n.lastCmd={ok:false,text:txt};};
+  const pos=(txt,imp=8)=>{LEARN.teachE(txt,'boa');remember(n,txt,imp,t&&t.id,true);n.lastCmd={ok:true,text:txt};};
+  const neg=(txt,imp=8)=>{LEARN.teachE(txt,'ruim');remember(n,txt,imp,t&&t.id,true);n.lastCmd={ok:false,text:txt};};
   if(!cmd.possivel){res=`${n.name} tentou “${cmd.text}”, mas ninguém nesta era sabe o que é isso. Ficou só uma ideia estranha na cabeça.`;world.kp+=4;shape(n,'curiosidade',3,'teve uma ideia à frente do seu tempo');neg('tentei algo que ainda não existe',6);}
   else if(A.target&&!t){res=`${n.name} não encontrou quem procurava.`;neg('procurei alguém e não achei',4);}
   else if(A.vida){FORCE_NEAR=true;try{if(ok){VIDA[A.vida].fx(n,t);res=A.ok(n,t);pos(res.replace(new RegExp(n.name,'g'),'eu'),7);}else{res=A.ko(n,t);neg(res.replace(new RegExp(n.name,'g'),'eu'),5);}}finally{FORCE_NEAR=false;}}
@@ -3447,7 +3448,7 @@ function drawMap(){
   if(borderImg){ctx.imageSmoothingEnabled=true;ctx.drawImage(borderImg,0,0,MW*CELL,MH*CELL);ctx.imageSmoothingEnabled=false;}
   const sel=mapSel||mapHover;const ZK=1/MZ.z; // marcadores e textos mantêm o tamanho na tela, sem crescer com o zoom
   if(sel){if(!sel._c){sel._c=[];for(let y=Math.max(0,sel.y-8);y<Math.min(MH,sel.y+9);y++)for(let x=Math.max(0,sel.x-8);x<Math.min(MW,sel.x+9);x++)if(MAP.reg[y*MW+x]===sel.id)sel._c.push(y*MW+x);}
-    ctx.fillStyle='rgba(255,255,255,.75)';sel._c.forEach(i=>ctx.fillRect((i%MW)*CELL,((i/MW)|0)*CELL,CELL+.5,CELL+.5));ctx.strokeStyle='#fff';ctx.lineWidth=2*ZK;ctx.beginPath();ctx.arc(sel.x*CELL,sel.y*CELL,9*ZK,0,7);ctx.stroke();}
+    ctx.fillStyle=`rgba(255,255,255,${(.62+.14*Math.sin(performance.now()/350)).toFixed(3)})`;sel._c.forEach(i=>ctx.fillRect((i%MW)*CELL,((i/MW)|0)*CELL,CELL+.5,CELL+.5));ctx.strokeStyle='#fff';ctx.lineWidth=2*ZK;ctx.beginPath();ctx.arc(sel.x*CELL,sel.y*CELL,9*ZK,0,7);ctx.stroke();}
   // catástrofes no mapa
   if(MLAY.war&&activeDisasters().length){activeDisasters().forEach(d=>{const col=d.type==='insetos'?'rgba(120,20,160,.85)':d.type==='peste'?'rgba(20,20,20,.55)':'rgba(140,90,20,.6)';ctx.fillStyle=col;d.regions.forEach(id=>{const r=MAP.regions[id];ctx.fillRect(r.x*CELL-3*ZK,r.y*CELL-3*ZK,6*ZK,6*ZK);});});}
   // migrações recentes
@@ -5663,7 +5664,9 @@ function sentimentosYear(){
 // ---- sensações com política, governo e economia ----
 function opiniaoGov(n){ // -100..100 + motivos; suavizada em n.opin
   const f=facOf(n);if(!f)return{v:0,m:[]};
-  const g=facGov(f),L=g&&g.leader?byId(g.leader):null,cu=facCult(f).v,rg=regimeOf(f),m=[];let v=0;
+  const FC=opiniaoGov._c&&opiniaoGov._c.d===day?opiniaoGov._c:(opiniaoGov._c={d:day,f:{}});
+  const K=FC.f[f.id]||(FC.f[f.id]={g:facGov(f),cu:facCult(f).v,rg:regimeOf(f)});
+  const g=K.g,L=g&&g.leader?byId(g.leader):null,cu=K.cu,rg=K.rg,m=[];let v=0;
   if(L===n){v+=25;m.push('governa');}
   else if(L){const d=(n.rel[L.id]||0)*.35;v+=d;if(d>8)m.push('gosta do líder');else if(d<-8)m.push('detesta o líder');}
   else{v-=6;m.push('sem governo');}
