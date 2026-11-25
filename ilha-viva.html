@@ -1809,7 +1809,7 @@ function romance(a,b){
   if(Math.random()>0.25+0.5*T(a,'coragem')+a.family/250){if(Math.random()<.3)think(a,`Hoje eu falo pra ${b.name}... ou não. Que vergonha!`,'😳');shape(a,'coragem',-1,'não teve coragem de se declarar');return true;}
   say(a,`${b.name}... quer ficar comigo?`);
   const yes=Math.random()<((b.rel[a.id]||0)/100)*0.8+similarity(a,b)*0.3+b.family/300+(b.crush===a.id?0.4:0)-(b.crush&&b.crush!==a.id?0.4:0);
-  if(yes){setTimeout(()=>say(b,'Sim!! 💕'),700/speed);a.partner=b.id;b.partner=a.id;a.crush=b.crush=null;a.coupleDays=b.coupleDays=0;
+  if(yes){setTimeout(()=>say(b,'Sim!! 💕'),700/speed);a.partner=b.id;b.partner=a.id;a.crush=b.crush=null;a.coupleDays=b.coupleDays=0;ciumeEx(a,b);
     log('big',`💕 ${N(a)} se declarou e ${N(b)} aceitou! Agora são um casal.`,[a.id,b.id]);weekNote('couple',a.name);ciumeEx(a,b);b.home=a.home;setNews(`${a.name} e ${b.name} estão juntos!`,`Viu que ${a.name} e ${b.name} estão juntos?`,'💕');relate(a,b,15);relate(b,a,15);shape(a,'coragem',6,'se declarou e deu certo');shape(a,'confianca',5,'foi correspondido(a)');shape(b,'confianca',4,'foi amado(a)');
     remember(a,`fiquei junto com ${b.name}`,10,b.id);remember(b,`fiquei junto com ${a.name}`,10,a.id);
     NPCS.forEach(o=>{if(o.crush===a.id||o.crush===b.id){o.crush=null;think(o,'Meu coração tá partido.','💔');shape(o,'confianca',-6,'coração partido');}});}
@@ -3578,9 +3578,9 @@ function courtship(){
     if(!opts.length)return;
     const b=opts.sort((x,y)=>((a.rel[y.id]||0)+similarity(a,y)*40)-((a.rel[x.id]||0)+similarity(a,x)*40))[0];
     relate(a,b,4);relate(b,a,3);
-    if(b.region!==a.region){if(Math.random()<.25+((a.rel[b.id]||0)+(b.rel[a.id]||0))/300){const [m,f2]=a.sex==='M'?[a,b]:[b,a];const from=regionOf(f2).name;f2.region=m.region;f2.home=m.home;RC.dirty=true;if(!here(f2)){f2.x=-9999;f2.y=-9999;}a.partner=b.id;b.partner=a.id;a.crush=b.crush=null;a.coupleDays=b.coupleDays=0;remember(a,`me casei com ${b.name}`,10,b.id);remember(b,`me casei com ${a.name}`,10,a.id);weekNote('couple',a.name);log('',`💍 ${N(f2)} saiu de ${from} para viver com ${N(m)} em ${regionOf(m).name}.`,[a.id,b.id]);aiSay('tea',`${f2.name} e ${m.name} uniram famílias de dois povoados.`,[a.id,b.id]);}}
+    if(b.region!==a.region){if(Math.random()<.25+((a.rel[b.id]||0)+(b.rel[a.id]||0))/300){const [m,f2]=a.sex==='M'?[a,b]:[b,a];const from=regionOf(f2).name;f2.region=m.region;f2.home=m.home;RC.dirty=true;if(!here(f2)){f2.x=-9999;f2.y=-9999;}a.partner=b.id;b.partner=a.id;a.crush=b.crush=null;a.coupleDays=b.coupleDays=0;ciumeEx(a,b);remember(a,`me casei com ${b.name}`,10,b.id);remember(b,`me casei com ${a.name}`,10,a.id);weekNote('couple',a.name);log('',`💍 ${N(f2)} saiu de ${from} para viver com ${N(m)} em ${regionOf(m).name}.`,[a.id,b.id]);aiSay('tea',`${f2.name} e ${m.name} uniram famílias de dois povoados.`,[a.id,b.id]);}}
     else if(here(a)){if(Math.random()<.35)romance(a,b);}
-    else if(Math.random()<.2+((a.rel[b.id]||0)+(b.rel[a.id]||0))/400){a.partner=b.id;b.partner=a.id;a.crush=b.crush=null;a.coupleDays=b.coupleDays=0;b.home=a.home;remember(a,`fiquei junto com ${b.name}`,10,b.id);remember(b,`fiquei junto com ${a.name}`,10,a.id);log('',`💕 Em ${regionOf(a).name}, ${N(a)} e ${N(b)} viraram um casal.`,[a.id,b.id]);weekNote('couple',a.name);}
+    else if(Math.random()<.2+((a.rel[b.id]||0)+(b.rel[a.id]||0))/400){a.partner=b.id;b.partner=a.id;a.crush=b.crush=null;a.coupleDays=b.coupleDays=0;ciumeEx(a,b);b.home=a.home;remember(a,`fiquei junto com ${b.name}`,10,b.id);remember(b,`fiquei junto com ${a.name}`,10,a.id);log('',`💕 Em ${regionOf(a).name}, ${N(a)} e ${N(b)} viraram um casal.`,[a.id,b.id]);weekNote('couple',a.name);}
   });
 }
 function intimacyNight(){
