@@ -2724,8 +2724,18 @@ function fabCorrigir(cls){
   LEARN.teach('FAB',a.text,cls,1);
   setFabOut(`✅ Entendi: ${FAB[cls].label}. Fábula aprendeu com a sua correção.`);
 }
+// comando sem nome de ninguém: o personagem escolhe o alvo mais natural para aquela ação
+function alvoPadrao(n,acao){
+  const L=members(n.region).filter(o=>o!==n&&!o._dead&&!o.dead&&!o.preso);const rel=o=>n.rel[o.id]||0;
+  const adulto=L.filter(o=>!o.isChild),ord=(a,f)=>a.slice().sort((x,y)=>f(y)-f(x))[0]||null;
+  if(!L.length)return null;
+  if(acao==='declarar')return byId(n.crush)||ord(adulto.filter(o=>!o.partner&&o.sex!==n.sex&&!related(n,o)),rel)||null;
+  if(acao==='desculpas'||acao==='brigar'||acao==='roubar'||acao==='humilhar')return ord(L,o=>-rel(o));
+  if(acao==='amizade')return ord(L.filter(o=>rel(o)<60),rel);
+  return ord(L,rel);}
 function startCommand(n,p,text,auto){
   if(n.preso){if(!auto)setFabOut(`⛓️ ${n.name} está preso(a) por ${n.preso.motivo} e não pode cumprir ordens.`);return;}
+  if(FAB[p.acao].target&&!p.alvo){try{const o=alvoPadrao(n,p.acao);if(o){p={...p,alvo:o};if(!auto)setFabOut(`🎯 Você não disse quem. ${n.name} escolheu <b>${o.name}</b>.`);}}catch(e){}}
   const A=FAB[p.acao],{chance,parts}=fabulaChance(n,p);
   const cmd={text,acao:p.acao,alvo:p.alvo&&p.alvo.id,funcao:p.funcao&&p.funcao.id,chance,parts,possivel:p.possivel,falta:p.falta,auto,motivo:p.motivo,ajuste:p.ajuste||0,det:p.det||0,tent:p.tent||0,ia:p.ia,efeito:p.efeito,nome:p.nome};
   if(n.cmd){n.cmdQueue=(n.cmdQueue||[]).slice(0,2);n.cmdQueue.push(cmd);if(!auto)setFabOut(`⏳ ${n.name} ainda está ocupado(a). O comando entrou na fila (${n.cmdQueue.length}).`);return;}
@@ -2878,6 +2888,7 @@ function fabulaResolve(n){
     default:if(ok){shape(n,'confianca',4,'fez o que queria');res=`${n.name} fez o que foi pedido: “${cmd.text}”. E deu certo.`;pos(`fiz: ${cmd.text}`);}else{shape(n,'confianca',-3,'não conseguiu');res=`${n.name} tentou: “${cmd.text}”. Não saiu como esperado.`;neg(`tentei: ${cmd.text}`,6);}
   }
   const val=n.lastCmd&&n.lastCmd.ok;
+  if(!cmd.auto)try{say(n,val?R(['Consegui! 🎉','Missão cumprida! ✨','Deu certo!! 😄','Fácil! 😎']):R(['Ai... não deu 😓','Droga... 😖','Foi mal, falhei 🙈','Não saiu como eu queria 💦']));if(t&&val&&A.target)setTimeout(()=>{try{say(t,R(['😮','Uau!','Hm... 🤔']));}catch(e){}},900/speed);}catch(e){}
   if(val)shape(n,'confianca',2,'um comando que marcou bem');else shape(n,'confianca',-2,'um comando que marcou mal');
   if(n.meta)n.meta.prog+=val?35:10;
   const entry={type:'fabula',text:`✨ ${val?'🌞':'🌧️'} <b>${N(n)}</b>: ${res} <span class="hint">(${Math.round(cmd.chance*100)}% de chance · marcado como ${val?'positivo':'negativo'} na memória)</span>`,who:[n.id].concat(t?[t.id]:[]),time:clockStr()};
@@ -5784,7 +5795,7 @@ function opinioesYear(){
   let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3){const ant=F.humor==null?0:F.humor;F.humor=Math.round(reg[k].s/reg[k].c);F.queixa=Object.entries(reg[k].mv).sort((x,y)=>y[1]-x[1]).map(x=>x[0])[0]||null;
     if(ant>-30&&F.humor<=-30){log('big',`😠 Em ${F.name} o povo está descontente com o governo.`,[]);weekNote('gov',`ficou descontente com o governo (${F.name})`);}
     else if(ant<=-30&&F.humor>-10){log('',`🙂 Em ${F.name} o povo se acalmou com o governo.`,[]);weekNote('gov',`se acalmou com o governo (${F.name})`);}
-    else if(F.humor<=-45&&ant<=-45&&Math.random()<.2){const g=facGov(F),L=g&&g.leader?byId(g.leader):null;log('big',`📢 Protesto em ${F.name}: o povo vai às ruas${F.queixa?` por causa de “${F.queixa}”`:''}.`,[]);weekNote('gov',`houve protesto em ${F.name}${F.queixa?` (${F.queixa})`:''}`);NPCS.forEach(n=>{if(!n._dead&&!n.isChild&&facOf(n)===F&&n!==L&&(n.opin||0)<=-30){if(L)relate(n,L,-3);if(Math.random()<.3){thinkOnce(n,'Fui às ruas protestar. Quero ser ouvido.');remember(n,`protestei contra o governo${F.queixa?` (${F.queixa})`:''}`,3,L?L.id:undefined);shape(n,'coragem',1,'protestou');if(L&&!['republica','democracia'].includes(regimeOf(F))&&T(n,'ambicao')>.5&&T(n,'coragem')>.5){thinkOnce(n,`Se ${L.name} não escuta o povo, talvez outro devesse governar.`);remember(n,`pensei em tirar ${L.name} do poder`,4,L.id);}}}});if(L){thinkOnce(L,'O povo protesta contra mim. Preciso mudar algo, ou perco o lugar.');remember(L,'o povo foi às ruas contra o meu governo',5);}if(L&&g&&['republica','democracia'].includes(regimeOf(F))&&day-g.since>=2){g.since=-9999;log('',`🗳️ Pressionado pelas ruas, o governo de ${F.name} antecipa as eleições.`,[]);}if(world.tension<80)world.tension=clamp(world.tension+3);}
+    else if(F.humor<=-45&&ant<=-45&&Math.random()<.2){const g=facGov(F),L=g&&g.leader?byId(g.leader):null;log('big',`📢 Protesto em ${F.name}: o povo vai às ruas${F.queixa?` por causa de “${F.queixa}”`:''}.`,[]);weekNote('gov',`houve protesto em ${F.name}${F.queixa?` (${F.queixa})`:''}`);NPCS.forEach(n=>{if(!n._dead&&!n.isChild&&facOf(n)===F&&n!==L&&(n.opin||0)<=-30){if(L)relate(n,L,-3);if(Math.random()<.3){thinkOnce(n,'Fui às ruas protestar. Quero ser ouvido.');remember(n,`protestei contra o governo${F.queixa?` (${F.queixa})`:''}`,3,L?L.id:undefined);shape(n,'coragem',1,'protestou');if(L&&!['republica','democracia'].includes(regimeOf(F))&&T(n,'ambicao')>.5&&T(n,'coragem')>.5){thinkOnce(n,`Se ${L.name} não escuta o povo, talvez outro devesse governar.`);remember(n,`pensei em tirar ${L.name} do poder`,4,L.id);}}}});if(L){thinkOnce(L,'O povo protesta contra mim. Preciso mudar algo, ou perco o lugar.');remember(L,'o povo foi às ruas contra o meu governo',5);}if(L&&g&&['republica','democracia'].includes(regimeOf(F))&&day-g.since>=2){g.since=-9999;log('',`🗳️ Pressionado pelas ruas, o governo de ${F.name} antecipa as eleições.`,[]);}if(L&&g&&!['republica','democracia'].includes(regimeOf(F))&&popularity(L)<-25&&Math.random()<.4){g.leader=null;g.leaderName=null;if(L.role==='governante')L.role=L.prevRole||null;log('big',`✊ O povo derrubou ${L.name}, que governava ${F.name}.`,[L.id]);weekNote('gov',`derrubou ${L.name}, governante de ${F.name}`);remember(L,'fui derrubado(a) pelo povo',9);shape(L,'confianca',-4,'foi derrubado(a)');}if(world.tension<80)world.tension=clamp(world.tension+3);}
     else if(ant<40&&F.humor>=40){log('',`🎉 Em ${F.name} o povo está feliz com o governo e faz festa.`,[]);weekNote('festa',`fez festa em ${F.name}, satisfeito com o governo`);NPCS.forEach(n=>{if(!n._dead&&!n.isChild&&facOf(n)===F){n.needs.diversao=clamp(n.needs.diversao+5);if(Math.random()<.25){thinkOnce(n,'Que festa boa! Vale a pena viver aqui.');remember(n,'dancei na festa do povo',3);}}});}}}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 function fichaSentimentos(n){
