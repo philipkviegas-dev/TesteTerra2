@@ -3847,7 +3847,8 @@ function facLeaders(){
     if(f.id!==0&&sucessaoVaga(f))return;
     let ad=facPeople(f).filter(n=>!n.isChild);if(!ad.length){const rs=facRegions(f).filter(r=>DORM.ad&&DORM.ad[r.id]>0);if(!rs.length)return;const rr=rs.find(r=>r.id===f.capital)||rs[0];const c=DORM.hydrateOne(rr.id,i=>DORM.tr[i*NT+3]+DORM.tr[i*NT+2]+Math.random()*30);if(!c)return;ad=[c];}
     const cs=dinastiaCasa(f);const n=ad.sort((a,b)=>(popularity(b)+(cs&&b.surname===cs?12:0))-(popularity(a)+(cs&&a.surname===cs?12:0)))[0];setFacLeader(f,n);
-    log('',`👑 ${N(n)} passou a liderar ${f.name}.`,[n.id]);remember(n,`passei a liderar ${f.name}`,6);});
+    log('',`👑 ${N(n)} passou a liderar ${f.name}.`,[n.id]);remember(n,`passei a liderar ${f.name}`,6);
+    facPeople(f).filter(m=>m!==n&&!m.isChild&&T(m,'ambicao')>0.3).slice(0,3).forEach(m=>{relate(m,n,-1);remember(m,`${N(n)} virou líder de ${f.name} e não eu`,4,n.id);});});
 }
 // secessão: povoados distantes e insatisfeitos se separam
 function secession(){
