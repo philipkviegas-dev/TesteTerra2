@@ -1909,13 +1909,13 @@ function die(n,cause,where){
     if(herd&&!herd._dead){herd.relic=herd.relic||n.relic;if(herd.relic===n.relic){herd.fame=herd.fame||`herdeiro(a) de ${n.relic}`;if(R_){R_.dono=herd.id;R_.donoNome=herd.name;}
       log('big',`🏺 ${N(herd)} herdou <b>${n.relic}</b> de ${n.name}.`,[herd.id]);remember(herd,`herdei ${n.relic} de ${n.name}`,9,n.id);}}
     else{if(R_){R_.dono=null;R_.donoNome='enterrada';}log('big',`🏺 <b>${n.relic}</b> foi enterrada com ${n.name}, sem herdeiros.`,[]);}}catch(e){console.error(e);}}
-  const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));NPCS.forEach(x=>{if(x.melhorAmigo===n.id)close.add(x);});
+  const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));NPCS.forEach(x=>{if(x.melhorAmigo===n.id)close.add(x);});
   close.forEach(o=>{
     if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);o.luto=day;o.desejo=0;o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu(minha) companheiro(a)'};}
     else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);o.luto=day;if(!o.saudade)o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu pai/minha mãe'};}
     else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);o.luto=day;if(!o.saudade)o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu filho(a)'};}
     else if(o.melhorAmigo===n.id){think(o,`${n.name} era meu melhor amigo. Ninguém vai ocupar esse lugar.`,'🥀');shape(o,'confianca',-2,'perdeu o melhor amigo');remember(o,`perdi ${n.name}, meu melhor amigo`,9,n.id);o.luto=day;o.melhorAmigo=null;o.saudade={id:n.id,nome:n.name,dia:day};}
-    else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);}
+    else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);if((o.rel[n.id]||0)>=70&&!o.saudade)o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu(minha) grande amigo(a)'};}
     if(o.crush===n.id)o.crush=null;
   });
   try{(n.kids||[]).map(byId).filter(k=>k&&k.isChild&&!k._dead&&k.parents.every(id=>{const q=byId(id);return id===n.id||!q||q._dead||q.dead;})).forEach(k=>{
