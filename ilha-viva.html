@@ -4638,6 +4638,7 @@ function drawNPC(n,t){
   const s=n.isChild?0.7:1;
   if(s!==1){ctx.save();ctx.translate(n.x,n.y+20);ctx.scale(s,s);ctx.translate(-n.x,-n.y-20);}
   const bob=n.walking?Math.sin(t/90+n.x)*3:Math.sin(t/400)*1,x=n.x,y=n.y+bob;
+  const sq=n.walking?Math.sin(t/90+n.x+1.6)*.05:Math.sin(t/400+1.6)*.012;ctx.save();ctx.translate(n.x,n.y+22);ctx.scale(1-sq,1+sq);ctx.translate(-n.x,-n.y-22);
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(n.x,n.y+22,13,5,0,0,7);ctx.fill();
   if(hoverNpc===n){ctx.strokeStyle='rgba(255,247,200,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(n.x,n.y+22,18,7,0,0,7);ctx.stroke();}
   if(n.walking&&n.tx!=null){const dx=n.tx-n.x,dy=n.ty-n.y,d=Math.hypot(dx,dy)||1,ph=(t/260+n.x*.05)%1;ctx.fillStyle='rgba(235,225,200,.38)';for(let i=0;i<2;i++){const q=(ph+i*.5)%1;ctx.beginPath();ctx.arc(n.x-dx/d*(6+q*14),n.y+22-dy/d*(2+q*6)-q*4,2.6*(1-q)+.4,0,7);ctx.fill();}}
@@ -4664,6 +4665,7 @@ function drawNPC(n,t){
   if(n.bubble){const bb=Math.sin((t||0)/380+x*.05)*1.6;ctx.save();ctx.translate(0,bb);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#00000025';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+19,y-36,14,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+9,y-21,3,0,7);ctx.fill();ctx.shadowColor='transparent';ctx.font='16px serif';ctx.fillText(n.bubble,x+19,y-30);ctx.restore();}
   const crowd=hereNPCs().length>25;
   if(n.sayT>0&&n.say&&(!crowd||n===selected||parseInt(n.id.slice(1))%4===0)){ctx.font='600 12px "Baloo 2"';const sx=n.say.length>36?n.say.slice(0,35)+'…':n.say,w=ctx.measureText(sx).width+16;ctx.save();ctx.globalAlpha*=Math.min(1,n.sayT/25);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#ff7a5988';rr(x-w/2,y-78,w,23,10);ctx.fill();ctx.stroke();ctx.shadowColor='transparent';ctx.beginPath();ctx.moveTo(x-5,y-55.5);ctx.lineTo(x+5,y-55.5);ctx.lineTo(x,y-49);ctx.closePath();ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText(sx,x,y-62);ctx.restore();}
+  ctx.restore();
   if(s!==1)ctx.restore();
   if(n.task==='encontro'){ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('💞',n.x,n.y-56);}
   if(n.expecting){ctx.font='13px serif';ctx.textAlign='center';ctx.fillText('🍼',n.x-20,n.y-2);}
