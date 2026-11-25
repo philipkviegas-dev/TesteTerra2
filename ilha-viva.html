@@ -120,6 +120,12 @@
   .tl{border-bottom:1px dashed #cdb27a}
   ::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:#e9d9b4;border-radius:8px}::-webkit-scrollbar-thumb{background:linear-gradient(#c9962b,#8a6420);border:2px solid #e9d9b4;border-radius:8px}
   ::selection{background:#ffcf5c;color:#2b1d12}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:12px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:6px;background:linear-gradient(#a9873f,#e9d9b4);border:2px solid #1b110a}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b8,#e0a82e 60%,#a57a28);border:2px solid #1b110a;box-shadow:0 2px 0 #0005;transition:transform .15s}
+  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+  input[type=range]::-moz-range-track{height:8px;border-radius:6px;background:linear-gradient(#a9873f,#e9d9b4);border:2px solid #1b110a}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#e0a82e;border:2px solid #1b110a}
   #clock.tick{animation:clkTick .6s ease-out}
   @keyframes clkTick{0%{transform:scale(1.18);filter:brightness(1.4)}100%{transform:none;filter:none}}
   ::-webkit-scrollbar-thumb:hover{background:linear-gradient(#e0ae3f,#a57a28)}
@@ -1287,6 +1293,7 @@ function torneioRegiao(rid){ // a cada 4 anos, onde há gente suficiente pratica
   const g=espPago(w,pool*.6),g2=espPago(seg,pool*.25);const pw=spOf(w);pw.t++;pw.v++;pw.fama=Math.min(100,pw.fama+10);spOf(seg).fama=Math.min(100,seg.sp.fama+3);
   ps.slice(2).forEach(x=>{x.o.sp.fama=Math.min(100,x.o.sp.fama+1);x.o.sp.d++;shape(x.o,'coragem',-.2,'perdeu um torneio');});
   seg.sp.d++;seg.sp.rev=w.id;pw.rev=null;
+  weekNote('esporte',`${w.name} venceu o torneio de ${s.n} de ${regNome(rid)}`);
   remember(w,`venci o torneio de ${s.n} de ${regNome(rid)}`,8);remember(seg,`fui vice no torneio de ${s.n}`,6,w.id);think(w,'Campeão! Todo esse treino valeu a pena.','🏆');think(seg,`Fiquei em segundo... ano que vem ${w.name} não escapa.`,'😤');
   shape(w,'ambicao',1,'ganhou um torneio');ps.forEach(x=>{if(Math.random()<.5)espLesao(x.o,s,.7);});
   if(pw.t>=2&&!w.fame)w.fame=`campeão(ã) de ${s.n}`;
@@ -3663,6 +3670,7 @@ function chronicle(){
   const fe=by('festa');if(fe.length)parts.push(fe[fe.length-1].text);
   const cm=by('cometa');if(cm.length)parts.push(cm[cm.length-1].text);const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
+  const es=by('esporte');if(es.length)parts.push(es.slice(-2).map(x=>x.text).join('; '));
   const bk=by('bank');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
   const gov=by('gov');if(gov.length)parts.push(gov[gov.length-1].text);
   const occ=MAP?occupied().length:1;
@@ -5248,7 +5256,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',bank:'economia'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',bank:'economia',esporte:'esporte'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
