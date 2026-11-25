@@ -797,24 +797,26 @@ function setTask(n,task,place,action,bubble){
 }
 function decide(n){
   if(n.isChild)return childDecide(n);
-  if(n.preso){n.cmd=null;return setTask(n,'dormir',n.home,'preso(a) por '+n.preso.motivo,'⛓️');}
+  if(n.preso){n.cmd=null;return setTask(n,'dormir',n.home,'preso(a) por '+n.preso.motivo,'⛓️');} // (a cela não é escolha)
   if(n.cmd&&AI_RECUSA&&refuses(n))n.cmd=null;
   if(n.cmd&&!isNight()&&!n.hurt&&n.needs.fome>=8)return setTask(n,'comando',n.cmd.place,n.cmd.label,'✨');
   const nd=n.needs;
-  if(isNight())return setTask(n,'dormir',n.home,'dormindo','😴');
-  if(n.hurt>0)return setTask(n,'dormir',n.home,'se recuperando','🤕');
-  if(world.rodaUntil>now())return setTask(n,'roda','centro','na roda de conversa','🔥');
-  if(nd.energia<22)return setTask(n,'dormir',n.home,'indo descansar','🥱');
+  // reflexos e necessidades também passam pela rede neural (neuralGate): a necessidade pesa muito, mas a rede ainda escolhe e aprende
+  const GD=(k,v,go)=>({k,v,go}),inerte=()=>GD('parado',10,()=>setTask(n,'parado',n.home,'sem vontade de nada, quieto(a)','😶'));
+  if(isNight())return neuralGate(n,[GD('dormir',32,()=>setTask(n,'dormir',n.home,'dormindo','😴')),GD('parado',8,()=>setTask(n,'parado',n.home,'sem sono, acordado(a) no escuro','🌙'))]);
+  if(n.hurt>0)return neuralGate(n,[GD('dormir',34,()=>setTask(n,'dormir',n.home,'se recuperando','🤕')),inerte()]);
+  if(world.rodaUntil>now())return neuralGate(n,[GD('roda',30,()=>setTask(n,'roda','centro','na roda de conversa','🔥')),GD('parado',10,()=>setTask(n,'parado',n.home,'ficou de fora da roda','😶'))]);
+  if(nd.energia<22)return neuralGate(n,[GD('dormir',36,()=>setTask(n,'dormir',n.home,'indo descansar','🥱')),inerte()]);
   if(nd.fome<38){
     if(eat(n))n.bubble='😋';
-    else if(world.reserva>=1)return setTask(n,'comer','centro','indo comer da reserva da tribo','🍖');
+    else if(world.reserva>=1)return neuralGate(n,[GD('comer',36,()=>setTask(n,'comer','centro','indo comer da reserva da tribo','🍖')),GD('parado',10,()=>setTask(n,'parado',n.home,'com fome, mas sem ânimo','😶'))]);
     else{
       const rich=members(n.region).filter(o=>o!==n&&!o.isChild&&o.food>=3).sort((a,b)=>b.food-a.food)[0];
-      const opt=pickW([['buscar',35+30*T(n,'diligencia')],['pedir',rich?15+30*T(n,'sociabilidade')+25*T(n,'confianca'):0],['pegar',rich?(12-35*T(n,'bondade')+20*T(n,'coragem')+(nd.fome<15?20:0)):0]]);
-      if(opt==='pedir')return setTask(n,'pedir','centro','procurando alguém pra pedir comida','🥺');
-      if(opt==='pegar'){n.stealFrom=rich.id;think(n,`${rich.name} tem comida guardada... ninguém vai notar.`,'😈');return setTask(n,'pegar',rich.home,`indo pegar comida de ${rich.name}`,'🤫');}
-      const k=has('agricultura')&&n.skill.plantar>=n.skill.coletar?'plantar':R(regionAllows(activeRegion(),'mar')?['coletar','pescar']:['coletar']);
-      return setTask(n,'atividade:'+k,null,'procurando o que comer',ACTIVITIES[k].e);
+      const lw=w=>AI_TEMP*Math.log(Math.max(.05,w));
+      return neuralGate(n,[
+        GD('fome:buscar',lw(35+30*T(n,'diligencia')),()=>{const k=has('agricultura')&&n.skill.plantar>=n.skill.coletar?'plantar':R(regionAllows(activeRegion(),'mar')?['coletar','pescar']:['coletar']);return setTask(n,'atividade:'+k,null,'procurando o que comer',ACTIVITIES[k].e);}),
+        rich?GD('fome:pedir',lw(15+30*T(n,'sociabilidade')+25*T(n,'confianca')),()=>setTask(n,'pedir','centro','procurando alguém pra pedir comida','🥺')):null,
+        rich?GD('fome:pegar',lw(12-35*T(n,'bondade')+20*T(n,'coragem')+(nd.fome<15?20:0)),()=>{n.stealFrom=rich.id;think(n,`${rich.name} tem comida guardada... ninguém vai notar.`,'😈');return setTask(n,'pegar',rich.home,`indo pegar comida de ${rich.name}`,'🤫');}):null]);
     }
   }
   if(!AI_OLD)return scoreDecide(n);
@@ -878,8 +880,8 @@ function scoreDecide(n){
   const nd=n.needs,m=moodOf(n),role=roleOf(n),h=hour(),S=[],dil=T(n,'diligencia'),soc=T(n,'sociabilidade'),cor=T(n,'coragem'),cur=T(n,'curiosidade'),bon=T(n,'bondade');
   if(nd.fome<50&&n.food>=1)eat(n);
   const G=n.goals||[],gk=k=>G.find(g=>g.k===k),hab=n.hab||(n.hab={}),medo=medoPerder(n);
-  const add=(k,v,why,o)=>S.push({k,v:v+Math.min(10,(hab[k]||0)*.8),why,o});
-  let q=null;if(MENTE_ON&&typeof MENTE!=='undefined'&&MENTE){const tn=now();if(!n._q||tn-n._qt>90){n._q=menteQ(n);n._qt=tn;}q=n._q;LEARN.menteSettle(n);}let qm=0;if(q){for(let i=0;i<q.length;i++)qm+=q[i];qm/=q.length;}
+  let q=null;const add=(k,v,why,o)=>{if(q&&!k.startsWith('ativ:'))v+=menteX(q,k)*28;S.push({k,v:v+Math.min(10,(hab[k]||0)*.8),why,o});};
+  if(MENTE_ON&&typeof MENTE!=='undefined'&&MENTE){const tn=now();if(!n._q||tn-n._qt>90){n._q=menteQ(n);n._qt=tn;}q=n._q;LEARN.menteSettle(n);}let qm=0;if(q){for(let i=0;i<q.length;i++)qm+=q[i];qm/=q.length;}
   if(nd.energia<45)add('dormir',(60-nd.energia)*1.5+m.luto*5,'está cansado(a)');
   add('parado',6+(1-Math.min(1,nd.energia/60))*10+m.luto*40+Math.max(0,-dil)*10,m.luto>.3?'está de luto e quer ficar quieto(a)':m.vergonha>.3?'está envergonhado(a) e quer ficar na dele':'quer um momento de calma');
   if(nd.fome<65&&world.reserva>=1)add('comer',(65-nd.fome)*1.4,'está com fome');
@@ -919,7 +921,7 @@ function scoreDecide(n){
     add('ativ:'+k,v,why);
   }
   if(q){qs.sort((a,b)=>b[1]-a[1]);n.menteTop=qs.slice(0,3).map(x=>x[0]);}
-  if(AI_LIVRE){const fw=freeWill(n,S);if(fw){for(const k in hab)hab[k]*=.97;return doPick(n,fw,m);}}
+  if(AI_LIVRE){const fw=freeWill(n,S);if(fw){for(const k in hab)hab[k]*=.97;LEARN.menteMark(n,fw.k,q);n.neural=(n.neural||0)+1;return doPick(n,fw,m);}}
   const mx=Math.max(...S.map(s=>s.v));let tot=0;for(const s of S)tot+=(s.e=Math.exp((s.v-mx)/AI_TEMP));
   let r=Math.random()*tot,pick=S[S.length-1];for(const s of S){r-=s.e;if(r<=0){pick=s;break;}}
   for(const k in hab){hab[k]*=.97;if(hab[k]<.2)delete hab[k];}hab[pick.k]=Math.min(14,(hab[pick.k]||0)+1);
@@ -1549,7 +1551,7 @@ function whyNow(n){
 }
 function childDecide(n){
   const nd=n.needs;
-  if(isNight())return setTask(n,'dormir',n.home,'dormindo','😴');
+  if(isNight())return neuralGate(n,[{k:'dormir',v:32,go:()=>setTask(n,'dormir',n.home,'dormindo','😴')},{k:'parado',v:8,go:()=>setTask(n,'parado',n.home,'sem sono, acordado(a) no escuro','🌙')}]);
   if(nd.fome<40){
     const p=n.parents.map(byId).filter(Boolean).sort((a,b)=>b.food-a.food)[0];
     if(p&&p.food>=1){p.food--;nd.fome=100;n.bubble='🍼';}
@@ -1557,11 +1559,12 @@ function childDecide(n){
     else{nd.fome=60;n.bubble='😭';if(p&&Math.random()<.4){think(p,`Não tenho como alimentar ${n.name} direito...`,'😟');shape(p,'confianca',-2,'sem comida pro filho');}shape(n,'confianca',-2,'passou fome na infância');}
   }
   const p=n.parents.map(byId).filter(x=>x&&x.task!=='dormir')[0];
-  const opt=pickW([['brincar',40],['seguir',p?35:0],['explorar',15+20*T(n,'curiosidade')],['aprender',has('livros')?30:0]]);
-  if(opt==='seguir'){n.followId=p.id;return setTask(n,'seguir',p.target||p.home,`seguindo ${p.name}`,'🐣');}
-  if(opt==='explorar')return setTask(n,'atividade:explorar',null,'explorando','🧭');
-  if(opt==='aprender')return setTask(n,'atividade:experimentar',null,'na escola','🎒');
-  return setTask(n,'brincar',R(['centro','praia','campo']),'brincando','🪀');
+  const lw=w=>AI_TEMP*Math.log(Math.max(.05,w));
+  return neuralGate(n,[
+    {k:'crianca:brincar',v:lw(40),go:()=>setTask(n,'brincar',R(['centro','praia','campo']),'brincando','🪀')},
+    p?{k:'crianca:seguir',v:lw(35),go:()=>{n.followId=p.id;return setTask(n,'seguir',p.target||p.home,`seguindo ${p.name}`,'🐣');}}:null,
+    {k:'crianca:explorar',v:lw(15+20*T(n,'curiosidade')),go:()=>setTask(n,'atividade:explorar',null,'explorando','🧭')},
+    has('livros')?{k:'crianca:aprender',v:lw(30),go:()=>setTask(n,'atividade:experimentar',null,'na escola','🎒')}:null]);
 }
 
 // =====================================================================
@@ -4160,7 +4163,7 @@ function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.
     if(!has_&&val>=35){c.customs.push(cu.name);log('big',`🎭 Em ${f.name} surgiu um costume: <b>${cu.name}</b>.`,[]);weekNote('gov',`${f.name}: novo costume, ${cu.name}`);}
     else if(has_&&val<15){c.customs=c.customs.filter(x=>x!==cu.name);log('',`🎭 ${f.name} abandonou o costume "${cu.name}".`,[]);}});
   // quando se afasta muito da cultura de onde veio, vira outra cultura
-  if(c.parent!=null&&c.root&&cultDist(v,c.root)>45&&!c.renamed){c.renamed=true;const base=(cap?cap.name:f.name.replace(/^Povo de /,'')).replace(/[aeiou]$/,'');c.name=`Cultura ${base}ense`;
+  if(c.parent!=null&&c.root&&cultDist(v,c.root)>45&&!c.renamed){c.renamed=true;const base=(cap?cap.name:f.name.replace(/^(Povo de|Clã) /,'')).replace(/[aeiou]$/,'');c.name=`Cultura ${base}ense`;
     log('big',`🌱 ${f.name} já não vive como seus antepassados: nasce a <b>${c.name}</b>.`,[]);worldSay(`Depois de ${day-c.born} anos separados, ${f.name} tem costumes, leis e até nomes próprios. É uma nova cultura.`,'chronos');}}
 function ecoPressure(f){let w=1;MAP.regions.forEach(r=>{if(r.eco&&r.eco.m<w&&regionFac(r)===f)w=r.eco.m;});return w<0.6?(0.6-w)/0.35:0;} // 0..~1: quanto a natureza de suas terras está arruinada
 function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];if(L.id==='manejo'||L.id==='defeso'||L.id==='rodizio')s+=ecoPressure(f)*45;const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
@@ -5277,6 +5280,15 @@ function menteQ(n){const M=MENTE,x=menteFeat(n),h1=new Float32Array(M.H),h2=new 
   for(let j=0;j<M.H;j++){let v=M.b1[j];for(let i=0;i<M.D;i++)v+=x[i]*M.W1[i*M.H+j];h1[j]=v>0?v:0;}
   for(let j=0;j<M.H;j++){let v=M.b2[j];for(let i=0;i<M.H;i++)v+=h1[i]*M.W2[i*M.H+j];h2[j]=v>0?v:0;}
   for(let a=0;a<M.NA;a++){let v=M.b3[a];for(let i=0;i<M.H;i++)v+=h2[i]*M.W3[i*M.NA+a];q[a]=v;}M._h2=h2;q._h=h2;return q;}
+// camada extra da Mente: valor aprendido (online) de TODA decisao que nao e uma das atividades (dormir, comer, trabalho, brigar, roubar, encontro...). Zera no inicio; aprende com a experiencia de cada habitante do jogo.
+MENTE.NX=64;MENTE.WX=new Float32Array(MENTE.H*MENTE.NX);
+function menteSlot(k){return fnv(String(k).replace(/^ativ:/,''))%MENTE.NX;}
+function menteX(q,k){const h=q&&q._h;if(!h)return 0;const M=MENTE,sl=menteSlot(k);let v=0;for(let i=0;i<M.H;i++)v+=h[i]*M.WX[i*M.NX+sl];return v;}
+// portao neural: toda escolha do habitante (reflexo, necessidade, impulso) passa pela rede; so ordem do jogador (n.cmd) nao passa
+function neuralGate(n,opts){opts=opts.filter(o=>o&&o.v!=null);if(!opts.length)return;
+  let q=null;try{if(MENTE_ON&&MENTE){const tn=now();if(!n._q||tn-n._qt>90){n._q=menteQ(n);n._qt=tn;}q=n._q;LEARN.menteSettle(n);}}catch(e){}
+  let pick=opts[0];if(opts.length>1){const sc=opts.map(o=>o.v+(q?menteX(q,o.k)*28:0)),mx=Math.max(...sc);let tot=0;const e=sc.map(v=>(tot+=Math.exp((v-mx)/AI_TEMP),Math.exp((v-mx)/AI_TEMP)));let r=Math.random()*tot;for(let i=0;i<opts.length;i++){r-=e[i];if(r<=0){pick=opts[i];break;}}}
+  LEARN.menteMark(n,pick.k,q);n.neural=(n.neural||0)+1;return pick.go();}
 // escolhe o que fazer no tempo livre: valor aprendido + sonho/meta + um pouco de acaso
 function mentePick(n,w){LEARN.menteSettle(n);const q=menteQ(n),allowed=w.map(x=>x[0]).concat('socializar');const chuvaPesa=chovendo(),fomePesa=(n.food||0)<1&&n.needs.fome<45?(45-n.needs.fome)/45*1.6:0; // com fome e sem comida guardada, buscar comida pesa mais
   const sc=allowed.map(k=>{let v=q[MENTE_ACTS.indexOf(k)];if(fomePesa&&(k==='coletar'||k==='cacar'||k==='pescar'||k==='plantar'))v+=fomePesa;if(n.meta&&FAB[n.meta.acao].skill===k)v+=1.2;else if(n.dream&&n.dream.act===k)v+=0.8;v+=(({Inverno:{coletar:-.25,cacar:-.2,pescar:-.3,explorar:-.3,socializar:.2,arte:.2,experimentar:.1},'Verão':{pescar:.3,explorar:.15,cacar:.05}})[season().name]||{})[k]||0;if(chuvaPesa)v+=({coletar:-.35,cacar:-.45,pescar:-.3,lascar:-.3,explorar:-.4,socializar:.25,arte:.3,experimentar:.15,plantar:.1})[k]||0;return [k,v];});
@@ -5322,7 +5334,7 @@ const FAN_NET=makeNet({"classes": ["fogo_maos", "cura", "animais", "futuro", "cl
 const LEARN_BASE=null;//FIM_LEARN_BASE
 const LEARN=(()=>{
   const B=(typeof LEARN_BASE==='object'&&LEARN_BASE&&LEARN_BASE.v===1)?LEARN_BASE:null;
-  const KEY='iv_aprende',L={v:1,jogos:0,anos:0,nets:{},mente:{n:0,base:0,dW:null},tea:{F:[],M:[]}};
+  const KEY='iv_aprende',L={v:1,jogos:0,anos:0,nets:{},mente:{n:0,base:0,dW:null,dX:null},tea:{F:[],M:[]}};
   try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(o&&o.v===1){L.jogos=o.jogos||0;L.anos=o.anos||0;L.nets=o.nets||{};Object.assign(L.mente,o.mente||{});Object.assign(L.tea,o.tea||{});}}catch(e){}
   const NETS={FAB:FAB_NET,FAN:FAN_NET,EST:EST_NET,CHR:CHR_NET,DEUZ:DEUZ_NET,ARQ:ARQ_NET};
   const NOME={FAB:'Fábula',DEUZ:'Deuz',ARQ:'Arquiteto',EST:'Estoria',CHR:'Chronos',FAN:'Fantasy'};
@@ -5347,12 +5359,16 @@ const LEARN=(()=>{
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
   if(L.mente.dW&&L.mente.dW.length===MENTE.H*MENTE.NA)for(let i=0;i<L.mente.dW.length;i++)MENTE.W3[i]+=L.mente.dW[i];else L.mente.dW=null;
+  if(L.mente.dX&&L.mente.dX.length===MENTE.H*MENTE.NX)for(let i=0;i<L.mente.dX.length;i++)MENTE.WX[i]+=L.mente.dX[i];else L.mente.dX=null;
+  if(B&&B.mente&&B.mente.dX&&B.mente.dX.length===MENTE.H*MENTE.NX)for(let i=0;i<B.mente.dX.length;i++)MENTE.WX[i]+=B.mente.dX[i];
   if(B&&B.mente&&B.mente.dW&&B.mente.dW.length===MENTE.H*MENTE.NA)for(let i=0;i<B.mente.dW.length;i++)MENTE.W3[i]+=B.mente.dW[i];
   function menteSettle(n){try{const p=ML.get(n);if(!p)return;ML.delete(n);const M=MENTE,Ls=L.mente,r=avgNeeds(n)-p.s+Math.max(-.06,Math.min(.12,0.02*((n.food||0)-p.f)+0.012*(sumSk(n)-p.k))),adv=r-Ls.base;Ls.base+=(r-Ls.base)*0.02;
-    const G=Math.max(-1,Math.min(1,adv*6));let nn=1;for(let i=0;i<M.H;i++)nn+=p.h[i]*p.h[i];if(!Ls.dW)Ls.dW=new Array(M.H*M.NA).fill(0);
+    const G=Math.max(-1,Math.min(1,adv*6));let nn=1;for(let i=0;i<M.H;i++)nn+=p.h[i]*p.h[i];
+    if(p.a>=M.NA){const sl=p.a-M.NA;if(!Ls.dX)Ls.dX=new Array(M.H*M.NX).fill(0);for(let i=0;i<M.H;i++){const d=0.08*G*p.h[i]/nn;if(!d)continue;const ix=i*M.NX+sl,nv=Math.max(-1.5,Math.min(1.5,Ls.dX[ix]+d));M.WX[ix]+=nv-Ls.dX[ix];Ls.dX[ix]=nv;}Ls.n++;dirty=true;return;}
+    if(!Ls.dW)Ls.dW=new Array(M.H*M.NA).fill(0);
     for(let i=0;i<M.H;i++){const d=0.08*G*p.h[i]/nn;if(!d)continue;const ix=i*M.NA+p.a,nv=Math.max(-1.5,Math.min(1.5,Ls.dW[ix]+d));M.W3[ix]+=nv-Ls.dW[ix];Ls.dW[ix]=nv;}
     Ls.n++;dirty=true;}catch(e){}}
-  function menteMark(n,k,q){try{const a=MENTE_ACTS.indexOf(k),h=(q&&q._h)||MENTE._h2;if(a<0||!h){ML.delete(n);return;}ML.set(n,{a,h:Float32Array.from(h),s:avgNeeds(n),f:n.food||0,k:sumSk(n)});}catch(e){}}
+  function menteMark(n,k,q){try{k=String(k).replace(/^ativ:/,'');let a=MENTE_ACTS.indexOf(k);const h=(q&&q._h)||MENTE._h2;if(a<0&&MENTE.NX)a=MENTE.NA+menteSlot(k);if(a<0||!h){ML.delete(n);return;}ML.set(n,{a,h:Float32Array.from(h),s:avgNeeds(n),f:n.food||0,k:sumSk(n)});}catch(e){}}
   // Tea
   const sx=x=>x==='F'||x===1||x===true?'F':'M',limpa=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
   function applyTea(x,nm){const m=TEA_MODEL[x],s='^^'+nm+'$';for(let i=2;i<s.length;i++){const k=s.slice(i-2,i),c=s[i],d=m[k]||(m[k]={});d[c]=(d[c]||0)+2;}}
@@ -5361,7 +5377,7 @@ const LEARN=(()=>{
   if(B&&B.tea)for(const x of ['F','M'])(B.tea[x]||[]).forEach(nm=>applyTea(x,nm));
   function save(force){if(!dirty&&!force)return;const t=Date.now();if(!force&&t-lastSave<4000)return;lastSave=t;
     for(const k in L.nets){const S=L.nets[k],ks=Object.keys(S.w);if(ks.length>6000){ks.map(i=>[i,Math.max(...Object.values(S.w[i]).map(Math.abs))]).sort((a,b)=>a[1]-b[1]).slice(0,ks.length-5000).forEach(([i])=>delete S.w[i]);}}
-    try{const o=JSON.parse(JSON.stringify(L));if(o.mente.dW)o.mente.dW=o.mente.dW.map(v=>Math.round(v*1000)/1000);localStorage.setItem(KEY,JSON.stringify(o));dirty=false;}catch(e){}}
+    try{const o=JSON.parse(JSON.stringify(L));if(o.mente.dW)o.mente.dW=o.mente.dW.map(v=>Math.round(v*1000)/1000);if(o.mente.dX)o.mente.dX=o.mente.dX.map(v=>Math.round(v*1000)/1000);localStorage.setItem(KEY,JSON.stringify(o));dirty=false;}catch(e){}}
   function year(){L.anos++;budget={};try{const lds=[];if(world.gov&&world.gov.leader)lds.push(byId(world.gov.leader));(world.factions||[]).forEach(f=>{const g=facGov(f);if(g&&g.leader)lds.push(byId(g.leader));});lds.forEach(l=>{if(l&&!l._dead&&l.name)teaAdd(l.sex,l.name);});}catch(e){}save();}
   function ui(){const el=document.getElementById('lrnList');if(!el)return;const row=(a,b)=>`<div class="row"><span>${a}</span><span>${b}</span></div>`;
     let h=row('🎮 Jogos / anos vividos',`${L.jogos} / ${L.anos}`);
