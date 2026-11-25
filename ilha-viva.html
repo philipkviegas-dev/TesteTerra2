@@ -5339,7 +5339,7 @@ function fantasyChance(n,f){const a=world.arcano||0;let c=0.3-f.dif*0.04+Math.mi
 function regionMagic(r,f){/* o efeito vem só de quem aprendeu: ver sincMagia */if(typeof calcBfx==='function')calcBfx(r);}
 function fantasyAttempt(n,fid,byPlayer){const f=FEITO[fid];if(!f||!n)return null;if(tomK(f.tipo)<=0){if(byPlayer)log('',`🌍 Neste mundo ${f.tipo==='magia'?'não existe magia':'não existe supertecnologia'}: ${N(n)} não pode ${f.nome}.`,[n.id]);return false;}curAI='fantasy';
   try{const r=regionOf(n),p=fantasyChance(n,f),ok=Math.random()<p;world.fantasyTries=(world.fantasyTries||0)+1;
-  if(ok){regionMagic(r,f);try{darPoder(n,f);}catch(e){console.error(e);}world.arcano=(world.arcano||0)+1+f.dif*0.3;n.fame=n.fame||`${f.tipo==='magia'?'quem conseguiu':'quem inventou'} ${f.nome}`;world.famous=world.famous||{};world.famous[n.id]=1;
+  if(ok){try{LEARN.teach('FAN',f.nome,fid,0.3);}catch(e){}regionMagic(r,f);try{darPoder(n,f);}catch(e){console.error(e);}world.arcano=(world.arcano||0)+1+f.dif*0.3;n.fame=n.fame||`${f.tipo==='magia'?'quem conseguiu':'quem inventou'} ${f.nome}`;world.famous=world.famous||{};world.famous[n.id]=1;
     remember(n,`consegui ${f.nome}`,10);shape(n,'confianca',6,'fez o impossível');shape(n,'curiosidade',4,'fez o impossível');
     members(n.region).forEach(o=>{if(o!==n){remember(o,`vi ${n.name} ${f.nome}`,9,n.id);relate(o,n,8);}});
     const fc=facOf(n);if(fc){const v=facCult(fc).v;if(f.tipo==='magia')v.fe=clamp(v.fe+6,-100,100);else v.liberdade=clamp(v.liberdade+3,-100,100);}
