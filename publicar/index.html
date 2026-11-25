@@ -27,7 +27,8 @@
   .avatars{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;max-height:110px;overflow-y:auto}
   .avatars:empty{display:none}
   .av{display:flex;align-items:center;gap:4px;font-size:13px;padding:2px 8px 2px 4px}
-  .av i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .av i{width:12px;height:12px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1.5px #0004,inset 0 2px 2px #fff6}
+  .av.on i{box-shadow:0 0 0 2px var(--gold,#ffcf5c),0 0 6px #ffcf5c}
   .av.on{background:#3b2f2a;color:#fff;border-color:#3b2f2a}
   .tabs{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 8px}
   .tabs button{font-size:13px;padding:2px 8px}
@@ -49,7 +50,9 @@
   .name{font-weight:700}
   #info{font-size:14px}
   .bar{height:7px;background:#f0e6d6;border-radius:6px;overflow:hidden;margin:1px 0 5px}
-  .bar>i{display:block;height:100%}
+  .bar>i{display:block;height:100%;transition:width .5s ease;background-image:linear-gradient(#fff4,#0002)}
+  .bar>i.crit{animation:critPulse 1s ease-in-out infinite}
+  @keyframes critPulse{50%{filter:brightness(1.5) saturate(1.4)}}
   .tbar{position:relative;height:9px;background:#f0e6d6;border-radius:6px;margin:1px 0 5px}
   .tbar:after{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:#cbb89a}
   .tbar>i{position:absolute;top:0;bottom:0;border-radius:6px}
@@ -77,6 +80,7 @@
   button{font-family:'Baloo 2',sans-serif;font-weight:700;color:#3b2406;background:linear-gradient(#ffe9a8,#f2c94c 55%,#e0a92d);border:2px solid #1b110a;border-bottom-width:4px;border-radius:11px;box-shadow:inset 0 2px 0 #fff9,0 2px 0 #0004;transition:transform .06s,filter .12s}
   button:hover{filter:brightness(1.1) saturate(1.1);transform:translateY(-1px)}
   button:active{transform:translateY(2px);border-bottom-width:2px;margin-bottom:2px}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #8ab4ff;outline-offset:2px}
   button.on{background:linear-gradient(#ff9b7d,#ff7a59 55%,#e0553a);color:#fff;text-shadow:0 1px 0 #7a2410;box-shadow:inset 0 2px 0 #fff6,0 0 10px #ff7a5977}
   button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #7cf;outline-offset:1px}
   .pill{font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;letter-spacing:.5px;background:linear-gradient(#27406b,#1d2a44);color:#e8f1ff;border:2px solid #0b1220;box-shadow:inset 0 2px 0 #fff2,0 2px 0 #0006}
@@ -115,7 +119,25 @@
   .livroCorpo h4{font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;font-size:17px;color:#5a3a20;border-bottom:2px solid var(--gold2);padding-bottom:2px}
   .tl{border-bottom:1px dashed #cdb27a}
   ::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:#e9d9b4;border-radius:8px}::-webkit-scrollbar-thumb{background:linear-gradient(#c9962b,#8a6420);border:2px solid #e9d9b4;border-radius:8px}
-  @media(max-width:700px){header{position:static}.hg[data-t]:before{display:none}}
+  input[type=text],input[type=search],input:not([type]),input[type=number],select,textarea{transition:border-color .15s,box-shadow .15s}
+input[type=text]:focus,input[type=search]:focus,input:not([type]):focus,input[type=number]:focus,select:focus,textarea:focus{outline:none;border-color:#e0a93a;box-shadow:0 0 0 3px rgba(255,207,92,.45)}
+::selection{background:#ffcf5c;color:#2b1d12}
+  .entry{transition:transform .15s,box-shadow .15s}
+  .entry:hover{transform:translateX(2px);box-shadow:0 2px 6px #3b2f2a33}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:12px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:6px;background:linear-gradient(#a9873f,#e9d9b4);border:2px solid #1b110a}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b8,#e0a82e 60%,#a57a28);border:2px solid #1b110a;box-shadow:0 2px 0 #0005;transition:transform .15s}
+  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+  input[type=range]::-moz-range-track{height:8px;border-radius:6px;background:linear-gradient(#a9873f,#e9d9b4);border:2px solid #1b110a}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#e0a82e;border:2px solid #1b110a}
+  #clock.tick{animation:clkTick .6s ease-out}
+  @keyframes clkTick{0%{transform:scale(1.18);filter:brightness(1.4)}100%{transform:none;filter:none}}
+  ::-webkit-scrollbar-thumb:hover{background:linear-gradient(#e0ae3f,#a57a28)}
+  details.panel[open]>*:not(summary){animation:abre .25s ease-out}
+  @keyframes abre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){details.panel[open]>*:not(summary){animation:none}}
+  .mbtn{display:none}
+  @media(max-width:700px){header{position:static}.hg[data-t]:before{display:none}.mbtn{display:inline-flex}header:not(.open) .hg:not(.keep){display:none}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   .stage{position:relative}
   @media(max-width:700px){header{position:static}.hg{flex-wrap:wrap;max-width:100%}.deuzbox{flex:1 1 100%;min-width:0}.deuzbox input{width:auto;flex:1;min-width:0}}
@@ -141,7 +163,9 @@
   <h1>🏝️ Ilha Viva</h1>
   <span class="pill era" id="era"></span>
   <span class="pill" id="clock"></span>
-  <span class="hg" data-t="Tempo"><button id="pause" title="Pausar ou retomar o tempo">⏸ Pausar</button>
+  <button id="menuBtn" class="mbtn" title="Mostrar ou esconder os outros botões" onclick="document.querySelector('header').classList.toggle('open')">☰ Menu</button>
+  <script>document.querySelector('header').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.id!=='menuBtn'&&!b.closest('.keep')&&!b.closest('.deuzbox'))setTimeout(()=>document.querySelector('header').classList.remove('open'),150);});</script>
+  <span class="hg keep" data-t="Tempo"><button id="pause" title="Pausar ou retomar o tempo">⏸ Pausar</button>
   <button title="Velocidade normal" data-speed="1" class="on">1×</button><button title="Velocidade 3× (1 dia = 1 ano)" data-speed="3">3×</button><button title="Velocidade 8× (1 dia = 1 ano)" data-speed="8">8×</button><button title="Velocidade 20× (1 dia = 1 ano)" data-speed="20">20×</button><button title="Velocidade 50× (1 dia = 1 ano)" data-speed="50">50×</button></span>
   <span class="hg" data-t="Visão"><button id="viewMapa" class="on">🗺️ Mapa</button><button id="viewRegiao">🔍 Região</button><button id="zIn" title="Aproximar o mapa" onclick="mzZoom(1.5)">➕</button><button id="zOut" title="Afastar o mapa" onclick="mzZoom(1/1.5)">➖</button><button id="zRst" title="Mapa inteiro" onclick="mzReset()">⌖</button></span>
   <span class="hg" data-t="Camadas"><button class="on" id="lyFac" title="Mostrar/ocultar as cores dos países" onclick="toggleLayer('fac')">🏳️</button><button class="on" id="lyWar" title="Mostrar/ocultar guerras e catástrofes" onclick="toggleLayer('war')">⚔️</button><button class="on" id="lyNom" title="Mostrar/ocultar os nomes" onclick="toggleLayer('nom')">🔤</button><button class="on" id="lyDec" title="Mostrar/ocultar construções e decoração" onclick="toggleLayer('dec')">🏰</button><button class="on" id="lyRot" title="Mostrar/ocultar rotas comerciais" onclick="toggleLayer('rot')">🚚</button><button id="somBtn" title="Ligar/desligar os sons de conquistas e eras" onclick="toggleSom()">🔇</button></span>
@@ -253,6 +277,7 @@
 //   [S48] MODELOS TREINADOS DAS DEMAIS IAs: Fábula (comandos), Estoria (peso das
 //   [S49] FANTASY — a IA da fantasia: magia, tecnologia que não existe e outros 
 //   [S50] APRENDIZADO CONTÍNUO — todas as IAs aprendem a cada jogo e guardam o q
+//   [S52] SENTIMENTOS entre pessoas (amizade, inveja, ciúme, desprezo...) e opinião sobre governo/economia
 //   [S51] CASAS (nomes de família), DINASTIAS, LINHA DO TEMPO, RESUMO DAS ERAS E
 // =====================================================================
 // [S01] UTILIDADES
@@ -636,7 +661,8 @@ function shape(n,trait,amt,reason){
     think(n,MILESTONE[trait+sign],'🧬');remember(n,`percebi que sou ${label}`,8);}
   else if(!sign&&n.labels[trait]&&Math.abs(nv)<15)delete n.labels[trait];
 }
-function remember(n,text,imp,who){if(!n)return;if(imp==null){try{imp=estoriaWeigh(text).imp;}catch(e){imp=6;}}if(imp>=4)estoriaLog(n,text,imp);n.memories.unshift({text,imp,day,who});if(n.memories.length>30){n.memories.sort((a,b)=>b.imp-a.imp);n.memories.length=25;}}
+const EST_RUIM=/\b(traiu|trai|humilhou|amea[cç]ou|mentiu|menti|boato|provocou|perdi|quebrou|quebrei|estraguei|queimou|nunca me pagou|enrolou|descuido|calote|n[aã]o paguei|escondi)\b/i,EST_BOA=/\b(ajudou|ajudei|presente|consolou|consolei|perdoou|perdoei|cuidou|cuidei|homenageou|cozinhei|pagou|paguei|quitei|contei hist[oó]rias|descobri um|fundei)\b/i;
+function remember(n,text,imp,who,noLearn){if(!n)return;if(!noLearn){try{const r=EST_RUIM.test(text),b=EST_BOA.test(text);if(r!==b)LEARN.teachE(text,r?'ruim':'boa');}catch(e){}}if(imp==null){try{imp=estoriaWeigh(text).imp;}catch(e){imp=6;}}if(imp>=4)estoriaLog(n,text,imp);n.memories.unshift({text,imp,day,who});if(n.memories.length>30){n.memories.sort((a,b)=>b.imp-a.imp);n.memories.length=25;}}
 function think(n,text,e){if(!n)return;thinkOnce(n,text,e);}
 function thinkRaw(n,text,e){if(!n)return;if(world.active!=null&&!here(n)){n.lastThought=text;return;}n.bubble=e||'💭';n.bubbleT=150;log('think',`💭 ${N(n)}: “${text}”`,[n.id]);}
 function say(n,text){if(n){n.say=text;n.sayT=170;}}
@@ -660,7 +686,7 @@ const TYPES=[['destaques','⭐ Destaques'],['todos','Tudo'],['world','🤖 IAs']
 let _toastN=0;
 function toast(text){try{let box=document.getElementById('toasts');if(!box){box=document.createElement('div');box.id='toasts';box.style.cssText='position:fixed;right:12px;bottom:12px;z-index:9999;display:flex;flex-direction:column;gap:6px;max-width:340px;pointer-events:none';document.body.appendChild(box);}
   while(box.children.length>=3)box.removeChild(box.firstChild);
-  const d=document.createElement('div');d.textContent=String(text).replace(/<[^>]*>/g,'');d.style.cssText='background:rgba(20,24,36,.92);color:#fff;border:1px solid #8ab4ff;border-radius:8px;padding:8px 10px;font-size:13px;box-shadow:0 2px 8px #0008;opacity:0;transition:opacity .3s';box.appendChild(d);requestAnimationFrame(()=>d.style.opacity='1');
+  const d=document.createElement('div');d.textContent=String(text).replace(/<[^>]*>/g,'');d.style.cssText='background:rgba(20,24,36,.92);color:#fff;border:1px solid #8ab4ff;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.35;border-left:4px solid #ffcf5c;box-shadow:0 4px 14px #000a;backdrop-filter:blur(4px);opacity:0;transform:translateX(24px);transition:opacity .3s,transform .3s';box.appendChild(d);requestAnimationFrame(()=>{d.style.opacity='1';d.style.transform='none';});
   setTimeout(()=>{d.style.opacity='0';setTimeout(()=>d.remove(),400);},6000);}catch(e){}}
 function log(type,text,who){if(type==='big'){try{tlPush(text);}catch(e){}if(started&&text&&Date.now()-_toastN>700){_toastN=Date.now();toast(text);}if(started&&/guerra|meteoro|peste|praga|invas|terremoto|incêndio|inunda/i.test(String(text)))sfx('aviso');}if(!logData)return;logData.unshift({type,text,who:who||[],time:clockStr(),day});if(logData.length>600)logData.pop();renderLog();}
 function typeOk(l){if(typeFilter==='todos')return true;if(typeFilter==='destaques')return ['big','dna','fabula','world','roda',''].includes(l.type);if(typeFilter==='big')return l.type==='big'||l.type==='';if(typeFilter==='talk')return l.type==='talk'||l.type==='roda';return l.type===typeFilter;}
@@ -1068,7 +1094,7 @@ function novoBanco(n){
   world.bancos[rid]={dono:n.id,cash:f,dep:0,emp:0,conf:70,taxa:Math.round((.12+.08*Math.max(0,T(n,'ambicao')))*100)/100,fund:day,quebras:0};
   n.fame=n.fame||'quem fundou um banco';shape(n,'ambicao',3,'fundou um banco');remember(n,`fundei um banco em ${regNome(rid)}`,8);
   log('big',`🏦 ${N(n)} fundou um <b>banco</b> em ${regNome(rid)}: guarda o dinheiro dos outros e empresta a juros de ${Math.round(world.bancos[rid].taxa*100)}% ao ano.`,[n.id]);
-  weekNote('gov',`${n.name} fundou um banco`);}
+  weekNote('economia',`${n.name} fundou um banco em ${regNome(rid)}`);}
 function fechaBanco(rid,b,why){
   for(const n of NPCS)if(n.bk===rid){if(n.dep>0&&b.cash>0){const x=Math.min(n.dep,b.cash);b.cash-=x;n.coins+=x;}n.dep=0;delete n.emp;n.bk=null;}
   delete world.bancos[rid];log('',`🏦 O banco de ${regNome(rid)} fechou as portas (${why}).`,[]);}
@@ -1080,10 +1106,11 @@ function quebraBanco(rid,b){
       remember(n,`o banco quebrou e perdi ${Math.round(n.dep-rec)} do que tinha guardado`,9,b.dono);think(n,'Perdi o que guardei no banco...','😱');n.dep=0;}
     if(n.emp){delete n.emp;} n.bk=null;}
   const d=byId(b.dono);if(d){remember(d,'meu banco quebrou',9);shape(d,'ambicao',-2,'o banco quebrou');relate(d,d,0);NPCS.forEach(o=>{if(o.bk==null&&(o.dep||0)===0)return;});}
+  weekNote('economia',`o banco de ${regNome(rid)} quebrou e ${n_} pessoa(s) perderam economias`);
   for(const k in world.bancos)if(+k!==+rid)world.bancos[k].conf=Math.max(0,world.bancos[k].conf-12);
   delete world.bancos[rid];world.quebras=(world.quebras||0)+1;
   log('big',`💥 O banco de ${regNome(rid)} <b>quebrou</b>! ${n_} pessoa(s) perderam ${Math.round(perdas)} do que tinham guardado${seguro?' (o seguro do banco central cobriu quase tudo)':''}.`,d?[d.id]:[]);
-  weekNote('gov',`o banco de ${regNome(rid)} quebrou`);}
+}
 function bancoDia(rid,b){
   if(b.d===day)return;b.d=day;const r=regMon();
   let d=byId(b.dono);
@@ -1270,6 +1297,7 @@ function torneioRegiao(rid){ // a cada 4 anos, onde há gente suficiente pratica
   const g=espPago(w,pool*.6),g2=espPago(seg,pool*.25);const pw=spOf(w);pw.t++;pw.v++;pw.fama=Math.min(100,pw.fama+10);spOf(seg).fama=Math.min(100,seg.sp.fama+3);
   ps.slice(2).forEach(x=>{x.o.sp.fama=Math.min(100,x.o.sp.fama+1);x.o.sp.d++;shape(x.o,'coragem',-.2,'perdeu um torneio');});
   seg.sp.d++;seg.sp.rev=w.id;pw.rev=null;
+  weekNote('esporte',`${w.name} venceu o torneio de ${s.n} de ${regNome(rid)}`);
   remember(w,`venci o torneio de ${s.n} de ${regNome(rid)}`,8);remember(seg,`fui vice no torneio de ${s.n}`,6,w.id);think(w,'Campeão! Todo esse treino valeu a pena.','🏆');think(seg,`Fiquei em segundo... ano que vem ${w.name} não escapa.`,'😤');
   shape(w,'ambicao',1,'ganhou um torneio');ps.forEach(x=>{if(Math.random()<.5)espLesao(x.o,s,.7);});
   if(pw.t>=2&&!w.fame)w.fame=`campeão(ã) de ${s.n}`;
@@ -2186,9 +2214,9 @@ const COLLECTIVE=[
  {id:'crise',era:[3,9],w:1,drama:.6,cond:()=>has('moeda'),fn(){NPCS.forEach(n=>n.coins=Math.floor(n.coins*0.6));try{finAbala(25);}catch(e){}log('big','📉 Uma crise econômica! O dinheiro passou a valer muito menos.');NPCS.forEach(n=>{if(T(n,'ambicao')>0.2)shape(n,'confianca',-3,'crise');});}},
  {id:'prosperidade',era:[3,9],w:0,drama:.1,cond:()=>has('moeda'),fn(){NPCS.forEach(n=>{n.coins=Math.ceil((n.coins||0)*1.4+2);});try{finAbala(-15);}catch(e){}log('big','📈 Uma era de prosperidade! O comércio floresce e os bolsos se enchem.');NPCS.forEach(n=>{if(T(n,'ambicao')>0.2)shape(n,'confianca',2,'prosperidade');});}},
  {id:'torneio',era:[1,9],w:0,drama:.1,cond:()=>true,fn(){let n=0;occupied().forEach(r=>{const i=MAP.regions.indexOf(r);if(i<0)return;(world.torneios=world.torneios||{})[i]=day-5;try{torneioRegiao(i);n++;}catch(e){}});if(!n)log('big','🏅 Deuz chamou os atletas, mas ninguém estava preparado para competir.');}},
- {id:'greve',era:[7,9],w:1,drama:.5,cond:()=>has('vapor'),fn(){const ws=adults().filter(n=>n.role==='operario');if(!ws.length)return;ws.forEach(n=>{n.workedToday=true;shape(n,'coragem',3,'fez greve');});log('big',`✊ Greve! ${ws.map(N).join(', ')} pararam a fábrica pedindo melhores condições.`,ws.map(n=>n.id));const l=byId(world.gov.leader);if(l)ws.forEach(w=>relate(w,l,-5));}},
+ {id:'greve',era:[7,9],w:1,drama:.5,cond:()=>has('vapor'),fn(){const ws=adults().filter(n=>n.role==='operario');if(!ws.length)return;ws.forEach(n=>{n.workedToday=true;shape(n,'coragem',3,'fez greve');});log('big',`✊ Greve! ${ws.map(N).join(', ')} pararam a fábrica pedindo melhores condições.`,ws.map(n=>n.id));weekNote('economia',`${ws.length} operário(s) fizeram greve na fábrica`);const l=byId(world.gov.leader);if(l)ws.forEach(w=>relate(w,l,-5));}},
  {id:'inovacao',era:[5,9],w:1,drama:.2,fn(){world.kp+=30;log('big','📰 Chegaram notícias de inventos de outras terras. O povo aprendeu muito de uma vez.');}},
- {id:'pandemia',era:[8,9],w:.6,drama:.9,fn(){const vs=adults().filter(()=>Math.random()<.4);vs.forEach(v=>v.hurt=has('medicina')?1:3);log('big',`😷 Uma epidemia atingiu ${vs.length} pessoas. ${has('medicina')?'Os médicos conseguiram controlar.':''}`,vs.map(v=>v.id));adults().filter(n=>n.role==='medico').forEach(m=>{NPCS.forEach(o=>relate(o,m,8));});}},
+ {id:'pandemia',era:[8,9],w:.6,drama:.9,fn(){const vs=adults().filter(()=>Math.random()<.4);vs.forEach(v=>v.hurt=has('medicina')?1:3);log('big',`😷 Uma epidemia atingiu ${vs.length} pessoas. ${has('medicina')?'Os médicos conseguiram controlar.':''}`,vs.map(v=>v.id));weekNote('peste',`uma epidemia atingiu ${vs.length} pessoas`);adults().filter(n=>n.role==='medico').forEach(m=>{NPCS.forEach(o=>relate(o,m,8));});}},
  {id:'apagao',era:[8,9],w:1,drama:.3,cond:()=>has('eletricidade'),fn(){log('big','🔌 Apagão na região inteira! A noite voltou a ser como antigamente.');NPCS.forEach(n=>n.needs.diversao=clamp(n.needs.diversao-15));}},
 ];
 const PERSONAL=[
@@ -2268,7 +2296,7 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   const night=isNight();
   if(wasNight&&!night){
     world.hasHealer=NPCS.some(o=>roleOf(o)&&roleOf(o).out==='heal');if(day%10===0)pruneRelations();
-    seasonMorning();try{chuvaYear();}catch(e){console.error(e);}try{frioYear();}catch(e){console.error(e);}spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{ensinoYear();magiaYear();portalYear();inventionYear();maldadeYear();LEARN.year();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
+    seasonMorning();try{chuvaYear();}catch(e){console.error(e);}try{frioYear();}catch(e){console.error(e);}spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{ensinoYear();magiaYear();portalYear();inventionYear();maldadeYear();LEARN.year();}catch(e){console.error(e);}try{sentimentosYear();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
     [...NPCS].forEach(n=>{if(!byId(n.id))return;n.workedToday=false;morningLife(n);});
     NPCS.forEach(n=>{estoriaCompress(n);morningReflection(n);metaMorning(n);if(!n.cmd)decide(n);});
     if(has('troca'))NPCS.forEach(n=>{if(n.isChild)return;const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=pickW(ks.map(k=>{let v=10;for(const tr in ITEMS[k].aff)v+=25*ITEMS[k].aff[tr]*T(n,tr);return [k,v];}));n.wants[k]=clamp(n.wants[k]+rnd(6,16));}});
@@ -2678,8 +2706,8 @@ function launch(n,cmd){
 function fabulaResolve(n){
   const cmd=n.cmd;n.cmd=null;const A=FAB[cmd.acao],t=byId(cmd.alvo);
   const ok=Math.random()<cmd.chance;let res='';
-  const pos=(txt,imp=8)=>{LEARN.teachE(txt,'boa');remember(n,txt,imp,t&&t.id);n.lastCmd={ok:true,text:txt};};
-  const neg=(txt,imp=8)=>{LEARN.teachE(txt,'ruim');remember(n,txt,imp,t&&t.id);n.lastCmd={ok:false,text:txt};};
+  const pos=(txt,imp=8)=>{LEARN.teachE(txt,'boa');remember(n,txt,imp,t&&t.id,true);n.lastCmd={ok:true,text:txt};};
+  const neg=(txt,imp=8)=>{LEARN.teachE(txt,'ruim');remember(n,txt,imp,t&&t.id,true);n.lastCmd={ok:false,text:txt};};
   if(!cmd.possivel){res=`${n.name} tentou “${cmd.text}”, mas ninguém nesta era sabe o que é isso. Ficou só uma ideia estranha na cabeça.`;world.kp+=4;shape(n,'curiosidade',3,'teve uma ideia à frente do seu tempo');neg('tentei algo que ainda não existe',6);}
   else if(A.target&&!t){res=`${n.name} não encontrou quem procurava.`;neg('procurei alguém e não achei',4);}
   else if(A.vida){FORCE_NEAR=true;try{if(ok){VIDA[A.vida].fx(n,t);res=A.ok(n,t);pos(res.replace(new RegExp(n.name,'g'),'eu'),7);}else{res=A.ko(n,t);neg(res.replace(new RegExp(n.name,'g'),'eu'),5);}}finally{FORCE_NEAR=false;}}
@@ -3433,7 +3461,7 @@ function drawMap(){
   if(borderImg){ctx.imageSmoothingEnabled=true;ctx.drawImage(borderImg,0,0,MW*CELL,MH*CELL);ctx.imageSmoothingEnabled=false;}
   const sel=mapSel||mapHover;const ZK=1/MZ.z; // marcadores e textos mantêm o tamanho na tela, sem crescer com o zoom
   if(sel){if(!sel._c){sel._c=[];for(let y=Math.max(0,sel.y-8);y<Math.min(MH,sel.y+9);y++)for(let x=Math.max(0,sel.x-8);x<Math.min(MW,sel.x+9);x++)if(MAP.reg[y*MW+x]===sel.id)sel._c.push(y*MW+x);}
-    ctx.fillStyle='rgba(255,255,255,.75)';sel._c.forEach(i=>ctx.fillRect((i%MW)*CELL,((i/MW)|0)*CELL,CELL+.5,CELL+.5));ctx.strokeStyle='#fff';ctx.lineWidth=2*ZK;ctx.beginPath();ctx.arc(sel.x*CELL,sel.y*CELL,9*ZK,0,7);ctx.stroke();}
+    ctx.fillStyle=`rgba(255,255,255,${(.62+.14*Math.sin(performance.now()/350)).toFixed(3)})`;sel._c.forEach(i=>ctx.fillRect((i%MW)*CELL,((i/MW)|0)*CELL,CELL+.5,CELL+.5));ctx.strokeStyle='#fff';ctx.lineWidth=2*ZK;ctx.beginPath();ctx.arc(sel.x*CELL,sel.y*CELL,9*ZK,0,7);ctx.stroke();}
   // catástrofes no mapa
   if(MLAY.war&&activeDisasters().length){activeDisasters().forEach(d=>{const col=d.type==='insetos'?'rgba(120,20,160,.85)':d.type==='peste'?'rgba(20,20,20,.55)':'rgba(140,90,20,.6)';ctx.fillStyle=col;d.regions.forEach(id=>{const r=MAP.regions[id];ctx.fillRect(r.x*CELL-3*ZK,r.y*CELL-3*ZK,6*ZK,6*ZK);});});}
   // migrações recentes
@@ -3646,6 +3674,9 @@ function chronicle(){
   const fe=by('festa');if(fe.length)parts.push(fe[fe.length-1].text);
   const cm=by('cometa');if(cm.length)parts.push(cm[cm.length-1].text);const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
+  const pe=by('peste');if(pe.length)parts.push(pe[pe.length-1].text);
+  const es=by('esporte');if(es.length)parts.push(es.slice(-2).map(x=>x.text).join('; '));
+  const bk=by('economia');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
   const gov=by('gov');if(gov.length)parts.push(gov[gov.length-1].text);
   const occ=MAP?occupied().length:1;
   const ML={guerra:'pela guerra',catastrofe:'por uma tragédia',politica:'pela política',descoberta:'por descobertas',cultura:'por mudanças na cultura',obra:'por grandes obras',migracao:'por migrações',morte:'por perdas',nascimento:'por nascimentos',amor:'por romances'};
@@ -3738,7 +3769,7 @@ function setFacLeader(f,n){
   const g=f.gov,old=byId(g.leader);
   if(old&&old!==n&&old.role==='governante'){old.role=old.prevRole||null;old.prevRole=null;}
   if(n&&n.role!=='governante'){n.prevRole=n.role;n.role='governante';}
-  g.leader=n?n.id:null;g.since=day;
+  g.leader=n?n.id:null;g.since=day;g.leaderName=n?fullName(n):null;
   try{dinastiaRegistra(f,n);}catch(e){console.error(e);}
 }
 // facções escolhem seus líderes (a facção do jogador usa as conversas da tribo)
@@ -3981,7 +4012,9 @@ function justica(n,tipo,v,grave,visto,op,reg){
 function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.ate){log('',`🔓 ${N(n)} cumpriu a pena e foi solto(a).`,[n.id]);remember(n,'saí da prisão',8);n.preso=null;}return;}if(n._dead||n.isChild||n.ageDays<18||n.hurt)return;const rancor=n.rancor&&byId(n.rancor)&&!byId(n.rancor)._dead?byId(n.rancor):null;
   const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'));
   if(Math.random()>p)return;const m=members(n.region).filter(x=>x!==n&&!x._dead),r=regionOf(n);if(!m.length||!r)return;
-  const v=rancor&&m.includes(rancor)?rancor:R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
+  let v=rancor&&m.includes(rancor)?rancor:null;
+  if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
+  if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
   const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
@@ -4061,8 +4094,11 @@ function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.
   // quando se afasta muito da cultura de onde veio, vira outra cultura
   if(c.parent!=null&&c.root&&cultDist(v,c.root)>45&&!c.renamed){c.renamed=true;const base=(cap?cap.name:f.name).replace(/[aeiou]$/,'');c.name=`Cultura ${base}ense`;
     log('big',`🌱 O povo de ${f.name} já não vive como seus antepassados: nasce a <b>${c.name}</b>.`,[]);worldSay(`Depois de ${day-c.born} anos separados, ${f.name} tem costumes, leis e até nomes próprios. É uma nova cultura.`,'chronos');}}
-function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
-function lawsYear(f){f.laws=f.laws||[];if(Math.random()>0.12)return;
+function ecoPressure(f){let w=1;MAP.regions.forEach(r=>{if(r.eco&&r.eco.m<w&&regionFac(r)===f)w=r.eco.m;});return w<0.6?(0.6-w)/0.35:0;} // 0..~1: quanto a natureza de suas terras está arruinada
+function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];if(L.id==='manejo'||L.id==='defeso'||L.id==='rodizio')s+=ecoPressure(f)*45;const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
+function lawsYear(f){f.laws=f.laws||[];
+  if(f.humor<-30&&f.laws.length&&Math.random()<.1){const id=f.laws[f.laws.length-1],L0=lawFind(id);f.laws.pop();f.humor=-10;log('big',`📜 Pressionado pelo povo descontente, ${f.name} revogou a lei "${L0?L0.name:id}".`,[]);return;}
+  if(Math.random()>0.12)return;
   const c=LAWS.filter(L=>!f.laws.includes(L.id)&&world.era>=L.minEra&&(!L.needs||has(L.needs))&&!(L.not&&f.laws.includes(L.not))).map(L=>[L,lawScore(f,L)]).filter(x=>x[1]>18).sort((a,b)=>b[1]-a[1])[0];
   if(c){f.laws.push(c[0].id);log('big',`📜 ${f.name} criou uma lei: <b>${c[0].name}</b>.`,[]);weekNote('gov',`${f.name} criou a lei "${c[0].name}"`);return;}
   const bad=f.laws.map(id=>lawFind(id)).filter(Boolean).map(L=>[L,lawScore(f,L)]).filter(x=>x[1]<2)[0];
@@ -4431,7 +4467,7 @@ function mPred(x,y,w,h,c){mBox(x,y,w,h,c);for(let j=0;j<Math.floor((h-6)/9);j++)
 function mTorre(x,y,w,h,c){mBox(x,y,w,h,c||MK.ped);ctx.fillStyle=c||MK.ped;for(let i=0;i<3;i++)ctx.fillRect(x-w/2+i*(w/3)+1,y-h-5,w/3-2,6);mR(x-2.5,y-h*.62,5,9,'#3b3a45',2);mPorta(x,y,w*.3,h*.3,MK.mad2);}
 function mMuro(x1,x2,y,h,c){mR(x1,y-h,x2-x1,h,c||MK.ped,2);ctx.fillStyle=c||MK.ped;for(let x=x1;x<x2-5;x+=9)ctx.fillRect(x+1,y-h-4,6,5);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(x1,y-4,x2-x1,4);}
 function mCerca(x1,x2,y,h){h=h||9;ctx.strokeStyle=MK.mad;ctx.lineWidth=2;ctx.lineCap='round';for(let x=x1;x<=x2;x+=7){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-h);ctx.stroke();}ctx.beginPath();ctx.moveTo(x1,y-h*.7);ctx.lineTo(x2,y-h*.7);ctx.moveTo(x1,y-h*.3);ctx.lineTo(x2,y-h*.3);ctx.stroke();}
-function mAgua(x,y,rx,ry,t){ctx.fillStyle=MK.agua2;ctx.beginPath();ctx.ellipse(x,y,rx+2,ry+2,0,0,7);ctx.fill();ctx.fillStyle=MK.agua;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;const k=(t/800)%1;ctx.beginPath();ctx.ellipse(x-rx*.15,y,rx*.5*k,ry*.5*k,0,0,7);ctx.stroke();}
+function mAgua(x,y,rx,ry,t){ctx.fillStyle=MK.agua2;ctx.beginPath();ctx.ellipse(x,y,rx+2,ry+2,0,0,7);ctx.fill();ctx.fillStyle=MK.agua;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;const k=(t/800)%1;ctx.beginPath();ctx.ellipse(x-rx*.15,y,rx*.5*k,ry*.5*k,0,0,7);ctx.stroke();ctx.fillStyle='#fff';for(let i=0;i<3;i++){const q=Math.sin(t/500+i*2.1+x);if(q>.6){ctx.globalAlpha=(q-.6)*2.2;const a=i*2.4+x,sx=x+Math.cos(a)*rx*.55,sy=y+Math.sin(a)*ry*.5,r=1+q*1.6;ctx.beginPath();ctx.moveTo(sx-r*2,sy);ctx.lineTo(sx,sy-r);ctx.lineTo(sx+r*2,sy);ctx.lineTo(sx,sy+r);ctx.closePath();ctx.fill();}}ctx.globalAlpha=1;}
 function mPas(x,y,r,t,c){ctx.strokeStyle=c||MK.mad2;ctx.lineWidth=2.4;ctx.lineCap='round';for(let i=0;i<4;i++){const a=t/700+i*Math.PI/2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.stroke();ctx.fillStyle='#fff';ctx.save();ctx.translate(x+Math.cos(a)*r*.6,y+Math.sin(a)*r*.6);ctx.rotate(a);ctx.fillRect(0,-3,r*.4,6);ctx.restore();}ctx.fillStyle=MK.mad2;ctx.beginPath();ctx.arc(x,y,2.6,0,7);ctx.fill();}
 function mColunas(x,y,w,h,n,c){for(let i=0;i<n;i++){const cx=x-w/2+3+i*((w-6)/(n-1));mR(cx-2.2,y-h,4.4,h,c||'#f6f1e3',1.2);ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(cx+.4,y-h,1.6,h);}}
 function mTemplo(x,y,w,h,c){c=c||'#f1ebd9';mR(x-w/2-3,y-3,w+6,4,'#d9d2bd',1);mR(x-w/2,y-4,w,3,'#e6dfc9',1);mColunas(x,y-4,w-4,h-10,5,c);mTel(x,y-h+6,w+4,12,'#d9cfa8');}
@@ -4568,16 +4604,18 @@ function drawWorld(t){
     ctx.fillStyle='rgba(0,0,0,.10)';rr(p.x-52,p.y-22,110,66,20);ctx.fill();ctx.globalAlpha=.93;ctx.fillStyle=p.c;ctx.strokeStyle='#ffffffaa';ctx.lineWidth=3;rr(p.x-55,p.y-28,110,66,20);ctx.fill();ctx.stroke();ctx.globalAlpha=1;
     desenhaModelo(id,p,L,t||0,p.x,p.y+30,.8);
     if(p.home){const res=hereNPCs().filter(n=>n.home===id).length;const extra=Math.min(3,Math.floor(res/3));const kk=modeloKey(L,p);for(let i=0;i<extra;i++){ctx.save();ctx.translate(p.x-44+i*44,p.y+40);ctx.scale(.36,.36);try{M[kk](0,0,t||0,i);}catch(e){}ctx.restore();}}
-    ctx.textAlign='center';ctx.font='700 13px "Baloo 2"';ctx.fillStyle='#3b2f2a';ctx.fillText(L.label,p.x,p.y-34);}
+    ctx.textAlign='center';ctx.font='700 13px "Baloo 2"';ctx.lineJoin='round';ctx.lineWidth=4;ctx.strokeStyle='rgba(255,247,232,.88)';ctx.strokeText(L.label,p.x,p.y-34);ctx.fillStyle='#3b2f2a';ctx.fillText(L.label,p.x,p.y-34);}
   if(started&&season().name==='Inverno'){ctx.fillStyle='rgba(235,245,255,.28)';ctx.fillRect(0,0,W,H);}
   else if(started&&season().name==='Outono'){ctx.fillStyle='rgba(255,170,60,.10)';ctx.fillRect(0,0,W,H);}
+  if(started&&!chovendo()&&(activeRegion()||{}).mainBiome!=='deserto'){const se=season().name;if(se==='Inverno'||se==='Outono'){const tc=(t||0)/1000,neve=se==='Inverno';ctx.save();for(let i=0;i<QN(neve?40:16);i++){const sp=neve?28+(i%5)*6:22+(i%4)*5,x=((i*131.7+Math.sin(tc*.8+i)*24)%W+W)%W,y=((i*79.3+tc*sp)%(H+20))-10;if(neve){ctx.shadowColor='rgba(90,120,170,.7)';ctx.shadowBlur=3;ctx.fillStyle=`rgba(255,255,255,${.8+.1*(i%3)})`;ctx.beginPath();ctx.arc(x,y,2+(i%3)*.8,0,7);ctx.fill();}else{ctx.save();ctx.translate(x,y);ctx.rotate(tc*1.5+i);ctx.fillStyle=['#d9822b','#c8561e','#e3b13a'][i%3];ctx.globalAlpha=.8;ctx.beginPath();ctx.ellipse(0,0,4,2,0,0,7);ctx.fill();ctx.restore();}}ctx.restore();}}
   if(arcoIris()){ctx.save();ctx.globalAlpha=.38;ctx.lineWidth=7;["#e04b4b","#f0903c","#f3d84a","#58b85a","#4a8fe0","#8a5ad0"].forEach((c,i)=>{ctx.strokeStyle=c;ctx.beginPath();ctx.arc(500,330,300-i*7,Math.PI*1.08,Math.PI*1.92);ctx.stroke();});ctx.restore();}
   if(world.cometaDay===day){const u=((t||0)/9000)%1,cx=1100-u*1300,cy=40+u*170;ctx.save();const g=ctx.createLinearGradient(cx,cy,cx+260,cy-90);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(1,'rgba(180,220,255,0)');ctx.strokeStyle=g;ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+260,cy-90);ctx.stroke();ctx.fillStyle='#fff';ctx.shadowColor='#bfe4ff';ctx.shadowBlur=14;ctx.beginPath();ctx.arc(cx,cy,6,0,7);ctx.fill();ctx.restore();}
   if(started&&!chovendo()){const hh=minutes/60%24;if(hh>=7&&hh<18){const tc=(t||0)/1000;ctx.save();ctx.fillStyle='rgba(20,30,50,.07)';for(let i=0;i<QN(4);i++){const x=((i*337+tc*(9+i*2))%(W+400))-200,y=90+i*150+Math.sin(tc/9+i)*20;ctx.beginPath();ctx.ellipse(x,y,150+i*18,55+i*6,0,0,7);ctx.fill();}ctx.restore();}}
   const chuva=chovendo();
-  if(chuva){ctx.fillStyle='rgba(70,90,120,.22)';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(215,235,255,.8)';ctx.lineWidth=2;ctx.beginPath();const tt=(t||0)/12;for(let i=0;i<150;i++){const x=(i*97.3+tt*1.2)%W,y=(i*53.7+tt*9)%H;ctx.moveTo(x,y);ctx.lineTo(x-4,y+16);}ctx.stroke();if(Math.sin((t||0)/1700)>.985){ctx.fillStyle="rgba(255,255,255,.28)";ctx.fillRect(0,0,W,H);}}
+  if(chuva){ctx.fillStyle='rgba(70,90,120,.22)';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(215,235,255,.8)';ctx.lineWidth=2;ctx.beginPath();const tt=(t||0)/12;for(let i=0;i<150;i++){const x=(i*97.3+tt*1.2)%W,y=(i*53.7+tt*9)%H;ctx.moveTo(x,y);ctx.lineTo(x-4,y+16);}ctx.stroke();ctx.lineWidth=1;for(let i=0;i<QN(18);i++){const ph=(((t||0)/500+i*.37)%1),x=(i*211.7+Math.floor(((t||0)/500+i*.37))*83)%W,y=140+((i*131.3+Math.floor(((t||0)/500+i*.37))*47)%(H-170));ctx.strokeStyle=`rgba(225,240,255,${.55*(1-ph)})`;ctx.beginPath();ctx.ellipse(x,y,2+ph*7,1+ph*3,0,0,7);ctx.stroke();}if(Math.sin((t||0)/1700)>.985){ctx.fillStyle="rgba(255,255,255,.28)";ctx.fillRect(0,0,W,H);}}
   const h=minutes/60%24;let dark=0;if(h>=19)dark=Math.min(.45,(h-19)*.15);else if(h<6.5)dark=.45-Math.max(0,(h-5)*.3);
   if(has('eletricidade'))dark*=0.45;else if(has('fogo')&&!world.fireOut)dark*=0.8;
+  if(!chuva){const gh=Math.max(0,1-Math.abs(h-18.2)/1.5,1-Math.abs(h-6.3)/1.1);if(gh>0){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,`rgba(255,120,60,${.16*gh})`);g.addColorStop(1,`rgba(255,190,90,${.08*gh})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}}
   if(dark>0){ctx.fillStyle=`rgba(20,20,70,${dark})`;ctx.fillRect(0,0,W,H);if(!chuva){const k=Math.min(1,(dark-.12)/.3);if(k>0){ctx.fillStyle='#fff';for(let i=0;i<QN(40);i++){ctx.globalAlpha=k*(.35+.45*Math.abs(Math.sin((t||0)/900+i*1.7)));const x=(i*149.3)%W,y=(i*71.9)%(H*.45);ctx.fillRect(x,y,1.6+(i%3)*.5,1.6+(i%3)*.5);}ctx.globalAlpha=1;
   if(started&&season().name!=='Inverno'&&(activeRegion()||{}).mainBiome!=='deserto'){for(let i=0;i<QN(14);i++){const x=(i*173+Math.sin((t||0)/1300+i*2.1)*40+(t||0)/60)%W,y=H*.35+((i*97)%(H*.6))+Math.cos((t||0)/1100+i)*18,br=.5+.5*Math.sin((t||0)/500+i*3.3);if(br<.25)continue;const g=ctx.createRadialGradient(x,y,0,x,y,7);g.addColorStop(0,`rgba(230,255,120,${.9*br*k})`);g.addColorStop(1,'rgba(230,255,120,0)');ctx.fillStyle=g;ctx.fillRect(x-7,y-7,14,14);}}}}
   for(const id in PLACES){const p=PLACES[id],es=lugEst(id);if(es==="devastado"||es==="queimado")continue;const g=ctx.createRadialGradient(p.x,p.y+8,2,p.x,p.y+8,52);g.addColorStop(0,`rgba(255,205,110,${Math.min(.6,dark*1.4)})`);g.addColorStop(1,"rgba(255,205,110,0)");ctx.fillStyle=g;ctx.fillRect(p.x-56,p.y-44,112,104);}
@@ -4588,24 +4626,29 @@ function drawNPC(n,t){
   if(s!==1){ctx.save();ctx.translate(n.x,n.y+20);ctx.scale(s,s);ctx.translate(-n.x,-n.y-20);}
   const bob=n.walking?Math.sin(t/90+n.x)*3:Math.sin(t/400)*1,x=n.x,y=n.y+bob;
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(n.x,n.y+22,13,5,0,0,7);ctx.fill();
-  ctx.fillStyle=n.color;rr(x-11,y,22,21,8);ctx.fill();
-  ctx.fillStyle='#ffe0c2';ctx.beginPath();ctx.arc(x,y-10,14,0,7);ctx.fill();
+  if(hoverNpc===n){ctx.strokeStyle='rgba(255,247,200,.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(n.x,n.y+22,18,7,0,0,7);ctx.stroke();}
+  if(n.walking&&n.tx!=null){const dx=n.tx-n.x,dy=n.ty-n.y,d=Math.hypot(dx,dy)||1,ph=(t/260+n.x*.05)%1;ctx.fillStyle='rgba(235,225,200,.38)';for(let i=0;i<2;i++){const q=(ph+i*.5)%1;ctx.beginPath();ctx.arc(n.x-dx/d*(6+q*14),n.y+22-dy/d*(2+q*6)-q*4,2.6*(1-q)+.4,0,7);ctx.fill();}}
+  ctx.fillStyle=n.color;rr(x-11,y,22,21,8);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,.12)';ctx.beginPath();ctx.ellipse(x,y+19,9,2.5,0,0,7);ctx.fill();
+  ctx.fillStyle='#ffe0c2';ctx.beginPath();ctx.arc(x,y-10,14,0,7);ctx.fill();ctx.strokeStyle='rgba(120,70,40,.28)';ctx.lineWidth=1.2;ctx.stroke();
   ctx.fillStyle=n.ageDays>=ELDER_AGE?'#ddd':n.hair;ctx.beginPath();ctx.arc(x,y-14,14,Math.PI,0);ctx.fill();
   if(n.species==='elfo'){ctx.fillStyle='#ffe0c2';ctx.strokeStyle='#00000030';ctx.lineWidth=1;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*12,y-14);ctx.lineTo(x+d*26,y-24);ctx.lineTo(x+d*13,y-4);ctx.closePath();ctx.fill();ctx.stroke();});}
   if(n.species==='atlante'||n.species==='meioatlante'){const k=n.species==='atlante'?1:.55;ctx.fillStyle='#4fd0d8';ctx.strokeStyle='#00000030';ctx.lineWidth=1;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*12,y-16);ctx.lineTo(x+d*(12+16*k),y-26);ctx.lineTo(x+d*(12+14*k),y-8);ctx.closePath();ctx.fill();ctx.stroke();});if(n.species==='atlante'){ctx.fillStyle='rgba(60,200,220,.35)';ctx.beginPath();ctx.ellipse(x,y+10,12,7,0,0,7);ctx.fill();}}
   if(n.species==='meioelfo'){ctx.fillStyle='#ffe0c2';ctx.strokeStyle='#00000030';ctx.lineWidth=1;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*12,y-14);ctx.lineTo(x+d*19,y-19);ctx.lineTo(x+d*13,y-7);ctx.closePath();ctx.fill();ctx.stroke();});}
   if(n.species==='inseto'){ctx.fillStyle='rgba(70,130,50,.55)';ctx.beginPath();ctx.arc(x,y-10,14,0,7);ctx.fill();ctx.strokeStyle='#2f4a1a';ctx.lineWidth=2;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*5,y-22);ctx.quadraticCurveTo(x+d*14,y-36,x+d*20,y-32);ctx.stroke();ctx.beginPath();ctx.moveTo(x+d*11,y+6);ctx.lineTo(x+d*20,y+16);ctx.stroke();});}
   ctx.fillStyle='#3b2f2a';
-  if(n.task==='dormir'&&atTarget(n)){ctx.fillRect(x-7,y-9,5,2);ctx.fillRect(x+2,y-9,5,2);}else{ctx.beginPath();ctx.arc(x-5,y-9,2,0,7);ctx.arc(x+5,y-9,2,0,7);ctx.fill();}
+  if(n.task==='dormir'&&atTarget(n)){ctx.fillRect(x-7,y-9,5,2);ctx.fillRect(x+2,y-9,5,2);}else{ctx.beginPath();ctx.arc(x-5,y-9,2,0,7);ctx.arc(x+5,y-9,2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-5.7,y-9.8,.8,0,7);ctx.arc(x+4.3,y-9.8,.8,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';}
+  ctx.fillStyle='rgba(255,120,120,.28)';ctx.beginPath();ctx.ellipse(x-9,y-4,3,2,0,0,7);ctx.ellipse(x+9,y-4,3,2,0,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';
   const mood=(n.needs.fome+n.needs.social+n.needs.diversao)/3;
   ctx.strokeStyle='#3b2f2a';ctx.lineWidth=1.5;ctx.beginPath();if(mood>45)ctx.arc(x,y-4,4,.2,Math.PI-.2);else ctx.arc(x,y,4,Math.PI+.3,-.3);ctx.stroke();
+  if(n.task==='dormir'&&atTarget(n)){ctx.save();ctx.font='700 13px "Baloo 2"';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.strokeStyle='rgba(60,80,140,.6)';ctx.lineWidth=2.5;ctx.lineJoin='round';for(let i=0;i<3;i++){const q=(((t||0)/1600)+i/3)%1;ctx.globalAlpha=Math.sin(q*Math.PI);const zx=x+14+q*10+Math.sin(q*6+i)*2,zy=y-22-q*24;ctx.strokeText('z',zx,zy);ctx.fillText('z',zx,zy);}ctx.restore();ctx.textAlign='center';}
   if(world.gov.leader===n.id){ctx.font='15px serif';ctx.textAlign='center';ctx.fillText('👑',x,y-25);}
   if(n.holding){ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(ITEMS[n.holding].e,x-18,y+14);}
-  ctx.font='700 12px "Baloo 2"';ctx.textAlign='center';ctx.fillStyle='#3b2f2a';ctx.fillText((n.species?ESPECIE[n.species].e+' ':'')+n.name+(roleOf(n)?' '+roleOf(n).e:''),x,y+36);
-  if(mode==='morador'&&selected===n){ctx.strokeStyle='#ff7a59';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19,8,0,0,7);ctx.stroke();}
-  if(n.bubble){ctx.fillStyle='#fff';ctx.strokeStyle='#00000025';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+19,y-36,14,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+9,y-21,3,0,7);ctx.fill();ctx.font='16px serif';ctx.fillText(n.bubble,x+19,y-30);}
+  {const nm=(n.species?ESPECIE[n.species].e+' ':'')+n.name+(roleOf(n)?' '+roleOf(n).e:'');ctx.font='700 12px "Baloo 2"';ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,247,232,.85)';ctx.strokeText(nm,x,y+36);ctx.fillStyle='#3b2f2a';ctx.fillText(nm,x,y+36);}
+  if(mode==='morador'&&selected===n){const pp=((t||0)/1100)%1;ctx.save();ctx.strokeStyle=`rgba(255,122,89,${.5*(1-pp)})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19+pp*10,8+pp*4,0,0,7);ctx.stroke();ctx.restore();ctx.strokeStyle='#ff7a59';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19,8,0,0,7);ctx.stroke();}
+  if(n.bubble){const bb=Math.sin((t||0)/380+x*.05)*1.6;ctx.save();ctx.translate(0,bb);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#00000025';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+19,y-36,14,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+9,y-21,3,0,7);ctx.fill();ctx.shadowColor='transparent';ctx.font='16px serif';ctx.fillText(n.bubble,x+19,y-30);ctx.restore();}
   const crowd=hereNPCs().length>25;
-  if(n.sayT>0&&n.say&&(!crowd||n===selected||parseInt(n.id.slice(1))%4===0)){ctx.font='600 12px "Baloo 2"';const sx=n.say.length>36?n.say.slice(0,35)+'…':n.say,w=ctx.measureText(sx).width+16;ctx.fillStyle='#fff';ctx.strokeStyle='#ff7a5988';rr(x-w/2,y-78,w,23,10);ctx.fill();ctx.stroke();ctx.fillStyle='#3b2f2a';ctx.fillText(sx,x,y-62);}
+  if(n.sayT>0&&n.say&&(!crowd||n===selected||parseInt(n.id.slice(1))%4===0)){ctx.font='600 12px "Baloo 2"';const sx=n.say.length>36?n.say.slice(0,35)+'…':n.say,w=ctx.measureText(sx).width+16;ctx.save();ctx.globalAlpha*=Math.min(1,n.sayT/25);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#ff7a5988';rr(x-w/2,y-78,w,23,10);ctx.fill();ctx.stroke();ctx.shadowColor='transparent';ctx.beginPath();ctx.moveTo(x-5,y-55.5);ctx.lineTo(x+5,y-55.5);ctx.lineTo(x,y-49);ctx.closePath();ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText(sx,x,y-62);ctx.restore();}
   if(s!==1)ctx.restore();
   if(n.task==='encontro'){ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('💞',n.x,n.y-56);}
   if(n.expecting){ctx.font='13px serif';ctx.textAlign='center';ctx.fillText('🍼',n.x-20,n.y-2);}
@@ -4634,7 +4677,10 @@ cv.addEventListener('wheel',e=>{e.preventDefault();if(started&&view==='regiao'){
 cv.onclick=e=>{if(MZ.moved){MZ.moved=false;return;}const [x,y]=evXY(e);
   if(view==='mapa'||!started){const pk=mapPick(e);if(pk.war){mapWar={a:pk.war.a,b:pk.war.b};mapSel=MAP.regions[pk.war.a.capital]||mapSel;renderInfo();}else if(pk.r){mapWar=null;mapSel=pk.r;renderInfo();}return;}
   const n=hereNPCs().find(n=>Math.hypot(n.x-x,n.y-8-y)<26);if(n)follow(n);else if(mode==='morador')showIsland();};
-function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i style="width:${clamp(v)}%;background:${c}"></i></div>`;}
+let hoverNpc=null;
+cv.addEventListener('mousemove',e=>{if(!started||view==='mapa'){if(hoverNpc){hoverNpc=null;}return;}const [x,y]=evXY(e);const n=hereNPCs().find(n=>Math.hypot(n.x-x,n.y-8-y)<26)||null;hoverNpc=n;cv.style.cursor=n?'pointer':'';});
+cv.addEventListener('mouseleave',()=>{hoverNpc=null;cv.style.cursor='';});
+function bar(l,v,c){return `<div class="row"><span>${l}</span><span>${Math.round(v)}</span></div><div class="bar"><i${v<25?' class="crit"':''} style="width:${clamp(v)}%;background-color:${c}"></i></div>`;}
 function tbar(n,k){const v=n.traits[k],pos=v>=0,w=Math.abs(v)/2;const lab=Math.abs(v)>=25?TRAITS[k][pos?0:1]:'—';const sv=n.sens[k],sm=sv>=1.6?' 🩹':sv<=0.6?' 🪨':'';
   return `<div class="row"><span>${TRAIT_NAMES[k]}${sm}</span><span>${lab}</span></div><div class="tbar"><i style="left:${pos?50:50-w}%;width:${w}%;background:${pos?'#6fcf97':'#ff8a80'}"></i></div>`;}
 let cardTab='ficha';
@@ -4671,7 +4717,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    <div style="margin:4px 0">${labels}</div>
    <div class="cols"><div><b style="font-size:13px">Personalidade</b>${Object.keys(TRAITS).map(k=>tbar(n,k)).join('')}</div>
      <div><b style="font-size:13px">Instintos</b>${bar('🍖 Fome',n.needs.fome,'#ffb347')}${bar('⚡ Energia',n.needs.energia,'#6fcf97')}${bar('💬 Social',n.needs.social,'#ff8fab')}${bar('🎈 Diversão',n.needs.diversao,'#7db7ff')}${n.isChild?'':bar('💞 Desejo',n.desejo||0,'#e57399')}<b style="font-size:13px">Gostos</b><div>${likes}</div></div></div>
-   <div class="hint" style="margin-top:4px">❤️ ${rels}</div>
+   <div class="hint" style="margin-top:4px">❤️ ${rels}</div>${n.isChild?'':fichaSentimentos(n)}
    <div style="margin-top:4px"><b style="font-size:13px">📔 Memórias marcantes</b><br><span class="hint">${n.memories.filter(m=>m.imp>=5).slice(0,4).map(m=>'• '+m.text).join('<br>')||'nada marcante ainda'}</span></div>${famTree(n)}`;
 }
 function renderIsland(){
@@ -4968,8 +5014,8 @@ function disastersYear(){if(world.winter&&day>=world.winter.until){log('big','�
       const k=killIn(new Set(fresh),0.55,'atacado(a) pelos insetos');d.dead=(d.dead||0)+k.dead;fresh.forEach(id=>flee(id,'os insetos chegaram'));
       // os humanos contra-atacam pelas fronteiras
       let retaken=0;const strength=facs().filter(f=>f.alive).reduce((s,f)=>s+facStrength(f),0);
-      const bugs=d.sev*15000*(1+nxt.size/40)*(age<5?3:1);const human=strength*tech/(strength*tech+bugs);
-      [...nxt].forEach(id=>{const r=MAP.regions[id];const front=r.nb.some(o=>!MAP.regions[o].insect&&regionPop(o)>0);if(front&&Math.random()<Math.min(0.35,0.3*human)){r.insect=false;nxt.delete(id);retaken++;}});
+      const bugs=d.sev*Math.min(15000,2.5*strength*tech+30)*(1+nxt.size/40)*(age<5?3:1);const human=strength*tech/(strength*tech+bugs);
+      [...nxt].forEach(id=>{const r=MAP.regions[id];const front=r.nb.some(o=>!MAP.regions[o].insect&&regionPop(o)>0)||regionPop(id)>0; /* quem sobrou na própria região também resiste */if(front&&Math.random()<Math.min(0.35,0.3*human)){r.insect=false;nxt.delete(id);retaken++;}});
       d.regions=[...nxt];world.facDirty=true;
       if(fresh.length||retaken)log('big',`🪲 Guerra contra os insetos: ${fresh.length} região(ões) caíram${k.dead?` e ${k.dead} pessoas morreram`:''}; os humanos retomaram ${retaken}.`,[]);
       if(!d.regions.length){d.done=true;log('big',`🏆 <b>Os insetos foram expulsos!</b> A fenda em ${MAP.regions[d.origin].name} se fechou depois de ${age} anos. ${d.dead||0} pessoas morreram nessa guerra.`,[]);worldSay('A humanidade sobreviveu ao outro mundo. Por enquanto.','deuz');
@@ -5218,7 +5264,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',economia:'economia',esporte:'esporte',peste:'catastrofe'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
@@ -5574,7 +5620,9 @@ function atorMundo(tipo){const L=atoresMundo(tipo);if(!L.length)return null;cons
   let a=esc!=null&&esc!=='auto'?L.find(x=>x.f.id===+esc):null;const auto=!a;if(!a)a=L.sort((x,y)=>y.ad-x.ad)[0];
   return Object.assign({auto,n:a.l||{name:a.f.name,id:null,traits:{},sens:{}}},a);}
 function quemVai(tipo){const A=atorMundo(tipo);if(!A)return `<div class="hint">Quem vai: ninguém ${tipo==='mar'?'(nenhum povo tem litoral habitado)':'(nenhum povo habitado)'}.</div>`;
-  return `<div class="hint">👤 Quem vai: <b style="color:${A.f.color}">${A.f.name}</b>${A.l?', liderado por '+A.l.name:''} · saindo de ${A.r.name}${A.auto?' <i>(automático)</i>':''}</div>`;}
+  const gg=A.f.id===0?world.gov:A.f.gov;
+  const lname=A.l?A.l.name:(gg&&gg.leader&&gg.leaderName?gg.leaderName+' (fora da vista)':'');
+  return `<div class="hint">👤 Quem vai: <b style="color:${A.f.color}">${A.f.name}</b>${lname?', liderado por '+lname:''} · saindo de ${A.r.name}${A.auto?' <i>(automático)</i>':''}</div>`;}
 function atorSeletor(){const L=atoresMundo('').sort((a,b)=>b.pop-a.pop),esc=world.mundoAtor,top=L.slice(0,40);
   if(esc!=null&&esc!=='auto'&&!top.some(a=>a.f.id===+esc)){const x=L.find(a=>a.f.id===+esc);if(x)top.push(x);}
   return `<div class="box"><b>🧭 Quem age</b><div class="hint">Você comanda todos os povos. Escolha qual deles faz as ações abaixo, ou deixe no automático (o povo com mais adultos; no mar, só povos com litoral). O líder do povo sente o resultado.</div>
@@ -5597,6 +5645,87 @@ function marHTML(){const M=world.mar||{col:[],atl:null},RC2=world.racas||{};
     h+=quemVai(sp==='atlante'?'mar':'')+`<div style="margin-bottom:4px">${[['amizade','🤝 Amizade'],['alianca','🛡️ Aliança'],['paz','🕊️ Paz'],['guerra','⚔️ Guerra'],['miscigenar','💞 Misturar']].map(a=>`<button class="sug" onclick="racaPainel('${sp}','${a[0]}')">${a[1]}</button>`).join('')}</div>`;});
   return h+'</div>';}
 // =====================================================================
+// [S52] SENTIMENTOS: o que uma pessoa sente pela outra (amizade, inveja, ciúme, desprezo...) e pelo governo e pela economia
+// ---- sentimentos entre pessoas ----
+function sentimento(a,b,pop){ // rótulo calculado na hora (nada novo no save): {k,e} ou null
+  if(!a||!b||a===b||a.isChild||b.isChild)return null;
+  const r=a.rel[b.id]||0,pa=patrimonio(a),pb=patrimonio(b),amb=T(a,'ambicao');
+  const pB=pop==null?popularity(b):pop,pA=pop==null?popularity(a):0;
+  if(a.partner===b.id)return{k:'amor',e:'💞'};
+  if(a.crush===b.id)return{k:'paixão',e:'💗'};
+  const p=a.partner?byId(a.partner):null;
+  if(p&&p!==b&&(p.rel[b.id]||0)>35&&r<35)return{k:'ciúme',e:'😒'};
+  if(r<=-60)return{k:'ódio',e:'😡'};
+  if(r<25&&amb>.5&&(pb>pa*1.8+8||pB>pA+25))return{k:'inveja',e:'😤'};
+  if(r<-10&&T(b,'bondade')<.3&&T(a,'bondade')>.55)return{k:'desprezo',e:'😏'};
+  if(r<0&&amb>.55&&pb<pa*.3&&pa>10)return{k:'desprezo',e:'😏'};
+  if(r<-15&&T(a,'confianca')<.45)return{k:'desconfiança',e:'🤨'};
+  if(r>=45)return{k:'amizade',e:'🤝'};
+  if(r>=20&&(pB>pA+15||T(b,'coragem')>.75))return{k:'admiração',e:'🤩'};
+  if(r>=15)return{k:'simpatia',e:'🙂'};
+  return null;}
+function sentimentosYear(){
+  let logs=0;
+  for(const a of NPCS){
+    if(a.isChild||a._dead)continue;
+    const m=members(a.region);if(m.length<2)continue;
+    for(let i=0;i<2;i++){
+      const b=m[(Math.random()*m.length)|0];if(!b||b===a||b.isChild||b._dead)continue;
+      const s=sentimento(a,b);if(!s)continue;
+      const nb=N(b);
+      if(s.k==='amizade'){relate(a,b,2);relate(b,a,1);
+        if(b.needs&&b.needs.fome<25&&(a.food||0)>2&&(b.food||0)<1){a.food--;b.food=(b.food||0)+1;relate(b,a,8);remember(b,`${a.name} me deu comida quando passei fome`,7,a.id);remember(a,`ajudei ${b.name} com comida`,5,b.id);if(logs++<3)log('dna',`🤝 ${N(a)} dividiu a comida com o amigo ${nb}.`,[a.id,b.id]);}}
+      else if(s.k==='admiração')relate(a,b,1);
+      else if(s.k==='inveja'){relate(a,b,-3);if(Math.random()<.08){think(a,`Por que ${b.name} tem tanto e eu tão pouco?`,'😤');shape(a,'ambicao',1,'inveja');remember(a,`invejo ${b.name}`,6,b.id);if(logs++<3)log('dna',`😤 ${N(a)} sente inveja de ${nb}.`,[a.id,b.id]);}}
+      else if(s.k==='ciúme'){relate(a,b,-4);shape(a,'confianca',-1,'ciúme');if(Math.random()<.1){think(a,`Não gosto de ver ${b.name} perto de quem eu amo.`,'😒');if(logs++<3)log('dna',`😒 ${N(a)} tem ciúme de ${nb}.`,[a.id,b.id]);}}
+      else if(s.k==='desprezo'){relate(a,b,-2);relate(b,a,-1);if(Math.random()<.06){think(b,`${a.name} me olha com desprezo.`,'😔');remember(b,`${a.name} me despreza`,5,a.id);}}
+      else if(s.k==='ódio'){relate(a,b,-1);}
+    }
+  }
+  opinioesYear();}
+// ---- sensações com política, governo e economia ----
+function opiniaoGov(n){ // -100..100 + motivos; suavizada em n.opin
+  const f=facOf(n);if(!f)return{v:0,m:[]};
+  const FC=opiniaoGov._c&&opiniaoGov._c.d===day?opiniaoGov._c:(opiniaoGov._c={d:day,f:{}});
+  const K=FC.f[f.id]||(FC.f[f.id]={g:facGov(f),cu:facCult(f).v,rg:regimeOf(f)});
+  const g=K.g,L=g&&g.leader?byId(g.leader):null,cu=K.cu,rg=K.rg,m=[];let v=0;
+  if(L===n){v+=25;m.push('governa');}
+  else if(L){const d=(n.rel[L.id]||0)*.35;v+=d;if(d>8)m.push('gosta do líder');else if(d<-8)m.push('detesta o líder');}
+  else{v-=6;m.push('sem governo');}
+  if(n.needs&&n.needs.fome<30){v-=18;m.push('passa fome');}
+  if(has('moeda')){const pt=patrimonio(n),dv=deveTotal(n);
+    if(dv>0&&dv>pt*.5){v-=15;m.push('endividado');}else if(pt>40){v+=10;m.push('vive bem');}
+    else if(pt<4&&!n.role){v-=10;m.push('sem renda');}}
+  if(world.tension>60){v-=10;m.push('país em tensão');}else if(world.tension<20)v+=5;
+  const lib=T(n,'coragem')*.5+T(n,'ambicao')*.5;
+  if(rg==='ditadura'){v-=10+20*lib;m.push('vive sob ditadura');}
+  else if(rg==='democracia'||rg==='republica'){v+=6+(cu.liberdade>20?6:0);if(cu.liberdade>20)m.push('liberdade');}
+  const fe=(f.laws||[]).length;if(fe>=3&&T(n,'ambicao')>.6){v-=6;m.push('leis demais');}
+  v=clamp(Math.round(v),-100,100);
+  n.opin=Math.round((n.opin==null?v:n.opin*.6+v*.4));
+  return{v:n.opin,m};}
+function opiniaoRot(v){return v<=-50?{e:'😠',t:'revoltado(a)'}:v<=-20?{e:'😟',t:'preocupado(a)'}:v<20?{e:'😐',t:'indiferente'}:v<50?{e:'🙂',t:'satisfeito(a)'}:{e:'🥳',t:'orgulhoso(a) do governo'};}
+function opinioesYear(){
+  const reg={};let nlog=0;
+  for(const n of NPCS){
+    if(n.isChild||n._dead)continue;
+    const o=opiniaoGov(n),f=facOf(n);if(!f)continue;
+    const g=facGov(f),L=g&&g.leader?byId(g.leader):null,k=f.id;
+    (reg[k]=reg[k]||{s:0,c:0});reg[k].s+=o.v;reg[k].c++;
+    if(o.v<=-45){if(L&&L!==n)relate(n,L,-2);shape(n,'confianca',-1,'descontente com o governo');
+      if(Math.random()<.04){think(n,`O governo me abandonou: ${o.m.slice(0,2).join(', ')}.`,'😠');remember(n,`estou revoltado(a) com o governo (${o.m[0]||'tudo'})`,6);if(nlog++<2)log('dna',`😠 ${N(n)} se revolta contra o governo (${o.m[0]||'descontente'}).`,[n.id]);}}
+    else if(o.v>=50){if(L&&L!==n)relate(n,L,1);if(Math.random()<.03){think(n,`Vivo bem sob este governo. Tenho muito a perder.`,'🥳');}}
+  }
+  // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
+  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3)F.humor=Math.round(reg[k].s/reg[k].c);}
+  if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
+function fichaSentimentos(n){
+  let pares=[];try{const pop={};
+    pares=Object.entries(n.rel).filter(([id,v])=>Math.abs(v)>=10&&byId(id)).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,8)
+      .map(([id])=>{const o=byId(id),s=sentimento(n,o);return s?`${o.name} ${s.e} ${s.k}`:null;}).filter(Boolean);}catch(e){}
+  let g='';try{const o=opiniaoGov(n),r=opiniaoRot(o.v);g=`<div class="hint">🏛️ Governo e economia: ${r.e} ${r.t}${o.m.length?' ('+o.m.slice(0,3).join(', ')+')':''}</div>`;}catch(e){}
+  return `<div class="hint">💭 Sentimentos: ${pares.join(' · ')||'—'}</div>${g}`;}
+// (inveja e desprezo aparecem quando alguém ambicioso convive com quem é bem mais rico/popular ou de mau caráter)
 // [S51] CASAS (nomes de família), DINASTIAS, LINHA DO TEMPO, RESUMO DAS ERAS E LIVRO DO MUNDO
 // Cada pessoa nasce numa Casa; os 10 fundadores começam com Casas diferentes.
 // =====================================================================
@@ -5768,7 +5897,7 @@ function seaBuild(){const mk=()=>{const c=document.createElement('canvas');c.wid
   for(let i=0;i<MW*MH;i++){if(MAP.t[i]>=2)continue;const r=Math.random();if(r<.05)ga.fillRect(i%MW,(i/MW)|0,1,1);else if(r<.10)gb.fillRect(i%MW,(i/MW)|0,1,1);}}
 function drawSea(){if(!seaA)seaBuild();const a=.5+.5*Math.sin(performance.now()/800);ctx.globalAlpha=a*.7;ctx.drawImage(seaA,0,0,MW*CELL,MH*CELL);ctx.globalAlpha=(1-a)*.7;ctx.drawImage(seaB,0,0,MW*CELL,MH*CELL);ctx.globalAlpha=1;}
 let clkTxt='',eraTxt='';
-function hudClock(){const a=started?`${chovendo()?"🌧️":arcoIris()?"🌈":season().e} ${season().label} · ano ${day}`:`Dia ${day} · ${clockStr().slice(-5)}`;if(a!==clkTxt){clkTxt=a;const ck=document.getElementById('clock');ck.textContent=a;if(started){const S=season().name;ck.title=(chovendo()?'Está chovendo: o lazer ao ar livre perde vez e a coleta rende menos (sem agricultura). ':arcoIris()?'Arco-íris no céu: levanta o ânimo. ':'')+({Primavera:'Primavera: mais chuva e mais bebês (+12%).',Verão:'Verão: bom para pescar, mas há risco de onda de calor e rio seco.',Outono:'Outono: com agricultura e reserva, há festa da colheita.',Inverno:'Inverno: frio. Quem não tem casa adoece mais; fogo e tecelagem protegem. Menos bebês (-12%).'})[S];}else ck.title='';}const E=ERAS[world.era],b=`${E.e} ${E.name}`;if(b!==eraTxt){eraTxt=b;document.getElementById('era').textContent=b;}}
+function hudClock(){const a=started?`${chovendo()?"🌧️":arcoIris()?"🌈":season().e} ${season().label} · ano ${day}`:`Dia ${day} · ${clockStr().slice(-5)}`;if(a!==clkTxt){clkTxt=a;const ck=document.getElementById('clock');ck.textContent=a;ck.classList.remove('tick');void ck.offsetWidth;ck.classList.add('tick');if(started){const S=season().name;ck.title=(chovendo()?'Está chovendo: o lazer ao ar livre perde vez e a coleta rende menos (sem agricultura). ':arcoIris()?'Arco-íris no céu: levanta o ânimo. ':'')+({Primavera:'Primavera: mais chuva e mais bebês (+12%).',Verão:'Verão: bom para pescar, mas há risco de onda de calor e rio seco.',Outono:'Outono: com agricultura e reserva, há festa da colheita.',Inverno:'Inverno: frio. Quem não tem casa adoece mais; fogo e tecelagem protegem. Menos bebês (-12%).'})[S];}else ck.title='';}const E=ERAS[world.era],b=`${E.e} ${E.name}`;if(b!==eraTxt){eraTxt=b;document.getElementById('era').textContent=b;}}
 function mundosYear(){const M=world.mundos||{};world.colonias=world.colonias||[];const occ=occupied();if(!occ.length)return;
   for(const id of ['dimensao','insetos']){const W=M[id];if(!W||!W.aberto)continue;const sp=id==='dimensao'?'elfo':'inseto';const p=Math.min(0.12,0.02+(day-(W.dia||0))*0.001)*Math.min(1.5,tomK(id==='dimensao'?'magia':'supertec')*2);if(Math.random()>p)continue;
     const r=R(occ);if(r)desembarque(id,sp,r);}
@@ -5777,7 +5906,9 @@ function regionMundosHTML(r){const cs=(world.colonias||[]).filter(c=>c.reg===r.i
   if(cs.length)h+=`<div>🌌 Colônias: ${cs.map(c=>`${ESPECIE[c.sp].e} ${ESPECIE[c.sp].nome} (${c.n})${c.hostil?' ⚔️':''}`).join(', ')}</div>`;
   const mc=((world.mar||{}).col||[]).find(c=>c.reg===r.id);if(mc)h+=`<div>${EMO_MAR[mc.nivel]} ${NOME_MAR[mc.nivel]} (${mc.n})</div>`;
   if(cr.length)h+=`<div>✨ Criaturas: ${cr.map(c=>`${CRIA[c.tipo].e} ${CRIA[c.tipo].nome.replace(/^(um|uma) /,'')}`).join(', ')}</div>`;return h;}
-function drawCriaturas(){const cr=(world.criaturas||[]).filter(c=>c.reg===world.active);cr.forEach(c=>{const C=CRIA[c.tipo],x=220+(c.id*173)%560,y=150+(c.id*97)%320;ctx.save();ctx.font='38px serif';ctx.textAlign='center';ctx.fillText(C.e,x,y+Math.sin(performance.now()/500+c.id)*4);ctx.restore();});}
+let VINH=null;
+function drawVinheta(){const W=ctx.canvas.width,H=ctx.canvas.height;if(!VINH||VINH.width!==W||VINH.height!==H){VINH=document.createElement('canvas');VINH.width=W;VINH.height=H;const g=VINH.getContext('2d'),r=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.42,W/2,H/2,Math.hypot(W,H)*.55);r.addColorStop(0,'rgba(20,10,0,0)');r.addColorStop(1,'rgba(20,10,0,.34)');g.fillStyle=r;g.fillRect(0,0,W,H);}ctx.drawImage(VINH,0,0);}
+function drawCriaturas(){const cr=(world.criaturas||[]).filter(c=>c.reg===world.active);cr.forEach(c=>{const C=CRIA[c.tipo],x=220+(c.id*173)%560,y=150+(c.id*97)%320;const bob=Math.sin(performance.now()/500+c.id)*4;ctx.save();ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(x,y+10,16-bob*.6,5-bob*.2,0,0,7);ctx.fill();const g=ctx.createRadialGradient(x,y-10,2,x,y-10,34);g.addColorStop(0,'rgba(255,240,170,.35)');g.addColorStop(1,'rgba(255,240,170,0)');ctx.fillStyle=g;ctx.fillRect(x-36,y-46,72,72);ctx.font='38px serif';ctx.textAlign='center';ctx.fillText(C.e,x,y+bob);ctx.restore();});}
 function fantasyCommand(text){if(!started||!text.trim())return;const q=netPredict(FAN_NET,text);curAI='fantasy';
   try{log('fabula',`🔮 Você pediu à Fantasy: “${text.replace(/</g,'&lt;')}”`,[]);
   if(q.cls==='nada'||q.p<0.35){const t=deuzNorm(text);const k=FAN_KEYS.find(([id,re])=>re.test(t));if(k){q.cls=k[0];q.p=0.5;LEARN.teach('FAN',text,k[0]);}}
@@ -5828,7 +5959,7 @@ function qualAjusta(dt){if(QL>=2||speed>1||paused||document.hidden||dt>200)retur
 function loop(t){
   const raw=Math.min(50,t-last)/16.67;qualAjusta(t-last);last=t;
   if(!paused){const t0=performance.now();for(let i=0;i<speed;i++){update(raw);if(i>=1&&performance.now()-t0>14)break;}DORM.pump(BOOKWAIT?40:speed>=20?12:7);}
-  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}}
+  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}try{drawVinheta();}catch(e){}}
   hudClock();
   if(++tick%15===0){if(!paused||tick%60===0){const inf=document.getElementById('info'),st=inf?inf.scrollTop:0;renderInfo();if(inf)inf.scrollTop=st;}hudUpdate();}
   requestAnimationFrame(loop);
