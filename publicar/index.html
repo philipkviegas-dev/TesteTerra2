@@ -3849,7 +3849,8 @@ function facLeaders(){
     const cs=dinastiaCasa(f);const n=ad.sort((a,b)=>(popularity(b)+(cs&&b.surname===cs?12:0))-(popularity(a)+(cs&&a.surname===cs?12:0)))[0];setFacLeader(f,n);
     log('',`👑 ${N(n)} passou a liderar ${f.name}.`,[n.id]);remember(n,`passei a liderar ${f.name}`,6);
     facPeople(f).filter(m=>m!==n&&!m.isChild&&T(m,'ambicao')>0.3).slice(0,3).forEach(m=>{relate(m,n,-1);remember(m,`${N(n)} virou líder de ${f.name} e não eu`,4,n.id);});
-    facPeople(f).filter(m=>m!==n&&!m.isChild&&(m.rel[n.id]||0)>40).slice(0,3).forEach(m=>{relate(m,n,1);remember(m,`${N(n)}, meu amigo, passou a liderar ${f.name}`,4,n.id);});});
+    facPeople(f).filter(m=>m!==n&&!m.isChild&&(m.rel[n.id]||0)>40).slice(0,3).forEach(m=>{relate(m,n,1);remember(m,`${N(n)}, meu amigo, passou a liderar ${f.name}`,4,n.id);});
+    facPeople(f).filter(m=>m!==n&&!m.isChild&&(m.rel[n.id]||0)<-40).slice(0,3).forEach(m=>{shape(m,'confianca',-1,'inimigo virou líder');remember(m,`${N(n)}, que não suporto, passou a mandar em ${f.name}`,5,n.id);});});
 }
 // secessão: povoados distantes e insatisfeitos se separam
 function secession(){
