@@ -3674,6 +3674,7 @@ function chronicle(){
   const fe=by('festa');if(fe.length)parts.push(fe[fe.length-1].text);
   const cm=by('cometa');if(cm.length)parts.push(cm[cm.length-1].text);const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
+  const ct=by('catastrofe');if(ct.length)parts.push('tragédia: '+[...new Set(ct.map(x=>x.text))].slice(-3).join('; '));
   const pe=by('peste');if(pe.length)parts.push(pe[pe.length-1].text);
   const es=by('esporte');if(es.length)parts.push(es.slice(-2).map(x=>x.text).join('; '));
   const bk=by('economia');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
@@ -4010,12 +4011,12 @@ function justica(n,tipo,v,grave,visto,op,reg){
   if(sev===5)die(n,`executado(a) ${lei}`,(regionOf(n)||{}).name);
 }
 function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.ate){log('',`🔓 ${N(n)} cumpriu a pena e foi solto(a).`,[n.id]);remember(n,'saí da prisão',8);n.preso=null;}return;}if(n._dead||n.isChild||n.ageDays<18||n.hurt)return;const rancor=n.rancor&&byId(n.rancor)&&!byId(n.rancor)._dead?byId(n.rancor):null;
-  const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'));
+  const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'))+((n.opin||0)<-40?0.04:0);
   if(Math.random()>p)return;const m=members(n.region).filter(x=>x!==n&&!x._dead),r=regionOf(n);if(!m.length||!r)return;
   let v=rancor&&m.includes(rancor)?rancor:null;
   if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
   if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
-  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
+  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40)op.push('rebeliao','rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
    case 'roubo':if(v.food>0){v.food--;n.food++;}else world.reserva=Math.max(0,world.reserva-2);crime(n,'roubo',v,`roubou comida de ${v.name}`);break;
@@ -4987,13 +4988,13 @@ function startDisaster(type,target,sev,byCommand){sev=sev||((Math.random()<.2)?3
     const a=killIn(core,[0,0.75,0.9,0.97][sev],'atingido(a) pelo meteoro'),b=killIn(outer,[0,0.15,0.3,0.45][sev],'na onda de fogo do meteoro');
     world.winter={until:day+[0,2,4,7][sev],mul:[1,0.8,0.6,0.45][sev]};
     log('big',`☄️ <b>Um meteoro ${sevWord(sev)} caiu perto de ${R0.name}!</b> ${a.dead+b.dead} pessoas morreram${a.names.length?` (entre elas ${a.names.slice(0,3).join(', ')})`:''}. O céu escureceu: vem aí um inverno de ${world.winter.until-day} anos. ${src}`,[]);
-    worldSay(`Pedra do céu. Quem sobreviver vai ter que recomeçar com frio e pouca comida.`,'deuz');weekNote('death',`meteoro em ${R0.name}`);}
+    worldSay(`Pedra do céu. Quem sobreviver vai ter que recomeçar com frio e pouca comida.`,'deuz');weekNote('catastrofe',`meteoro em ${R0.name}`);}
   else{const d={type,regions:[R0.id],start:day,years:{peste:[0,4,7,12],praga:[0,3,5,9],insetos:[0,12,25,60]}[type][sev],sev,immune:[],origin:R0.id};world.disasters.push(d);
     if(type==='insetos'){R0.insect=true;world.facDirty=true;const ring=[...ringAround(R0.id,[0,6,10,16][sev])];ring.forEach(id=>{MAP.regions[id].insect=true;});d.regions=ring;killIn(new Set(ring),0.6,'atacado(a) pelos insetos');ring.forEach(id=>flee(id,'os insetos chegaram'));}if(type==='praga')R0.blight=true;
     const txt={peste:`☠️ <b>Uma peste ${sevWord(sev,1)} começou em ${R0.name}.</b> Ninguém sabe de onde veio. Ela vai se espalhar pelas regiões vizinhas.`,
       praga:`🦗 <b>Uma praga ${sevWord(sev,1)} tomou as plantações de ${R0.name}.</b> A comida vai faltar onde ela passar.`,
       insetos:`🪲 <b>A realidade se rasgou em ${R0.name}.</b> Do outro lado, um mundo dominado por insetos gigantes. Eles estão atravessando — e não vieram em paz.`}[type];
-    log('big',`${txt} ${src}`,[]);weekNote('death',DIS_INFO[type].name+' em '+R0.name);
+    log('big',`${txt} ${src}`,[]);weekNote('catastrofe',DIS_INFO[type].name+' em '+R0.name);
     worldSay({peste:'Uma doença nova. Vai doer, mas quem sobreviver fica mais forte contra ela.',praga:'As plantas estão morrendo. Quem souber pescar, caçar ou guardar comida vai aguentar.',insetos:'Isto não é deste mundo. Se a humanidade não se unir, vai perder terra a cada ano.'}[type],'deuz');
     world.tension=clamp(world.tension-40);}
   }finally{curAI='chronos';}
@@ -5264,7 +5265,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',economia:'economia',esporte:'esporte',peste:'catastrofe'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',economia:'economia',catastrofe:'catastrofe',esporte:'esporte',peste:'catastrofe'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
