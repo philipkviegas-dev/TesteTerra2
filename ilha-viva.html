@@ -4650,6 +4650,8 @@ function drawNPC(n,t){
   ctx.fillStyle='rgba(255,120,120,.28)';ctx.beginPath();ctx.ellipse(x-9,y-4,3,2,0,0,7);ctx.ellipse(x+9,y-4,3,2,0,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';
   const mood=(n.needs.fome+n.needs.social+n.needs.diversao)/3;
   ctx.strokeStyle='#3b2f2a';ctx.lineWidth=1.5;ctx.beginPath();if(mood>45)ctx.arc(x,y-4,4,.2,Math.PI-.2);else ctx.arc(x,y,4,Math.PI+.3,-.3);ctx.stroke();
+  if(mood<28){ctx.strokeStyle='#3b2f2a';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(x-8,y-16);ctx.lineTo(x-3,y-18.5);ctx.moveTo(x+8,y-16);ctx.lineTo(x+3,y-18.5);ctx.stroke();}
+  else if(mood>78&&!(n.task==='dormir'&&atTarget(n))){ctx.fillStyle='#c4564a';ctx.beginPath();ctx.arc(x,y-3.5,3,.1,Math.PI-.1);ctx.closePath();ctx.fill();}
   if(n.task==='dormir'&&atTarget(n)){ctx.save();ctx.font='700 13px "Baloo 2"';ctx.textAlign='center';ctx.fillStyle='#fff';ctx.strokeStyle='rgba(60,80,140,.6)';ctx.lineWidth=2.5;ctx.lineJoin='round';for(let i=0;i<3;i++){const q=(((t||0)/1600)+i/3)%1;ctx.globalAlpha=Math.sin(q*Math.PI);const zx=x+14+q*10+Math.sin(q*6+i)*2,zy=y-22-q*24;ctx.strokeText('z',zx,zy);ctx.fillText('z',zx,zy);}ctx.restore();ctx.textAlign='center';}
   if(world.gov.leader===n.id){ctx.font='15px serif';ctx.textAlign='center';ctx.fillText('👑',x,y-25);}
   if(n.holding){ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(ITEMS[n.holding].e,x-18,y+14);}
@@ -5671,6 +5673,7 @@ function sentimento(a,b,pop){ // rótulo calculado na hora (nada novo no save): 
   if(r<-10&&T(b,'bondade')<.3&&T(a,'bondade')>.55)return{k:'desprezo',e:'😏'};
   if(r<0&&amb>.55&&pb<pa*.3&&pa>10)return{k:'desprezo',e:'😏'};
   if(r<-15&&T(a,'confianca')<.45)return{k:'desconfiança',e:'🤨'};
+  if(r>=15&&r<45&&(a.memories||[]).some(m=>m.who===b.id&&/comida|ajudou|cuidou|socorr/i.test(m.text||'')))return{k:'gratidão',e:'🙏'};
   if(r>=45)return{k:'amizade',e:'🤝'};
   if(r>=20&&(pB>pA+15||T(b,'coragem')>.75))return{k:'admiração',e:'🤩'};
   if(r>=15)return{k:'simpatia',e:'🙂'};
