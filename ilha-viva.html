@@ -344,6 +344,7 @@ function addLugar(r,label,e,why,autor,m){if(!r)return null;r.novos=r.novos||[];i
   const o={id:'n_'+(r.novoSeq=(r.novoSeq||0)+1),slot,x:LUG_SLOTS[slot][0],y:LUG_SLOTS[slot][1],c:LUG_COR[(Math.random()*LUG_COR.length)|0],label,e,m:m||null,day};r.novos.push(o);
   if(r.id===world.active){syncPlaces();log('big',`🆕 Surgiu um lugar novo em ${r.name}: <b>${e} ${label}</b>${why?` — ${why}`:''}.`,autor?[autor.id]:[]);}
   weekNote('lugar',`${label} surgiu em ${r.name}`);
+  try{const nb=obraByName(label);if(nb)LEARN.teach('ARQ',label,nb.id,0.3);}catch(e){}
   if(autor){remember(autor,`${why||('descobri '+label)}`,7);shape(autor,'curiosidade',2,'achou um lugar novo');}
   return o;}
 // põe no PLACES os lugares novos da região ativa (e tira os da região anterior)
