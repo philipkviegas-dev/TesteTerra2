@@ -4078,7 +4078,9 @@ function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.
     log('big',`🌱 O povo de ${f.name} já não vive como seus antepassados: nasce a <b>${c.name}</b>.`,[]);worldSay(`Depois de ${day-c.born} anos separados, ${f.name} tem costumes, leis e até nomes próprios. É uma nova cultura.`,'chronos');}}
 function ecoPressure(f){let w=1;MAP.regions.forEach(r=>{if(r.eco&&r.eco.m<w&&regionFac(r)===f)w=r.eco.m;});return w<0.6?(0.6-w)/0.35:0;} // 0..~1: quanto a natureza de suas terras está arruinada
 function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];if(L.id==='manejo'||L.id==='defeso'||L.id==='rodizio')s+=ecoPressure(f)*45;const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
-function lawsYear(f){f.laws=f.laws||[];if(Math.random()>0.12)return;
+function lawsYear(f){f.laws=f.laws||[];
+  if(f.humor<-30&&f.laws.length&&Math.random()<.1){const id=f.laws[f.laws.length-1],L0=lawFind(id);f.laws.pop();f.humor=-10;log('big',`📜 Pressionado pelo povo descontente, ${f.name} revogou a lei "${L0?L0.name:id}".`,[]);return;}
+  if(Math.random()>0.12)return;
   const c=LAWS.filter(L=>!f.laws.includes(L.id)&&world.era>=L.minEra&&(!L.needs||has(L.needs))&&!(L.not&&f.laws.includes(L.not))).map(L=>[L,lawScore(f,L)]).filter(x=>x[1]>18).sort((a,b)=>b[1]-a[1])[0];
   if(c){f.laws.push(c[0].id);log('big',`📜 ${f.name} criou uma lei: <b>${c[0].name}</b>.`,[]);weekNote('gov',`${f.name} criou a lei "${c[0].name}"`);return;}
   const bad=f.laws.map(id=>lawFind(id)).filter(Boolean).map(L=>[L,lawScore(f,L)]).filter(x=>x[1]<2)[0];
@@ -4623,7 +4625,7 @@ function drawNPC(n,t){
   if(world.gov.leader===n.id){ctx.font='15px serif';ctx.textAlign='center';ctx.fillText('👑',x,y-25);}
   if(n.holding){ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(ITEMS[n.holding].e,x-18,y+14);}
   {const nm=(n.species?ESPECIE[n.species].e+' ':'')+n.name+(roleOf(n)?' '+roleOf(n).e:'');ctx.font='700 12px "Baloo 2"';ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,247,232,.85)';ctx.strokeText(nm,x,y+36);ctx.fillStyle='#3b2f2a';ctx.fillText(nm,x,y+36);}
-  if(mode==='morador'&&selected===n){ctx.strokeStyle='#ff7a59';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19,8,0,0,7);ctx.stroke();}
+  if(mode==='morador'&&selected===n){const pp=((t||0)/1100)%1;ctx.save();ctx.strokeStyle=`rgba(255,122,89,${.5*(1-pp)})`;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19+pp*10,8+pp*4,0,0,7);ctx.stroke();ctx.restore();ctx.strokeStyle='#ff7a59';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19,8,0,0,7);ctx.stroke();}
   if(n.bubble){const bb=Math.sin((t||0)/380+x*.05)*1.6;ctx.save();ctx.translate(0,bb);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#00000025';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+19,y-36,14,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+9,y-21,3,0,7);ctx.fill();ctx.shadowColor='transparent';ctx.font='16px serif';ctx.fillText(n.bubble,x+19,y-30);ctx.restore();}
   const crowd=hereNPCs().length>25;
   if(n.sayT>0&&n.say&&(!crowd||n===selected||parseInt(n.id.slice(1))%4===0)){ctx.font='600 12px "Baloo 2"';const sx=n.say.length>36?n.say.slice(0,35)+'…':n.say,w=ctx.measureText(sx).width+16;ctx.save();ctx.globalAlpha*=Math.min(1,n.sayT/25);ctx.shadowColor='rgba(0,0,0,.22)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle='#fff';ctx.strokeStyle='#ff7a5988';rr(x-w/2,y-78,w,23,10);ctx.fill();ctx.stroke();ctx.shadowColor='transparent';ctx.beginPath();ctx.moveTo(x-5,y-55.5);ctx.lineTo(x+5,y-55.5);ctx.lineTo(x,y-49);ctx.closePath();ctx.fill();ctx.fillStyle='#3b2f2a';ctx.fillText(sx,x,y-62);ctx.restore();}
@@ -5695,7 +5697,7 @@ function opinioesYear(){
     else if(o.v>=50){if(L&&L!==n)relate(n,L,1);if(Math.random()<.03){think(n,`Vivo bem sob este governo. Tenho muito a perder.`,'🥳');}}
   }
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
-  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;}
+  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=(MAP.factions||[])[k]||(typeof FACTIONS!=='undefined'?FACTIONS[k]:null);if(F&&reg[k].c>=3)F.humor=Math.round(reg[k].s/reg[k].c);}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 function fichaSentimentos(n){
   let pares=[];try{const pop={};
