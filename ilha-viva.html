@@ -5729,8 +5729,8 @@ function opinioesYear(){
   }
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
   let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3){const ant=F.humor==null?0:F.humor;F.humor=Math.round(reg[k].s/reg[k].c);
-    if(ant>-30&&F.humor<=-30){log('big',`😠 O povo de ${F.name} está descontente com o governo.`,[]);weekNote('gov',`o povo de ${F.name} ficou descontente com o governo`);}
-    else if(ant<=-30&&F.humor>-10){log('',`🙂 O povo de ${F.name} se acalmou com o governo.`,[]);weekNote('gov',`o povo de ${F.name} se acalmou`);}}}
+    if(ant>-30&&F.humor<=-30){log('big',`😠 Em ${F.name} o povo está descontente com o governo.`,[]);weekNote('gov',`ficou descontente com o governo (${F.name})`);}
+    else if(ant<=-30&&F.humor>-10){log('',`🙂 Em ${F.name} o povo se acalmou com o governo.`,[]);weekNote('gov',`se acalmou com o governo (${F.name})`);}}}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 function fichaSentimentos(n){
   let pares=[];try{const pop={};
