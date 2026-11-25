@@ -1911,7 +1911,7 @@ function die(n,cause,where){
     else{if(R_){R_.dono=null;R_.donoNome='enterrada';}log('big',`🏺 <b>${n.relic}</b> foi enterrada com ${n.name}, sem herdeiros.`,[]);}}catch(e){console.error(e);}}
   const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));NPCS.forEach(x=>{if(x.melhorAmigo===n.id)close.add(x);});
   close.forEach(o=>{
-    if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);o.luto=day;o.desejo=0;}
+    if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);o.luto=day;o.desejo=0;o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu(minha) companheiro(a)'};}
     else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);o.luto=day;}
     else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);o.luto=day;}
     else if(o.melhorAmigo===n.id){think(o,`${n.name} era meu melhor amigo. Ninguém vai ocupar esse lugar.`,'🥀');shape(o,'confianca',-2,'perdeu o melhor amigo');remember(o,`perdi ${n.name}, meu melhor amigo`,9,n.id);o.luto=day;o.melhorAmigo=null;o.saudade={id:n.id,nome:n.name,dia:day};}
@@ -5778,7 +5778,7 @@ function sentimentosYear(){
   for(const a of NPCS){
     if(a.isChild||a._dead)continue;
     // aniversário da perda do melhor amigo: a lembrança volta e dói um pouco
-    if(a.saudade&&day-a.saudade.dia>=1&&(day-a.saudade.dia)%5===0&&day-a.saudade.dia<=50){a.luto=day;thinkOnce(a,`Faz ${day-a.saudade.dia} anos que ${a.saudade.nome} se foi. Ainda penso nele(a).`,'🕯️');remember(a,`lembrei de ${a.saudade.nome}, meu melhor amigo que partiu`,5,a.saudade.id);}
+    if(a.saudade&&day-a.saudade.dia>=1&&(day-a.saudade.dia)%5===0&&day-a.saudade.dia<=50){a.luto=day;thinkOnce(a,`Faz ${day-a.saudade.dia} anos que ${a.saudade.nome} se foi. Ainda penso nele(a).`,'🕯️');remember(a,`lembrei de ${a.saudade.nome}, ${a.saudade.tipo||'meu melhor amigo'} que partiu`,5,a.saudade.id);}
     if(a.saudade&&day-a.saudade.dia>50){a.saudade=null;shape(a,'confianca',1,'superou a perda do melhor amigo');}
     // saudade: um amigo ou amor que mora longe
     if(Math.random()<.15){const lg=Object.keys(a.rel).filter(id=>a.rel[id]>=45).map(byId).filter(o=>o&&!o._dead&&o.region!==a.region);
