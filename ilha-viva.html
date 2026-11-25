@@ -1901,7 +1901,8 @@ function die(n,cause,where){
   if(heirs.length){const f=Math.floor(n.food/heirs.length),c=Math.floor(n.coins/heirs.length);heirs.forEach(h=>{h.food+=f;h.coins+=c;});if(n.items.length){heirs[0].items.push(...n.items.filter(k=>!heirs[0].items.includes(k)));}}
   else world.reserva=Math.min(resCap(),world.reserva+n.food);
   if(n.deve&&heirs.length){const h0=heirs[0];h0.deve=h0.deve||{};for(const k in n.deve)h0.deve[k]=n.deve[k];}
-  try{if(heirs.length>1&&(n.coins||0)>=40&&(n.items||[]).length){const h0=heirs[0];heirs.slice(1).filter(h=>T(h,'bondade')<.4&&!h._dead).forEach(h=>{relate(h,h0,-4);relate(h0,h,-2);remember(h,`${h0.name} ficou com as coisas de ${n.name} e eu me senti injustiçado(a)`,6,h0.id);remember(h0,`${h.name} brigou comigo pela herança de ${n.name}`,5,h.id);});}}catch(e){}
+  try{if(heirs.length>1&&(n.coins||0)>=40&&(n.items||[]).length){const h0=heirs[0];heirs.slice(1).filter(h=>T(h,'bondade')<.4&&!h._dead).forEach(h=>{relate(h,h0,-4);relate(h0,h,-2);remember(h,`${h0.name} ficou com as coisas de ${n.name} e eu me senti injustiçado(a)`,6,h0.id);remember(h0,`${h.name} brigou comigo pela herança de ${n.name}`,5,h.id);});
+    if(T(h0,'bondade')>.75){const irm=heirs.slice(1).filter(h=>!h._dead&&T(h,'bondade')>=.4);const q=Math.floor((h0.coins||0)*.2/Math.max(1,irm.length));if(q>0&&irm.length){irm.forEach(h=>{h0.coins-=q;h.coins=(h.coins||0)+q;relate(h,h0,6);relate(h0,h,3);remember(h,`${h0.name} me deu parte do que herdou de ${n.name}`,6,h0.id);});remember(h0,`dividi a herança de ${n.name} com meus irmãos`,5);}}}}catch(e){}
   try{finHerda(n,heirs);}catch(e){}
   n._dead=true;SWEEP=true;IDX.delete(n.id);RC.dirty=true;
   log('big',`🕊️ ${N(n)} morreu ${cause}${where?` (${where.toLowerCase().startsWith('a')||where.toLowerCase().startsWith('o')?'em ':'em '}${where})`:''} aos ${n.ageDays} anos${n.kids.length?`, deixando ${n.kids.length} filho(s)`:''}.${n.fame?` Será lembrado(a) como ${n.fame}.`:''}`,[n.id,...n.kids]);
