@@ -4061,7 +4061,8 @@ function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.
   // quando se afasta muito da cultura de onde veio, vira outra cultura
   if(c.parent!=null&&c.root&&cultDist(v,c.root)>45&&!c.renamed){c.renamed=true;const base=(cap?cap.name:f.name).replace(/[aeiou]$/,'');c.name=`Cultura ${base}ense`;
     log('big',`🌱 O povo de ${f.name} já não vive como seus antepassados: nasce a <b>${c.name}</b>.`,[]);worldSay(`Depois de ${day-c.born} anos separados, ${f.name} tem costumes, leis e até nomes próprios. É uma nova cultura.`,'chronos');}}
-function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
+function ecoPressure(f){let w=1;MAP.regions.forEach(r=>{if(r.eco&&r.eco.m<w&&regionFac(r)===f)w=r.eco.m;});return w<0.6?(0.6-w)/0.35:0;} // 0..~1: quanto a natureza de suas terras está arruinada
+function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];if(L.id==='manejo'||L.id==='defeso'||L.id==='rodizio')s+=ecoPressure(f)*45;const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
 function lawsYear(f){f.laws=f.laws||[];if(Math.random()>0.12)return;
   const c=LAWS.filter(L=>!f.laws.includes(L.id)&&world.era>=L.minEra&&(!L.needs||has(L.needs))&&!(L.not&&f.laws.includes(L.not))).map(L=>[L,lawScore(f,L)]).filter(x=>x[1]>18).sort((a,b)=>b[1]-a[1])[0];
   if(c){f.laws.push(c[0].id);log('big',`📜 ${f.name} criou uma lei: <b>${c[0].name}</b>.`,[]);weekNote('gov',`${f.name} criou a lei "${c[0].name}"`);return;}
@@ -4568,7 +4569,7 @@ function drawWorld(t){
     ctx.fillStyle='rgba(0,0,0,.10)';rr(p.x-52,p.y-22,110,66,20);ctx.fill();ctx.globalAlpha=.93;ctx.fillStyle=p.c;ctx.strokeStyle='#ffffffaa';ctx.lineWidth=3;rr(p.x-55,p.y-28,110,66,20);ctx.fill();ctx.stroke();ctx.globalAlpha=1;
     desenhaModelo(id,p,L,t||0,p.x,p.y+30,.8);
     if(p.home){const res=hereNPCs().filter(n=>n.home===id).length;const extra=Math.min(3,Math.floor(res/3));const kk=modeloKey(L,p);for(let i=0;i<extra;i++){ctx.save();ctx.translate(p.x-44+i*44,p.y+40);ctx.scale(.36,.36);try{M[kk](0,0,t||0,i);}catch(e){}ctx.restore();}}
-    ctx.textAlign='center';ctx.font='700 13px "Baloo 2"';ctx.fillStyle='#3b2f2a';ctx.fillText(L.label,p.x,p.y-34);}
+    ctx.textAlign='center';ctx.font='700 13px "Baloo 2"';ctx.lineJoin='round';ctx.lineWidth=4;ctx.strokeStyle='rgba(255,247,232,.88)';ctx.strokeText(L.label,p.x,p.y-34);ctx.fillStyle='#3b2f2a';ctx.fillText(L.label,p.x,p.y-34);}
   if(started&&season().name==='Inverno'){ctx.fillStyle='rgba(235,245,255,.28)';ctx.fillRect(0,0,W,H);}
   else if(started&&season().name==='Outono'){ctx.fillStyle='rgba(255,170,60,.10)';ctx.fillRect(0,0,W,H);}
   if(arcoIris()){ctx.save();ctx.globalAlpha=.38;ctx.lineWidth=7;["#e04b4b","#f0903c","#f3d84a","#58b85a","#4a8fe0","#8a5ad0"].forEach((c,i)=>{ctx.strokeStyle=c;ctx.beginPath();ctx.arc(500,330,300-i*7,Math.PI*1.08,Math.PI*1.92);ctx.stroke();});ctx.restore();}
@@ -4601,7 +4602,7 @@ function drawNPC(n,t){
   ctx.strokeStyle='#3b2f2a';ctx.lineWidth=1.5;ctx.beginPath();if(mood>45)ctx.arc(x,y-4,4,.2,Math.PI-.2);else ctx.arc(x,y,4,Math.PI+.3,-.3);ctx.stroke();
   if(world.gov.leader===n.id){ctx.font='15px serif';ctx.textAlign='center';ctx.fillText('👑',x,y-25);}
   if(n.holding){ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(ITEMS[n.holding].e,x-18,y+14);}
-  ctx.font='700 12px "Baloo 2"';ctx.textAlign='center';ctx.fillStyle='#3b2f2a';ctx.fillText((n.species?ESPECIE[n.species].e+' ':'')+n.name+(roleOf(n)?' '+roleOf(n).e:''),x,y+36);
+  {const nm=(n.species?ESPECIE[n.species].e+' ':'')+n.name+(roleOf(n)?' '+roleOf(n).e:'');ctx.font='700 12px "Baloo 2"';ctx.textAlign='center';ctx.lineJoin='round';ctx.lineWidth=3.5;ctx.strokeStyle='rgba(255,247,232,.85)';ctx.strokeText(nm,x,y+36);ctx.fillStyle='#3b2f2a';ctx.fillText(nm,x,y+36);}
   if(mode==='morador'&&selected===n){ctx.strokeStyle='#ff7a59';ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(n.x,n.y+22,19,8,0,0,7);ctx.stroke();}
   if(n.bubble){ctx.fillStyle='#fff';ctx.strokeStyle='#00000025';ctx.lineWidth=2;ctx.beginPath();ctx.arc(x+19,y-36,14,0,7);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(x+9,y-21,3,0,7);ctx.fill();ctx.font='16px serif';ctx.fillText(n.bubble,x+19,y-30);}
   const crowd=hereNPCs().length>25;
