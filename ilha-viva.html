@@ -2749,7 +2749,8 @@ function launch(n,cmd){
   const why=cmd.parts.map(([k,v])=>`${k} ${v>=0?'+':''}${Math.round(v*100)}%`).join(', ');
   const msg=`${A.label}${alvo?' → '+alvo.name:''} · chance <b>${Math.round(cmd.chance*100)}%</b>${why?` <span class="hint">(${why})</span>`:''} · leva ~${A.h}h${cmd.ia?' · interpretado pela IA':''}`;
   log('fabula',`✨ <b>Fábula</b> · ${cmd.auto?'meta de ':'comando para '}${N(n)}: “${cmd.text}” → ${msg}`,[n.id].concat(alvo?[alvo.id]:[]));
-  if(!cmd.auto)setFabOut(`✨ ${n.name}: ${msg} <button class="sug" onclick="fabCancelar('${n.id}')">✖ Cancelar</button>`);
+  if(!cmd.auto&&cmd.tent>0){const el=document.getElementById('fabOut');if(el)el.innerHTML=el.innerHTML.replace(/<div class="fabTent">.*?<\/div>/,'')+`<div class="fabTent">💪 Tentativa ${cmd.tent+1}… <button class="sug" onclick="fabCancelar('${n.id}')">✖ Desistir</button></div>`;}
+  else if(!cmd.auto)setFabOut(`✨ ${n.name}: ${msg} <button class="sug" onclick="fabCancelar('${n.id}')">✖ Cancelar</button>`);
 }
 function fabRepetir(){const u=window._fabUlt,n=u&&byId(u.id);if(!n)return;fabulaCommand(n,u.text);}
 function fabCancelar(id){const n=byId(id);if(!n||!n.cmd)return;const c=n.cmd;n.cmd=null;n.cmdQueue=[];n.task=null;think(n,'Ah, então deixa pra lá.','🤷');log('',`✖ O comando “${c.text}” para ${N(n)} foi cancelado.`,[n.id]);setFabOut(`✖ Comando cancelado. ${n.name} voltou à vida normal.`);decide(n);}
