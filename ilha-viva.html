@@ -1915,7 +1915,7 @@ function die(n,cause,where){
   });
   try{(n.kids||[]).map(byId).filter(k=>k&&k.isChild&&!k._dead&&k.parents.every(id=>{const q=byId(id);return id===n.id||!q||q._dead||q.dead;})).forEach(k=>{
     think(k,'Fiquei sem pai nem mãe... e agora?','😢');shape(k,'confianca',-6,'ficou órfão(a)');remember(k,'fiquei órfão(a)',10);k.orfao=day;
-    const ad=members(k.region).filter(o=>!o.isChild&&!o._dead&&o!==n&&!o.partner||false).filter(o=>!o._dead&&!o.isChild&&o!==n);const tio=ad.sort((x,y)=>(y.rel[k.id]||0)-(x.rel[k.id]||0)||(y.bondade||0)-(x.bondade||0))[0];
+    const ad=members(k.region).filter(o=>!o.isChild&&!o._dead&&o!==n&&!k.parents.includes(o.id));const tio=ad.sort((x,y)=>(y.rel[k.id]||0)-(x.rel[k.id]||0)||(y.bondade||0)-(x.bondade||0))[0];
     if(tio){relate(tio,k,25);think(tio,`${k.name} ficou sozinho(a). Vou cuidar dele(a).`,'🤲');remember(tio,`acolhi ${k.name}, que ficou órfão(a)`,9,k.id);weekNote('couple',`${tio.name} acolheu ${k.name}, órfão(a)`);}
   });}catch(e){}
   world.lastDeath={name:n.name,day,age:n.ageDays};
