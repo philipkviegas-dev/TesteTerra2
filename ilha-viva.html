@@ -118,6 +118,11 @@
   .livroCorpo h4{font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;font-size:17px;color:#5a3a20;border-bottom:2px solid var(--gold2);padding-bottom:2px}
   .tl{border-bottom:1px dashed #cdb27a}
   ::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:#e9d9b4;border-radius:8px}::-webkit-scrollbar-thumb{background:linear-gradient(#c9962b,#8a6420);border:2px solid #e9d9b4;border-radius:8px}
+  ::selection{background:#ffcf5c;color:#2b1d12}
+  ::-webkit-scrollbar-thumb:hover{background:linear-gradient(#e0ae3f,#a57a28)}
+  details.panel[open]>*:not(summary){animation:abre .25s ease-out}
+  @keyframes abre{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){details.panel[open]>*:not(summary){animation:none}}
   .mbtn{display:none}
   @media(max-width:700px){header{position:static}.hg[data-t]:before{display:none}.mbtn{display:inline-flex}header:not(.open) .hg:not(.keep){display:none}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -146,6 +151,7 @@
   <span class="pill era" id="era"></span>
   <span class="pill" id="clock"></span>
   <button id="menuBtn" class="mbtn" title="Mostrar ou esconder os outros botões" onclick="document.querySelector('header').classList.toggle('open')">☰ Menu</button>
+  <script>document.querySelector('header').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&b.id!=='menuBtn'&&!b.closest('.keep')&&!b.closest('.deuzbox'))setTimeout(()=>document.querySelector('header').classList.remove('open'),150);});</script>
   <span class="hg keep" data-t="Tempo"><button id="pause" title="Pausar ou retomar o tempo">⏸ Pausar</button>
   <button title="Velocidade normal" data-speed="1" class="on">1×</button><button title="Velocidade 3× (1 dia = 1 ano)" data-speed="3">3×</button><button title="Velocidade 8× (1 dia = 1 ano)" data-speed="8">8×</button><button title="Velocidade 20× (1 dia = 1 ano)" data-speed="20">20×</button><button title="Velocidade 50× (1 dia = 1 ano)" data-speed="50">50×</button></span>
   <span class="hg" data-t="Visão"><button id="viewMapa" class="on">🗺️ Mapa</button><button id="viewRegiao">🔍 Região</button><button id="zIn" title="Aproximar o mapa" onclick="mzZoom(1.5)">➕</button><button id="zOut" title="Afastar o mapa" onclick="mzZoom(1/1.5)">➖</button><button id="zRst" title="Mapa inteiro" onclick="mzReset()">⌖</button></span>
@@ -2273,7 +2279,7 @@ function update(dt){TICK++;if(SWEEP){SWEEP=false;NPCS=NPCS.filter(o=>!o._dead);}
   const night=isNight();
   if(wasNight&&!night){
     world.hasHealer=NPCS.some(o=>roleOf(o)&&roleOf(o).out==='heal');if(day%10===0)pruneRelations();
-    seasonMorning();try{chuvaYear();}catch(e){console.error(e);}try{frioYear();}catch(e){console.error(e);}spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{ensinoYear();magiaYear();portalYear();inventionYear();maldadeYear();LEARN.year();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
+    seasonMorning();try{chuvaYear();}catch(e){console.error(e);}try{frioYear();}catch(e){console.error(e);}spoilFood();disastersYear();compactWorld();DORM.yearStart();worldMorning();regionMorning();familyYear();beliefMorning();deuzVisibleYear();architectYear();usoYear();fantasyYear();try{casasYear();}catch(e){console.error(e);}politicsDaily();try{conquistasYear();}catch(e){console.error(e);}try{poligamiaYear();try{ensinoYear();magiaYear();portalYear();inventionYear();maldadeYear();LEARN.year();}catch(e){console.error(e);}try{sentimentosYear();}catch(e){console.error(e);}}catch(e){console.error(e);}if(day%(totalPop()>20000?10:totalPop()>3000?3:1)===0)saveGame(true);if(day%7===0)chronicle();
     [...NPCS].forEach(n=>{if(!byId(n.id))return;n.workedToday=false;morningLife(n);});
     NPCS.forEach(n=>{estoriaCompress(n);morningReflection(n);metaMorning(n);if(!n.cmd)decide(n);});
     if(has('troca'))NPCS.forEach(n=>{if(n.isChild)return;const ks=Object.keys(ITEMS).filter(k=>itemAvail(k)&&!n.items.includes(k));if(ks.length){const k=pickW(ks.map(k=>{let v=10;for(const tr in ITEMS[k].aff)v+=25*ITEMS[k].aff[tr]*T(n,tr);return [k,v];}));n.wants[k]=clamp(n.wants[k]+rnd(6,16));}});
@@ -4685,7 +4691,7 @@ function renderInfo(){if(view==='mapa'||!started)return renderMapInfo();if(mode=
    <div style="margin:4px 0">${labels}</div>
    <div class="cols"><div><b style="font-size:13px">Personalidade</b>${Object.keys(TRAITS).map(k=>tbar(n,k)).join('')}</div>
      <div><b style="font-size:13px">Instintos</b>${bar('🍖 Fome',n.needs.fome,'#ffb347')}${bar('⚡ Energia',n.needs.energia,'#6fcf97')}${bar('💬 Social',n.needs.social,'#ff8fab')}${bar('🎈 Diversão',n.needs.diversao,'#7db7ff')}${n.isChild?'':bar('💞 Desejo',n.desejo||0,'#e57399')}<b style="font-size:13px">Gostos</b><div>${likes}</div></div></div>
-   <div class="hint" style="margin-top:4px">❤️ ${rels}</div>
+   <div class="hint" style="margin-top:4px">❤️ ${rels}</div>${n.isChild?'':fichaSentimentos(n)}
    <div style="margin-top:4px"><b style="font-size:13px">📔 Memórias marcantes</b><br><span class="hint">${n.memories.filter(m=>m.imp>=5).slice(0,4).map(m=>'• '+m.text).join('<br>')||'nada marcante ainda'}</span></div>${famTree(n)}`;
 }
 function renderIsland(){
@@ -5613,6 +5619,78 @@ function marHTML(){const M=world.mar||{col:[],atl:null},RC2=world.racas||{};
     h+=quemVai(sp==='atlante'?'mar':'')+`<div style="margin-bottom:4px">${[['amizade','🤝 Amizade'],['alianca','🛡️ Aliança'],['paz','🕊️ Paz'],['guerra','⚔️ Guerra'],['miscigenar','💞 Misturar']].map(a=>`<button class="sug" onclick="racaPainel('${sp}','${a[0]}')">${a[1]}</button>`).join('')}</div>`;});
   return h+'</div>';}
 // =====================================================================
+// [S52] SENTIMENTOS: o que uma pessoa sente pela outra (amizade, inveja, ciúme, desprezo...) e pelo governo e pela economia
+// ---- sentimentos entre pessoas ----
+function sentimento(a,b,pop){ // rótulo calculado na hora (nada novo no save): {k,e} ou null
+  if(!a||!b||a===b||a.isChild||b.isChild)return null;
+  const r=a.rel[b.id]||0,pa=patrimonio(a),pb=patrimonio(b),amb=T(a,'ambicao');
+  const pB=pop==null?popularity(b):pop,pA=pop==null?popularity(a):0;
+  if(a.partner===b.id)return{k:'amor',e:'💞'};
+  if(a.crush===b.id)return{k:'paixão',e:'💗'};
+  const p=a.partner?byId(a.partner):null;
+  if(p&&p!==b&&(p.rel[b.id]||0)>35&&r<35)return{k:'ciúme',e:'😒'};
+  if(r<=-60)return{k:'ódio',e:'😡'};
+  if(r<25&&amb>.5&&(pb>pa*1.8+8||pB>pA+25))return{k:'inveja',e:'😤'};
+  if(r<-10&&T(b,'bondade')<.3&&T(a,'bondade')>.55)return{k:'desprezo',e:'😏'};
+  if(r<0&&amb>.55&&pb<pa*.3&&pa>10)return{k:'desprezo',e:'😏'};
+  if(r<-15&&T(a,'confianca')<.45)return{k:'desconfiança',e:'🤨'};
+  if(r>=45)return{k:'amizade',e:'🤝'};
+  if(r>=20&&(pB>pA+15||T(b,'coragem')>.75))return{k:'admiração',e:'🤩'};
+  if(r>=15)return{k:'simpatia',e:'🙂'};
+  return null;}
+function sentimentosYear(){
+  let logs=0;
+  for(const a of NPCS){
+    if(a.isChild||a._dead)continue;
+    const m=members(a.region);if(m.length<2)continue;
+    for(let i=0;i<2;i++){
+      const b=m[(Math.random()*m.length)|0];if(!b||b===a||b.isChild||b._dead)continue;
+      const s=sentimento(a,b);if(!s)continue;
+      const nb=N(b);
+      if(s.k==='amizade'){relate(a,b,2);relate(b,a,1);
+        if(b.needs&&b.needs.fome<25&&(a.food||0)>2&&(b.food||0)<1){a.food--;b.food=(b.food||0)+1;relate(b,a,8);remember(b,`${a.name} me deu comida quando passei fome`,7,a.id);remember(a,`ajudei ${b.name} com comida`,5,b.id);if(logs++<3)log('dna',`🤝 ${N(a)} dividiu a comida com o amigo ${nb}.`,[a.id,b.id]);}}
+      else if(s.k==='admiração')relate(a,b,1);
+      else if(s.k==='inveja'){relate(a,b,-3);if(Math.random()<.08){think(a,`Por que ${b.name} tem tanto e eu tão pouco?`,'😤');shape(a,'ambicao',1,'inveja');remember(a,`invejo ${b.name}`,6,b.id);if(logs++<3)log('dna',`😤 ${N(a)} sente inveja de ${nb}.`,[a.id,b.id]);}}
+      else if(s.k==='ciúme'){relate(a,b,-4);shape(a,'confianca',-1,'ciúme');if(Math.random()<.1){think(a,`Não gosto de ver ${b.name} perto de quem eu amo.`,'😒');if(logs++<3)log('dna',`😒 ${N(a)} tem ciúme de ${nb}.`,[a.id,b.id]);}}
+      else if(s.k==='desprezo'){relate(a,b,-2);relate(b,a,-1);if(Math.random()<.06){think(b,`${a.name} me olha com desprezo.`,'😔');remember(b,`${a.name} me despreza`,5,a.id);}}
+      else if(s.k==='ódio'){relate(a,b,-1);}
+    }
+  }
+  opinioesYear();}
+// ---- sensações com política, governo e economia ----
+function opiniaoGov(n){ // -100..100 + motivos; suavizada em n.opin
+  const f=facOf(n);if(!f)return{v:0,m:[]};
+  const g=facGov(f),L=g&&g.leader?byId(g.leader):null,cu=facCult(f).v,rg=regimeOf(f),m=[];let v=0;
+  if(L===n){v+=25;m.push('governa');}
+  else if(L){const d=(n.rel[L.id]||0)*.35;v+=d;if(d>8)m.push('gosta do líder');else if(d<-8)m.push('detesta o líder');}
+  else{v-=6;m.push('sem governo');}
+  if(n.needs&&n.needs.fome<30){v-=18;m.push('passa fome');}
+  if(has('moeda')){const pt=patrimonio(n),dv=deveTotal(n);
+    if(dv>0&&dv>pt*.5){v-=15;m.push('endividado');}else if(pt>40){v+=10;m.push('vive bem');}
+    else if(pt<4&&!n.role){v-=10;m.push('sem renda');}}
+  if(world.tension>60){v-=10;m.push('país em tensão');}else if(world.tension<20)v+=5;
+  const lib=T(n,'coragem')*.5+T(n,'ambicao')*.5;
+  if(rg==='ditadura'){v-=10+20*lib;m.push('vive sob ditadura');}
+  else if(rg==='democracia'||rg==='republica'){v+=6+(cu.liberdade>20?6:0);if(cu.liberdade>20)m.push('liberdade');}
+  const fe=(f.laws||[]).length;if(fe>=3&&T(n,'ambicao')>.6){v-=6;m.push('leis demais');}
+  v=clamp(Math.round(v),-100,100);
+  n.opin=Math.round((n.opin==null?v:n.opin*.6+v*.4));
+  return{v:n.opin,m};}
+function opiniaoRot(v){return v<=-50?{e:'😠',t:'revoltado(a)'}:v<=-20?{e:'😟',t:'preocupado(a)'}:v<20?{e:'😐',t:'indiferente'}:v<50?{e:'🙂',t:'satisfeito(a)'}:{e:'🥳',t:'orgulhoso(a) do governo'};}
+function opinioesYear(){
+  const reg={};let nlog=0;
+  for(const n of NPCS){
+    if(n.isChild||n._dead)continue;
+    const o=opiniaoGov(n),f=facOf(n);if(!f)continue;
+    const g=facGov(f),L=g&&g.leader?byId(g.leader):null,k=f.id;
+    (reg[k]=reg[k]||{s:0,c:0});reg[k].s+=o.v;reg[k].c++;
+    if(o.v<=-45){if(L&&L!==n)relate(n,L,-2);shape(n,'confianca',-1,'descontente com o governo');
+      if(Math.random()<.04){think(n,`O governo me abandonou: ${o.m.slice(0,2).join(', ')}.`,'😠');remember(n,`estou revoltado(a) com o governo (${o.m[0]||'tudo'})`,6);if(nlog++<2)log('dna',`😠 ${N(n)} se revolta contra o governo (${o.m[0]||'descontente'}).`,[n.id]);}}
+    else if(o.v>=50){if(L&&L!==n)relate(n,L,1);if(Math.random()<.03){think(n,`Vivo bem sob este governo. Tenho muito a perder.`,'🥳');}}
+  }
+  // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
+  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;}
+  if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 // [S51] CASAS (nomes de família), DINASTIAS, LINHA DO TEMPO, RESUMO DAS ERAS E LIVRO DO MUNDO
 // Cada pessoa nasce numa Casa; os 10 fundadores começam com Casas diferentes.
 // =====================================================================
