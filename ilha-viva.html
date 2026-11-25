@@ -5700,6 +5700,7 @@ function fichaSentimentos(n){
       .map(([id])=>{const o=byId(id),s=sentimento(n,o);return s?`${o.name} ${s.e} ${s.k}`:null;}).filter(Boolean);}catch(e){}
   let g='';try{const o=opiniaoGov(n),r=opiniaoRot(o.v);g=`<div class="hint">🏛️ Governo e economia: ${r.e} ${r.t}${o.m.length?' ('+o.m.slice(0,3).join(', ')+')':''}</div>`;}catch(e){}
   return `<div class="hint">💭 Sentimentos: ${pares.join(' · ')||'—'}</div>${g}`;}
+// (inveja e desprezo aparecem quando alguém ambicioso convive com quem é bem mais rico/popular ou de mau caráter)
 // [S51] CASAS (nomes de família), DINASTIAS, LINHA DO TEMPO, RESUMO DAS ERAS E LIVRO DO MUNDO
 // Cada pessoa nasce numa Casa; os 10 fundadores começam com Casas diferentes.
 // =====================================================================
