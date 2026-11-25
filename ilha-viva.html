@@ -5783,6 +5783,8 @@ function regionMundosHTML(r){const cs=(world.colonias||[]).filter(c=>c.reg===r.i
   if(cs.length)h+=`<div>🌌 Colônias: ${cs.map(c=>`${ESPECIE[c.sp].e} ${ESPECIE[c.sp].nome} (${c.n})${c.hostil?' ⚔️':''}`).join(', ')}</div>`;
   const mc=((world.mar||{}).col||[]).find(c=>c.reg===r.id);if(mc)h+=`<div>${EMO_MAR[mc.nivel]} ${NOME_MAR[mc.nivel]} (${mc.n})</div>`;
   if(cr.length)h+=`<div>✨ Criaturas: ${cr.map(c=>`${CRIA[c.tipo].e} ${CRIA[c.tipo].nome.replace(/^(um|uma) /,'')}`).join(', ')}</div>`;return h;}
+let VINH=null;
+function drawVinheta(){const W=ctx.canvas.width,H=ctx.canvas.height;if(!VINH||VINH.width!==W||VINH.height!==H){VINH=document.createElement('canvas');VINH.width=W;VINH.height=H;const g=VINH.getContext('2d'),r=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.42,W/2,H/2,Math.hypot(W,H)*.55);r.addColorStop(0,'rgba(20,10,0,0)');r.addColorStop(1,'rgba(20,10,0,.34)');g.fillStyle=r;g.fillRect(0,0,W,H);}ctx.drawImage(VINH,0,0);}
 function drawCriaturas(){const cr=(world.criaturas||[]).filter(c=>c.reg===world.active);cr.forEach(c=>{const C=CRIA[c.tipo],x=220+(c.id*173)%560,y=150+(c.id*97)%320;ctx.save();ctx.font='38px serif';ctx.textAlign='center';ctx.fillText(C.e,x,y+Math.sin(performance.now()/500+c.id)*4);ctx.restore();});}
 function fantasyCommand(text){if(!started||!text.trim())return;const q=netPredict(FAN_NET,text);curAI='fantasy';
   try{log('fabula',`🔮 Você pediu à Fantasy: “${text.replace(/</g,'&lt;')}”`,[]);
@@ -5834,7 +5836,7 @@ function qualAjusta(dt){if(QL>=2||speed>1||paused||document.hidden||dt>200)retur
 function loop(t){
   const raw=Math.min(50,t-last)/16.67;qualAjusta(t-last);last=t;
   if(!paused){const t0=performance.now();for(let i=0;i<speed;i++){update(raw);if(i>=1&&performance.now()-t0>14)break;}DORM.pump(BOOKWAIT?40:speed>=20?12:7);}
-  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}}
+  if(view==='mapa'||!started)drawMap();else{drawWorld(t);[...hereNPCs()].sort((a,b)=>a.y-b.y).forEach(n=>{ctx.globalAlpha=mode==='morador'&&n!==selected?0.35:1;drawNPC(n,t);});ctx.globalAlpha=1;try{drawCriaturas();}catch(e){}try{drawVinheta();}catch(e){}}
   hudClock();
   if(++tick%15===0){if(!paused||tick%60===0){const inf=document.getElementById('info'),st=inf?inf.scrollTop:0;renderInfo();if(inf)inf.scrollTop=st;}hudUpdate();}
   requestAnimationFrame(loop);
