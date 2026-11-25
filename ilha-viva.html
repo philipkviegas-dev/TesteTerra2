@@ -1908,8 +1908,8 @@ function die(n,cause,where){
   const close=new Set([n.partner,...NPCS.filter(x=>x.partner===n.id).map(x=>x.id),...n.kids,...n.parents,...Object.keys(n.rel).map(Number)].map(byId).filter(Boolean));if(n.crushedBy)close.add(byId(n.crushedBy));
   close.forEach(o=>{
     if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);o.luto=day;o.desejo=0;}
-    else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);}
-    else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);}
+    else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);o.luto=day;}
+    else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);o.luto=day;}
     else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);}
     if(o.crush===n.id)o.crush=null;
   });
