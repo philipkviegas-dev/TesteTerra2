@@ -2110,7 +2110,8 @@ function eraEvento(i){const E=ERA_EVENTO[i];if(!E)return;
   sfx('era');const txt='Acontecimento da era: '+E.t+'.';log('big','🎭 '+txt);worldSay('Esta era começou com um marco: '+E.t+'.','chronos');}
 function tryDiscovery(){
   const cands=DISC.filter(d=>!has(d.id)&&d.era<=world.era&&d.pre.every(has)&&!eraBlocked(d));if(!cands.length)return;
-  const scored=cands.map(d=>[d,1+d.lines.reduce((s,l)=>s+(world.heat[l]||0),0)]);
+  const sede=world.sedeMar&&day-world.sedeMar<40;
+  const scored=cands.map(d=>[d,(1+d.lines.reduce((s,l)=>s+(world.heat[l]||0),0))*(sede&&(d.id==='barcos'||d.id==='navegacao')?5:1)]);
   const d=pickW(scored.map(([d,h])=>[d,h/(d.cost/20)]));
   if(world.kp<costOf(d))return;
   const heatV=scored.find(x=>x[0]===d)[1];
@@ -2860,6 +2861,7 @@ function migrarComPovo(n,text,ok){
   if(alvo&&alvo.id===from.id)return [`${n.name} já está em ${from.name}: não há o que colonizar ali. Escolha outra região.`,false];
   const via=alvo?caminhoAte(from,alvo,10):null;
   if(!alvo&&!/oeste|ocidente|poente|leste|oriente|nascente|norte|\bsul\b/.test(t)&&/coloniz|povoar|assentar|desbravar/.test(t))return [`${n.name} não sabe qual região colonizar: o comando não citou um nome que exista no mapa nem uma direção (oeste, leste, norte, sul).`,false];
+  if(alvo&&!via&&!has('barcos'))world.sedeMar=day; // quem quer atravessar o mar puxa a descoberta dos barcos
   if(alvo&&!via)return [`${n.name} quis levar o povo para ${alvo.name}, mas não há caminho até lá${has('barcos')?' dentro do alcance':' por terra (sem barcos, o mar é intransponível)'}.`,false];
   const D=/oeste|ocidente|poente/.test(t)?[-1,0]:/leste|oriente|nascente/.test(t)?[1,0]:/norte/.test(t)?[0,-1]:/\bsul\b/.test(t)?[0,1]:null;
   const nomeD=alvo?alvo.name:D?(D[0]<0?'oeste':D[0]>0?'leste':D[1]<0?'norte':'sul'):'além';const dirTxt=alvo?`a ${alvo.name}${via.length>2?` (${via.length-1} regiões de viagem)`:''}`:`ao ${nomeD}`;
