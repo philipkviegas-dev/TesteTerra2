@@ -1901,6 +1901,7 @@ function die(n,cause,where){
   close.forEach(o=>{
     if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);}
     else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);}
+    else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);}
     else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);}
     if(o.crush===n.id)o.crush=null;
   });
@@ -4019,7 +4020,7 @@ function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.at
   let v=rancor&&m.includes(rancor)?rancor:null;
   if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
   if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
-  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40)op.push('rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
+  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40&&(world.tension||0)<80)op.push('rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
    case 'roubo':if(v.food>0){v.food--;n.food++;}else world.reserva=Math.max(0,world.reserva-2);crime(n,'roubo',v,`roubou comida de ${v.name}`);break;
@@ -4641,7 +4642,7 @@ function drawNPC(n,t){
   if(n.species==='meioelfo'){ctx.fillStyle='#ffe0c2';ctx.strokeStyle='#00000030';ctx.lineWidth=1;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*12,y-14);ctx.lineTo(x+d*19,y-19);ctx.lineTo(x+d*13,y-7);ctx.closePath();ctx.fill();ctx.stroke();});}
   if(n.species==='inseto'){ctx.fillStyle='rgba(70,130,50,.55)';ctx.beginPath();ctx.arc(x,y-10,14,0,7);ctx.fill();ctx.strokeStyle='#2f4a1a';ctx.lineWidth=2;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*5,y-22);ctx.quadraticCurveTo(x+d*14,y-36,x+d*20,y-32);ctx.stroke();ctx.beginPath();ctx.moveTo(x+d*11,y+6);ctx.lineTo(x+d*20,y+16);ctx.stroke();});}
   ctx.fillStyle='#3b2f2a';
-  if(n.task==='dormir'&&atTarget(n)){ctx.fillRect(x-7,y-9,5,2);ctx.fillRect(x+2,y-9,5,2);}else{ctx.beginPath();ctx.arc(x-5,y-9,2,0,7);ctx.arc(x+5,y-9,2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-5.7,y-9.8,.8,0,7);ctx.arc(x+4.3,y-9.8,.8,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';}
+  if((n.task==='dormir'&&atTarget(n))||(((t||0)+(parseInt(String(n.id).replace(/\D/g,''))||0)*517)%3800<130)){ctx.fillRect(x-7,y-9,5,2);ctx.fillRect(x+2,y-9,5,2);}else{ctx.beginPath();ctx.arc(x-5,y-9,2,0,7);ctx.arc(x+5,y-9,2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-5.7,y-9.8,.8,0,7);ctx.arc(x+4.3,y-9.8,.8,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';}
   ctx.fillStyle='rgba(255,120,120,.28)';ctx.beginPath();ctx.ellipse(x-9,y-4,3,2,0,0,7);ctx.ellipse(x+9,y-4,3,2,0,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';
   const mood=(n.needs.fome+n.needs.social+n.needs.diversao)/3;
   ctx.strokeStyle='#3b2f2a';ctx.lineWidth=1.5;ctx.beginPath();if(mood>45)ctx.arc(x,y-4,4,.2,Math.PI-.2);else ctx.arc(x,y,4,Math.PI+.3,-.3);ctx.stroke();

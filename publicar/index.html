@@ -92,6 +92,9 @@
   .panel,details.panel{position:relative;background:linear-gradient(var(--parch),var(--parch2));border:3px solid #1b110a;border-radius:16px;box-shadow:inset 0 0 0 3px var(--gold2),inset 0 0 18px #c9962b55,0 6px 0 #0006;padding:12px 14px}
   details.panel>summary{cursor:pointer;list-style:none;font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;letter-spacing:.4px;display:flex;align-items:center;gap:6px;margin:-12px -14px;padding:8px 14px;border-radius:12px;background:linear-gradient(var(--navy2),var(--navy));color:var(--gold);text-shadow:0 2px 0 #000a}
   details.panel>summary b{font-weight:400}
+  details.panel>summary{transition:filter .15s}
+  details.panel>summary:hover{filter:brightness(1.18)}
+  details.panel>summary:active{filter:brightness(.92)}
   details.panel>summary::-webkit-details-marker{display:none}
   details.panel>summary:after{content:'▾';margin-left:auto;transition:transform .2s}
   details.panel[open]>summary{margin-bottom:8px}
@@ -1898,6 +1901,7 @@ function die(n,cause,where){
   close.forEach(o=>{
     if(o.partner===n.id){o.partner=null;think(o,`${n.name}... como vou viver sem você?`,'🥀');shape(o,'confianca',-5,'perdeu o(a) companheiro(a)');remember(o,`perdi ${n.name}`,10,n.id);}
     else if(o.parents.includes(n.id)){think(o,`Vou honrar tudo o que ${n.name} me ensinou.`,'🥀');remember(o,`meu pai/mãe ${n.name} se foi`,10,n.id);}
+    else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);}
     else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);}
     if(o.crush===n.id)o.crush=null;
   });
@@ -4016,7 +4020,7 @@ function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.at
   let v=rancor&&m.includes(rancor)?rancor:null;
   if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
   if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
-  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40)op.push('rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
+  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40&&(world.tension||0)<80)op.push('rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
    case 'roubo':if(v.food>0){v.food--;n.food++;}else world.reserva=Math.max(0,world.reserva-2);crime(n,'roubo',v,`roubou comida de ${v.name}`);break;
@@ -4617,7 +4621,7 @@ function drawWorld(t){
   const h=minutes/60%24;let dark=0;if(h>=19)dark=Math.min(.45,(h-19)*.15);else if(h<6.5)dark=.45-Math.max(0,(h-5)*.3);
   if(has('eletricidade'))dark*=0.45;else if(has('fogo')&&!world.fireOut)dark*=0.8;
   if(!chuva){const gh=Math.max(0,1-Math.abs(h-18.2)/1.5,1-Math.abs(h-6.3)/1.1);if(gh>0){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,`rgba(255,120,60,${.16*gh})`);g.addColorStop(1,`rgba(255,190,90,${.08*gh})`);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);}}
-  if(dark>0){ctx.fillStyle=`rgba(20,20,70,${dark})`;ctx.fillRect(0,0,W,H);if(!chuva){const k=Math.min(1,(dark-.12)/.3);if(k>0){ctx.fillStyle='#fff';for(let i=0;i<QN(40);i++){ctx.globalAlpha=k*(.35+.45*Math.abs(Math.sin((t||0)/900+i*1.7)));const x=(i*149.3)%W,y=(i*71.9)%(H*.45);ctx.fillRect(x,y,1.6+(i%3)*.5,1.6+(i%3)*.5);}ctx.globalAlpha=1;
+  if(dark>0){ctx.fillStyle=`rgba(20,20,70,${dark})`;ctx.fillRect(0,0,W,H);if(!chuva){const k=Math.min(1,(dark-.12)/.3);if(k>0){ctx.fillStyle='#fff';for(let i=0;i<QN(40);i++){ctx.globalAlpha=k*(.35+.45*Math.abs(Math.sin((t||0)/900+i*1.7)));const x=(i*149.3)%W,y=(i*71.9)%(H*.45);ctx.fillRect(x,y,1.6+(i%3)*.5,1.6+(i%3)*.5);}ctx.globalAlpha=1;{const cy=((t||0)/1000)%9;if(cy<.9&&!chuva){ctx.save();const q=cy/.9,seed=Math.floor((t||0)/9000),sx=(seed*263)%(W*.7)+W*.2-q*0,x0=sx+q*170,y0=40+(seed*97)%(H*.25)+q*80;const gr=ctx.createLinearGradient(x0,y0,x0-90,y0-38);gr.addColorStop(0,`rgba(255,255,255,${k*(1-q)})`);gr.addColorStop(1,'rgba(255,255,255,0)');ctx.strokeStyle=gr;ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0-90,y0-38);ctx.stroke();ctx.restore();}}
   if(started&&season().name!=='Inverno'&&(activeRegion()||{}).mainBiome!=='deserto'){for(let i=0;i<QN(14);i++){const x=(i*173+Math.sin((t||0)/1300+i*2.1)*40+(t||0)/60)%W,y=H*.35+((i*97)%(H*.6))+Math.cos((t||0)/1100+i)*18,br=.5+.5*Math.sin((t||0)/500+i*3.3);if(br<.25)continue;const g=ctx.createRadialGradient(x,y,0,x,y,7);g.addColorStop(0,`rgba(230,255,120,${.9*br*k})`);g.addColorStop(1,'rgba(230,255,120,0)');ctx.fillStyle=g;ctx.fillRect(x-7,y-7,14,14);}}}}
   for(const id in PLACES){const p=PLACES[id],es=lugEst(id);if(es==="devastado"||es==="queimado")continue;const g=ctx.createRadialGradient(p.x,p.y+8,2,p.x,p.y+8,52);g.addColorStop(0,`rgba(255,205,110,${Math.min(.6,dark*1.4)})`);g.addColorStop(1,"rgba(255,205,110,0)");ctx.fillStyle=g;ctx.fillRect(p.x-56,p.y-44,112,104);}
     if(has('fogo')&&!world.fireOut&&!has('eletricidade')){const g=ctx.createRadialGradient(500,360,10,500,360,150);g.addColorStop(0,'rgba(255,170,60,.45)');g.addColorStop(1,'rgba(255,170,60,0)');ctx.fillStyle=g;ctx.fillRect(350,210,300,300);}}
@@ -4638,7 +4642,7 @@ function drawNPC(n,t){
   if(n.species==='meioelfo'){ctx.fillStyle='#ffe0c2';ctx.strokeStyle='#00000030';ctx.lineWidth=1;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*12,y-14);ctx.lineTo(x+d*19,y-19);ctx.lineTo(x+d*13,y-7);ctx.closePath();ctx.fill();ctx.stroke();});}
   if(n.species==='inseto'){ctx.fillStyle='rgba(70,130,50,.55)';ctx.beginPath();ctx.arc(x,y-10,14,0,7);ctx.fill();ctx.strokeStyle='#2f4a1a';ctx.lineWidth=2;[-1,1].forEach(d=>{ctx.beginPath();ctx.moveTo(x+d*5,y-22);ctx.quadraticCurveTo(x+d*14,y-36,x+d*20,y-32);ctx.stroke();ctx.beginPath();ctx.moveTo(x+d*11,y+6);ctx.lineTo(x+d*20,y+16);ctx.stroke();});}
   ctx.fillStyle='#3b2f2a';
-  if(n.task==='dormir'&&atTarget(n)){ctx.fillRect(x-7,y-9,5,2);ctx.fillRect(x+2,y-9,5,2);}else{ctx.beginPath();ctx.arc(x-5,y-9,2,0,7);ctx.arc(x+5,y-9,2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-5.7,y-9.8,.8,0,7);ctx.arc(x+4.3,y-9.8,.8,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';}
+  if((n.task==='dormir'&&atTarget(n))||(((t||0)+(parseInt(String(n.id).replace(/\D/g,''))||0)*517)%3800<130)){ctx.fillRect(x-7,y-9,5,2);ctx.fillRect(x+2,y-9,5,2);}else{ctx.beginPath();ctx.arc(x-5,y-9,2,0,7);ctx.arc(x+5,y-9,2,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x-5.7,y-9.8,.8,0,7);ctx.arc(x+4.3,y-9.8,.8,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';}
   ctx.fillStyle='rgba(255,120,120,.28)';ctx.beginPath();ctx.ellipse(x-9,y-4,3,2,0,0,7);ctx.ellipse(x+9,y-4,3,2,0,0,7);ctx.fill();ctx.fillStyle='#3b2f2a';
   const mood=(n.needs.fome+n.needs.social+n.needs.diversao)/3;
   ctx.strokeStyle='#3b2f2a';ctx.lineWidth=1.5;ctx.beginPath();if(mood>45)ctx.arc(x,y-4,4,.2,Math.PI-.2);else ctx.arc(x,y,4,Math.PI+.3,-.3);ctx.stroke();
@@ -5592,7 +5596,7 @@ function racaGuerraAno(sp){const R0=(world.racas||{})[sp];if(!R0||!R0.guerra)ret
   M.col=M.col.filter(c=>c.n>0);R0.rel=clamp(R0.rel-2,-100,100);
   const fim=(sp==='atlante'&&M.atl&&M.atl.pop<1500)||(sp==='elfo'&&colsE.length&&colsE.every(c=>c.n<=0));
   if(fim){R0.guerra=false;R0.rel=-30;if(sp==='atlante'&&M.atl)M.atl.pop=Math.max(M.atl.pop,1500);log('big',`${E.e} ${cap(pl)} foram vencidos e recuaram para longe.`,[]);}
-  else if(R0.anos>=6&&Math.random()<.25){R0.guerra=false;R0.rel=Math.max(R0.rel,-20);log('big',`🕊️ Cansados de lutar, o povo e ${pl} fizeram uma trégua.`,[]);}
+  else if(R0.anos>=6&&Math.random()<.25){R0.guerra=false;R0.rel=Math.max(R0.rel,-20);log('big',`🕊️ Cansados de lutar, o povo e ${pl} fizeram uma trégua.`,[]);weekNote('gov',`trégua com ${pl}`);}
   racaSync(sp);}
 function racasYear(){if(!world.racas)return;const M=world.mar||{col:[]};
   for(const sp of Object.keys(world.racas)){const R0=world.racas[sp],E=ESPECIE[sp];if(!E)continue;
