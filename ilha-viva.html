@@ -5220,14 +5220,14 @@ const LEARN=(()=>{
   const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
-  const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400;
+  const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
   if(L.mente.dW&&L.mente.dW.length===MENTE.H*MENTE.NA)for(let i=0;i<L.mente.dW.length;i++)MENTE.W3[i]+=L.mente.dW[i];else L.mente.dW=null;
   if(B&&B.mente&&B.mente.dW&&B.mente.dW.length===MENTE.H*MENTE.NA)for(let i=0;i<B.mente.dW.length;i++)MENTE.W3[i]+=B.mente.dW[i];
-  function menteSettle(n){try{const p=ML.get(n);if(!p)return;ML.delete(n);const M=MENTE,Ls=L.mente,r=avgNeeds(n)-p.s,adv=r-Ls.base;Ls.base+=(r-Ls.base)*0.02;
+  function menteSettle(n){try{const p=ML.get(n);if(!p)return;ML.delete(n);const M=MENTE,Ls=L.mente,r=avgNeeds(n)-p.s+Math.max(-.06,Math.min(.12,0.02*((n.food||0)-p.f)+0.012*(sumSk(n)-p.k))),adv=r-Ls.base;Ls.base+=(r-Ls.base)*0.02;
     const G=Math.max(-1,Math.min(1,adv*6));let nn=1;for(let i=0;i<M.H;i++)nn+=p.h[i]*p.h[i];if(!Ls.dW)Ls.dW=new Array(M.H*M.NA).fill(0);
     for(let i=0;i<M.H;i++){const d=0.08*G*p.h[i]/nn;if(!d)continue;const ix=i*M.NA+p.a,nv=Math.max(-1.5,Math.min(1.5,Ls.dW[ix]+d));M.W3[ix]+=nv-Ls.dW[ix];Ls.dW[ix]=nv;}
     Ls.n++;dirty=true;}catch(e){}}
-  function menteMark(n,k,q){try{const a=MENTE_ACTS.indexOf(k),h=(q&&q._h)||MENTE._h2;if(a<0||!h){ML.delete(n);return;}ML.set(n,{a,h:Float32Array.from(h),s:avgNeeds(n)});}catch(e){}}
+  function menteMark(n,k,q){try{const a=MENTE_ACTS.indexOf(k),h=(q&&q._h)||MENTE._h2;if(a<0||!h){ML.delete(n);return;}ML.set(n,{a,h:Float32Array.from(h),s:avgNeeds(n),f:n.food||0,k:sumSk(n)});}catch(e){}}
   // Tea
   const sx=x=>x==='F'||x===1||x===true?'F':'M',limpa=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
   function applyTea(x,nm){const m=TEA_MODEL[x],s='^^'+nm+'$';for(let i=2;i<s.length;i++){const k=s.slice(i-2,i),c=s[i],d=m[k]||(m[k]={});d[c]=(d[c]||0)+2;}}
