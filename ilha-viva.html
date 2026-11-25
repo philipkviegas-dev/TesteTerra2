@@ -2676,6 +2676,7 @@ function fabulaChance(n,p){
   if(A.skill){const x=n.skill[A.skill]/250;parts.push(['experiência',x]);c+=x;}
   if(['liderar','lei','governo','exercito'].includes(p.acao)){const x=popularity(n)/150;parts.push(['popularidade',x]);c+=x;
     const f=facOf(n);if(f&&facGov(f).leader===n.id){parts.push(['é quem governa',0.2]);c+=0.2;}else if(p.acao!=='liderar'){parts.push(['não manda no povo',-0.1]);c-=0.1;}}
+  if((p.acao==='guerra'||p.acao==='paz')&&!facs().some(f=>f.alive&&facGov(f).leader===n.id)){parts.push(['não governa nenhum povo (vai tentar liderar antes)',-0.45]);c-=0.45;}
   if(p.acao==='exercito'&&world.era<1){parts.push(['ainda não há quem lute em formação',-0.2]);c-=0.2;}
   if(p.acao==='projeto'&&p.catg==='fantasia'){const x=Math.min(0.2,(world.arcano||0)/150)-0.3;parts.push(['o impossível ainda é raro',x]);c+=x;}
   if(p.acao==='filho'&&!n.partner){parts.push(['não tem companheiro(a)',-0.4]);c-=0.4;}
@@ -4081,7 +4082,7 @@ function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.at
   let v=rancor&&m.includes(rancor)?rancor:null;
   if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
   if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
-  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40&&(world.tension||0)<80)op.push('rebeliao');if((n.memories||[]).some(x=>/pensei em tirar/.test(x.text||'')))op.push('rebeliao','rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
+  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40&&(world.tension||0)<80)op.push('rebeliao');if((n.memories||[]).some(x=>/pensei em tirar/.test(x.text||'')))op.push('rebeliao','rebeliao');if((n.memories||[]).some(x=>/fui derrubado/.test(x.text||'')))op.push('rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
    case 'roubo':if(v.food>0){v.food--;n.food++;}else world.reserva=Math.max(0,world.reserva-2);crime(n,'roubo',v,`roubou comida de ${v.name}`);break;
