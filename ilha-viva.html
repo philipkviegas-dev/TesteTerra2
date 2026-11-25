@@ -5787,6 +5787,7 @@ function sentimentosYear(){
       const s=sentimento(a,b);if(!s)continue;
       const nb=N(b);
       if(s.k==='amizade'){relate(a,b,2);relate(b,a,1);
+        if((a.rel[b.id]||0)>=80&&a.melhorAmigo!==b.id){a.melhorAmigo=b.id;remember(a,`${b.name} é meu melhor amigo`,6,b.id);shape(a,'confianca',1,'melhor amigo');if(logs++<3)log('dna',`🫂 ${N(b)} é o melhor amigo de ${N(a)}.`,[a.id,b.id]);}
         if(b.needs&&b.needs.fome<25&&(a.food||0)>2&&(b.food||0)<1){a.food--;b.food=(b.food||0)+1;relate(b,a,8);remember(b,`${a.name} me deu comida quando passei fome`,7,a.id);remember(a,`ajudei ${b.name} com comida`,5,b.id);if(logs++<3)log('dna',`🤝 ${N(a)} dividiu a comida com o amigo ${nb}.`,[a.id,b.id]);}}
       else if(s.k==='admiração')relate(a,b,1);
       else if(s.k==='gratidão'){relate(a,b,2);if(b.needs&&b.needs.fome<25&&(a.food||0)>1&&(b.food||0)<1){a.food--;b.food=(b.food||0)+1;relate(b,a,5);remember(a,`retribuí a ajuda de ${b.name}`,5,b.id);if(logs++<3)log('dna',`🙏 ${N(a)} retribuiu a ajuda de ${nb} com comida.`,[a.id,b.id]);}}
