@@ -5245,7 +5245,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
