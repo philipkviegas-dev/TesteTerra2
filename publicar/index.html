@@ -4160,7 +4160,7 @@ function cultureYear(f){const c=facCult(f),g=facGov(f),l=byId(g.leader),cap=MAP.
     if(!has_&&val>=35){c.customs.push(cu.name);log('big',`🎭 Em ${f.name} surgiu um costume: <b>${cu.name}</b>.`,[]);weekNote('gov',`${f.name}: novo costume, ${cu.name}`);}
     else if(has_&&val<15){c.customs=c.customs.filter(x=>x!==cu.name);log('',`🎭 ${f.name} abandonou o costume "${cu.name}".`,[]);}});
   // quando se afasta muito da cultura de onde veio, vira outra cultura
-  if(c.parent!=null&&c.root&&cultDist(v,c.root)>45&&!c.renamed){c.renamed=true;const base=(cap?cap.name:f.name).replace(/[aeiou]$/,'');c.name=`Cultura ${base}ense`;
+  if(c.parent!=null&&c.root&&cultDist(v,c.root)>45&&!c.renamed){c.renamed=true;const base=(cap?cap.name:f.name.replace(/^Povo de /,'')).replace(/[aeiou]$/,'');c.name=`Cultura ${base}ense`;
     log('big',`🌱 ${f.name} já não vive como seus antepassados: nasce a <b>${c.name}</b>.`,[]);worldSay(`Depois de ${day-c.born} anos separados, ${f.name} tem costumes, leis e até nomes próprios. É uma nova cultura.`,'chronos');}}
 function ecoPressure(f){let w=1;MAP.regions.forEach(r=>{if(r.eco&&r.eco.m<w&&regionFac(r)===f)w=r.eco.m;});return w<0.6?(0.6-w)/0.35:0;} // 0..~1: quanto a natureza de suas terras está arruinada
 function lawScore(f,L){const v=facCult(f).v;let s=0;for(const k in L.fav)s+=v[k]*L.fav[k];if(L.id==='manejo'||L.id==='defeso'||L.id==='rodizio')s+=ecoPressure(f)*45;const l=byId(facGov(f).leader);if(l){if(L.id==='servico'||L.id==='castigo')s+=T(l,'ambicao')*20;if(L.id==='partilha')s+=T(l,'bondade')*20;if(L.id==='assembleia'||L.id==='crenca')s+=T(l,'curiosidade')*15;}return s;}
