@@ -468,7 +468,7 @@ function setLeader(n,type){
   const g=world.gov,old=byId(g.leader);
   if(old&&old!==n&&old.role==='governante'){old.role=old.prevRole||null;old.prevRole=null;}
   if(n&&n.role!=='governante'){n.prevRole=n.role;const was=roleOf(n);n.role='governante';if(was)log('',`👑 ${N(n)} deixou de ser ${was.name.toLowerCase()} para governar.`,[n.id]);}
-  g.leader=n?n.id:null;g.since=day;if(type)g.type=type;
+  g.leader=n?n.id:null;g.leaderName=n?fullName(n):null;g.since=day;if(type)g.type=type;
   if(n){weekNote('gov',`${n.name} passou a governar (${govTitle().toLowerCase()})`);setNews(`${n.name} agora governa!`,`Será que ${n.name} vai ser um(a) bom(a) ${govTitle().toLowerCase()}?`,'👑');}
 }
 const availableRoles=()=>ROLES.filter(r=>!r.req||has(r.req));
@@ -1986,7 +1986,7 @@ function council(){
   scheduleTalk(L,5);
 }
 function popularity(n){const m=members(n.region).filter(o=>o!==n&&!o.isChild);return m.reduce((s,o)=>s+(o.rel[n.id]||0),0)/Math.max(1,m.length);}
-function govTitle(){const g=world.gov,l=byId(g.leader);if(!l)return 'ninguém lidera';const t={lider:'Líder do grupo',chefe:`Chefe da ${world.era>=3?'cidade':'aldeia'}`,rei:l.sex==='F'?'Rainha':'Rei',conselho:'Líder do conselho',eleito:'Governante eleito(a)'}[g.type]||'Líder';return t;}
+function govTitle(){const g=world.gov,l=byId(g.leader);if(!l&&!g.leader)return 'ninguém lidera';const t={lider:'Líder do grupo',chefe:`Chefe da ${world.era>=3?'cidade':'aldeia'}`,rei:l&&l.sex==='F'?'Rainha':'Rei',conselho:'Líder do conselho',eleito:'Governante eleito(a)'}[g.type]||'Líder';return t;}
 function leadership(){
   const ad=adults().filter(n=>{const f=facOf(n);return !f||f.id===0;});if(day<4)return;
   const g=world.gov;
@@ -3663,7 +3663,7 @@ function sessionReport(){
    `RELATÓRIO ILHA VIVA — dia ${day}, ${E.name} (${E.sub})`,
    `População: ${totalPop()} (${ad.length+DORM.adults} adultos; ${DORM.alive} em fichas compactas) em ${occupied().length} regiões · gerações: ${world.maxGen} · nascimentos ${world.births} · mortes ${world.deaths} · migrações ${world.migrations.length}`,
    `Descobertas: ${[...world.disc].map(id=>{const d=DISC.find(x=>x.id===id);return `${d.name} (dia ${world.discDay[id]})`;}).join(', ')||'nenhuma'}`,
-   `Governo: ${byId(world.gov.leader)?fullName(byId(world.gov.leader))+' — '+govTitle():'ninguém'}`,
+   `Governo: ${byId(world.gov.leader)?fullName(byId(world.gov.leader))+' — '+govTitle():world.gov.leader&&world.gov.leaderName?world.gov.leaderName+' — '+govTitle()+' (fora da vista)':'ninguém'}`,
    `Personalidades (adultos): ${Object.keys(TRAITS).map(k=>`${TRAIT_NAMES[k]}: ${trait(k)}`).join(' | ')}`,
    `Causas de morte recentes: ${Object.entries(cause).map(([k,v])=>`${k} (${v})`).join(', ')||'—'}`,
    `Regiões: ${occupied().map(r=>`${r.name} ${regionPop(r.id)}p/${r.reserva}🍖`).join(', ')}`,
@@ -4688,7 +4688,7 @@ function renderIsland(){
       <div class="row"><span>Próxima era ${NE?`(${NE.e} ${NE.name})`:''}</span><span>${nextKeys}</span></div>
       <div style="margin-top:2px">${[...world.disc].map(id=>{const d=DISC.find(x=>x.id===id);return `<span class="chip" title="${d.name}">${d.e}</span>`;}).join('')||'<span class="hint">nenhuma descoberta ainda</span>'}</div></div>
     ${regionFac(activeRegion())?`<div class="row" style="margin-top:6px"><span>🏴 Povo</span><span><span style="color:${regionFac(activeRegion()).color}">■</span> ${regionFac(activeRegion()).name}${Object.keys(regionFac(activeRegion()).wars).filter(id=>facById(+id)).length?' · ⚔️ em guerra com '+Object.keys(regionFac(activeRegion()).wars).filter(id=>facById(+id)).map(id=>facById(+id).name).join(', '):''}</span></div>`:''}
-    <div class="row"><span>👑 Governo</span><span>${byId(world.gov.leader)?`${leaderLink(byId(world.gov.leader))} · ${govTitle()}`:'ninguém lidera'}</span></div>
+    <div class="row"><span>👑 Governo</span><span>${byId(world.gov.leader)?`${leaderLink(byId(world.gov.leader))} · ${govTitle()}`:world.gov.leader&&world.gov.leaderName?`${world.gov.leaderName} · ${govTitle()} (fora da vista)`:'ninguém lidera'}</span></div>
     <div class="row"><span>🍖 Reserva da tribo</span><span>${world.reserva} porções</span></div>
     <div class="row"><span>🔥 Fogo</span><span>${!has('fogo')?'ainda não descoberto':world.fireOut?'apagado!':'aceso'}</span></div>
     <div class="row"><span>💖 Mais querido(a) · 😠 menos</span><span>${loved?N(loved):'—'} · ${hated?N(hated):'—'}</span></div>
