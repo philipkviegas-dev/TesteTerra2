@@ -1825,10 +1825,10 @@ function morningLife(n){
   n.family=clamp(n.family+Math.max(0,g)+rnd(0,2));
   n.desejo=Math.min(n.partner?100:80,(n.desejo||0)+(n.partner?rnd(18,32):rnd(6,10))+10*T(n,'confianca')-(n.hurt?15:0)-(n.ageDays>ELDER_AGE?12:0));
   if(n.family>=50&&!n.familyThought){n.familyThought=1;think(n,n.partner?`Eu queria ter filhos com ${(nameAnyId(n.partner)||"alguém")}.`:'Às vezes penso em ter filhos... deixar algo meu no mundo.','👶');}
-  if(!n.partner)return;
+  if(!n.partner){if(n.ex){const e=byId(n.ex);if(!e||e.dead||e.partner){n.ex=null;}else if((n.rel[e.id]||0)>55&&(e.rel[n.id]||0)>55&&Math.random()<0.03){n.partner=e.id;e.partner=n.id;n.ex=e.ex=null;log('big',`💞 ${N(n)} e ${N(e)} voltaram a ficar juntos.`,[n.id,e.id]);[n,e].forEach(x=>{shape(x,'confianca',3,'reconciliação');remember(x,`voltei com ${(x===n?e:n).name}`,8,(x===n?e:n).id);});weekNote('couple',`${n.name} e ${e.name} reataram`);}}return;}
   const p=byId(n.partner);if(!p){n.partner=null;return;}
   n.coupleDays++;
-  if(n.rel[p.id]<10&&p.rel[n.id]<25){log('big',`💔 ${N(n)} e ${N(p)} se separaram.`,[n.id,p.id]);n.partner=p.partner=null;[n,p].forEach(x=>{shape(x,'confianca',-6,'separação');remember(x,`me separei de ${(x===n?p:n).name}`,9,(x===n?p:n).id);});weekNote('separacao',`${n.name} e ${p.name} se separaram`);[n,p].forEach(x=>x.kids.map(byId).filter(k=>k&&!k.isChild&&k!==n&&k!==p).forEach(k=>{think(k,'Meus pais se separaram...','💔');remember(k,`meus pais ${n.name} e ${p.name} se separaram`,7);}));return;}
+  if(n.rel[p.id]<10&&p.rel[n.id]<25){log('big',`💔 ${N(n)} e ${N(p)} se separaram.`,[n.id,p.id]);n.partner=p.partner=null;n.ex=p.id;p.ex=n.id;[n,p].forEach(x=>{shape(x,'confianca',-6,'separação');remember(x,`me separei de ${(x===n?p:n).name}`,9,(x===n?p:n).id);});weekNote('separacao',`${n.name} e ${p.name} se separaram`);[n,p].forEach(x=>x.kids.map(byId).filter(k=>k&&!k.isChild&&k!==n&&k!==p).forEach(k=>{think(k,'Meus pais se separaram...','💔');remember(k,`meus pais ${n.name} e ${p.name} se separaram`,7);}));return;}
   if(n.expecting){n.expecting--;if(n.expecting===0)birth(n,p);}
 }
 function birth(mom,dad){
@@ -5730,7 +5730,8 @@ function opinioesYear(){
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
   let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3){const ant=F.humor==null?0:F.humor;F.humor=Math.round(reg[k].s/reg[k].c);
     if(ant>-30&&F.humor<=-30){log('big',`😠 Em ${F.name} o povo está descontente com o governo.`,[]);weekNote('gov',`ficou descontente com o governo (${F.name})`);}
-    else if(ant<=-30&&F.humor>-10){log('',`🙂 Em ${F.name} o povo se acalmou com o governo.`,[]);weekNote('gov',`se acalmou com o governo (${F.name})`);}}}
+    else if(ant<=-30&&F.humor>-10){log('',`🙂 Em ${F.name} o povo se acalmou com o governo.`,[]);weekNote('gov',`se acalmou com o governo (${F.name})`);}
+    else if(ant<40&&F.humor>=40){log('',`🎉 Em ${F.name} o povo está feliz com o governo e faz festa.`,[]);weekNote('festa',`festa popular em ${F.name}: povo satisfeito com o governo`);NPCS.forEach(n=>{if(!n._dead&&!n.isChild&&facOf(n)===F)n.needs.diversao=clamp(n.needs.diversao+5);});}}}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 function fichaSentimentos(n){
   let pares=[];try{const pop={};
