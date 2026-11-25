@@ -2109,6 +2109,7 @@ function eraEvento(i){const E=ERA_EVENTO[i];if(!E)return;
   facs().filter(f=>f.alive).forEach(f=>{const v=facCult(f).v;for(const k in E.cult)v[k]=clamp(v[k]+E.cult[k]*10,-100,100);});
   sfx('era');const txt='Acontecimento da era: '+E.t+'.';log('big','🎭 '+txt);worldSay('Esta era começou com um marco: '+E.t+'.','chronos');}
 function tryDiscovery(){
+  if(world.ultimaDisc===day)return; // no máximo uma descoberta por ano: sem rajada quando a era libera várias de uma vez
   const cands=DISC.filter(d=>!has(d.id)&&d.era<=world.era&&d.pre.every(has)&&!eraBlocked(d));if(!cands.length)return;
   const sede=world.sedeMar&&day-world.sedeMar<40;
   const scored=cands.map(d=>[d,(1+d.lines.reduce((s,l)=>s+(world.heat[l]||0),0))*(sede&&(d.id==='barcos'||d.id==='navegacao')?5:1)]);
@@ -2116,7 +2117,7 @@ function tryDiscovery(){
   if(world.kp<costOf(d))return;
   const heatV=scored.find(x=>x[0]===d)[1];
   if(Math.random()>0.2+Math.min(0.5,heatV/80))return;
-  discover(d);
+  world.ultimaDisc=day;discover(d);
 }
 function discover(d,forced){
   const before={};for(const id in PLACES)before[id]=look(id).label;
