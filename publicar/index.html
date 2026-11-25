@@ -5779,6 +5779,7 @@ function sentimentosYear(){
     if(a.isChild||a._dead)continue;
     // aniversário da perda do melhor amigo: a lembrança volta e dói um pouco
     if(a.saudade&&day-a.saudade.dia>=1&&(day-a.saudade.dia)%5===0&&day-a.saudade.dia<=50){a.luto=day;thinkOnce(a,`Faz ${day-a.saudade.dia} anos que ${a.saudade.nome} se foi. Ainda penso nele(a).`,'🕯️');remember(a,`lembrei de ${a.saudade.nome}, meu melhor amigo que partiu`,5,a.saudade.id);}
+    if(a.saudade&&day-a.saudade.dia>50){a.saudade=null;shape(a,'confianca',1,'superou a perda do melhor amigo');}
     // saudade: um amigo ou amor que mora longe
     if(Math.random()<.15){const lg=Object.keys(a.rel).filter(id=>a.rel[id]>=45).map(byId).filter(o=>o&&!o._dead&&o.region!==a.region);
       if(lg.length){const o=lg[(Math.random()*lg.length)|0];a.needs.social=clamp(a.needs.social-4);thinkOnce(a,`Tenho saudade de ${o.name}, que mora longe.`,'🥺');if(a.partner===o.id)shape(a,'confianca',-1,'saudade do parceiro distante');}}
