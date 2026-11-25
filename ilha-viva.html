@@ -1916,6 +1916,7 @@ function die(n,cause,where){
     else if(o.kids&&o.kids.includes(n.id)){think(o,`${n.name}... meu filho(a). Nenhum pai devia passar por isso.`,'🥀');shape(o,'confianca',-4,'perdeu um filho');remember(o,`perdi meu filho(a) ${n.name}`,10,n.id);o.luto=day;if(!o.saudade)o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu filho(a)'};}
     else if(o.melhorAmigo===n.id){think(o,`${n.name} era meu melhor amigo. Ninguém vai ocupar esse lugar.`,'🥀');shape(o,'confianca',-2,'perdeu o melhor amigo');remember(o,`perdi ${n.name}, meu melhor amigo`,9,n.id);o.luto=day;o.melhorAmigo=null;o.saudade={id:n.id,nome:n.name,dia:day};}
     else if((o.rel[n.id]||0)>40){think(o,`Sinto falta de ${n.name}.`,'🕊️');remember(o,`${n.name} se foi`,7,n.id);if((o.rel[n.id]||0)>=70&&!o.saudade)o.saudade={id:n.id,nome:n.name,dia:day,tipo:'meu(minha) grande amigo(a)'};}
+    else if((o.rel[n.id]||0)<-40&&!o.isChild){const bom=T(o,'bondade')>0.55;think(o,bom?`${n.name} se foi... e eu nem consegui fazer as pazes.`:`${n.name} se foi. Não vou fingir que sinto falta.`,bom?'😔':'😶');remember(o,bom?`${n.name} morreu sem fazermos as pazes`:`${n.name}, meu desafeto, morreu`,6,n.id);if(bom)shape(o,'bondade',1,'lamentou a morte de um desafeto');}
     if(o.crush===n.id)o.crush=null;
   });
   try{(n.kids||[]).map(byId).filter(k=>k&&k.isChild&&!k._dead&&k.parents.every(id=>{const q=byId(id);return id===n.id||!q||q._dead||q.dead;})).forEach(k=>{
