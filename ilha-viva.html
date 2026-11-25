@@ -3741,7 +3741,7 @@ function setFacLeader(f,n){
   const g=f.gov,old=byId(g.leader);
   if(old&&old!==n&&old.role==='governante'){old.role=old.prevRole||null;old.prevRole=null;}
   if(n&&n.role!=='governante'){n.prevRole=n.role;n.role='governante';}
-  g.leader=n?n.id:null;g.since=day;
+  g.leader=n?n.id:null;g.since=day;g.leaderName=n?fullName(n):null;
   try{dinastiaRegistra(f,n);}catch(e){console.error(e);}
 }
 // facções escolhem seus líderes (a facção do jogador usa as conversas da tribo)
@@ -4593,6 +4593,7 @@ function drawNPC(n,t){
   if(s!==1){ctx.save();ctx.translate(n.x,n.y+20);ctx.scale(s,s);ctx.translate(-n.x,-n.y-20);}
   const bob=n.walking?Math.sin(t/90+n.x)*3:Math.sin(t/400)*1,x=n.x,y=n.y+bob;
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(n.x,n.y+22,13,5,0,0,7);ctx.fill();
+  if(n.walking&&n.tx!=null){const dx=n.tx-n.x,dy=n.ty-n.y,d=Math.hypot(dx,dy)||1,ph=(t/260+n.x*.05)%1;ctx.fillStyle='rgba(235,225,200,.38)';for(let i=0;i<2;i++){const q=(ph+i*.5)%1;ctx.beginPath();ctx.arc(n.x-dx/d*(6+q*14),n.y+22-dy/d*(2+q*6)-q*4,2.6*(1-q)+.4,0,7);ctx.fill();}}
   ctx.fillStyle=n.color;rr(x-11,y,22,21,8);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.22)';ctx.lineWidth=1.5;ctx.stroke();
   ctx.fillStyle='rgba(0,0,0,.12)';ctx.beginPath();ctx.ellipse(x,y+19,9,2.5,0,0,7);ctx.fill();
   ctx.fillStyle='#ffe0c2';ctx.beginPath();ctx.arc(x,y-10,14,0,7);ctx.fill();ctx.strokeStyle='rgba(120,70,40,.28)';ctx.lineWidth=1.2;ctx.stroke();
@@ -5581,7 +5582,8 @@ function atorMundo(tipo){const L=atoresMundo(tipo);if(!L.length)return null;cons
   let a=esc!=null&&esc!=='auto'?L.find(x=>x.f.id===+esc):null;const auto=!a;if(!a)a=L.sort((x,y)=>y.ad-x.ad)[0];
   return Object.assign({auto,n:a.l||{name:a.f.name,id:null,traits:{},sens:{}}},a);}
 function quemVai(tipo){const A=atorMundo(tipo);if(!A)return `<div class="hint">Quem vai: ninguém ${tipo==='mar'?'(nenhum povo tem litoral habitado)':'(nenhum povo habitado)'}.</div>`;
-  return `<div class="hint">👤 Quem vai: <b style="color:${A.f.color}">${A.f.name}</b>${A.l?', liderado por '+A.l.name:''} · saindo de ${A.r.name}${A.auto?' <i>(automático)</i>':''}</div>`;}
+  const lname=A.l?A.l.name:(A.f.gov&&A.f.gov.leader&&A.f.gov.leaderName?A.f.gov.leaderName+' (fora da vista)':'');
+  return `<div class="hint">👤 Quem vai: <b style="color:${A.f.color}">${A.f.name}</b>${lname?', liderado por '+lname:''} · saindo de ${A.r.name}${A.auto?' <i>(automático)</i>':''}</div>`;}
 function atorSeletor(){const L=atoresMundo('').sort((a,b)=>b.pop-a.pop),esc=world.mundoAtor,top=L.slice(0,40);
   if(esc!=null&&esc!=='auto'&&!top.some(a=>a.f.id===+esc)){const x=L.find(a=>a.f.id===+esc);if(x)top.push(x);}
   return `<div class="box"><b>🧭 Quem age</b><div class="hint">Você comanda todos os povos. Escolha qual deles faz as ações abaixo, ou deixe no automático (o povo com mais adultos; no mar, só povos com litoral). O líder do povo sente o resultado.</div>
