@@ -1828,7 +1828,7 @@ function morningLife(n){
   if(!n.partner){if(n.ex){const e=byId(n.ex);if(!e||e.dead||e.partner){n.ex=null;}else if((n.rel[e.id]||0)>55&&(e.rel[n.id]||0)>55&&Math.random()<0.03){n.partner=e.id;e.partner=n.id;n.ex=e.ex=null;log('big',`💞 ${N(n)} e ${N(e)} voltaram a ficar juntos.`,[n.id,e.id]);[n,e].forEach(x=>{shape(x,'confianca',3,'reconciliação');remember(x,`voltei com ${(x===n?e:n).name}`,8,(x===n?e:n).id);});weekNote('couple',`${n.name} e ${e.name} reataram`);}}return;}
   const p=byId(n.partner);if(!p){n.partner=null;return;}
   n.coupleDays++;
-  if(n.rel[p.id]<10&&p.rel[n.id]<25){log('big',`💔 ${N(n)} e ${N(p)} se separaram.`,[n.id,p.id]);n.partner=p.partner=null;n.ex=p.id;p.ex=n.id;[n,p].forEach(x=>{shape(x,'confianca',-6,'separação');remember(x,`me separei de ${(x===n?p:n).name}`,9,(x===n?p:n).id);});weekNote('separacao',`${n.name} e ${p.name} se separaram`);[n,p].forEach(x=>x.kids.map(byId).filter(k=>k&&!k.isChild&&k!==n&&k!==p).forEach(k=>{think(k,'Meus pais se separaram...','💔');remember(k,`meus pais ${n.name} e ${p.name} se separaram`,7);}));return;}
+  if((n.rel[p.id]<10&&p.rel[n.id]<25)||(n.rel[p.id]<30&&p.rel[n.id]<30&&Math.random()<0.02)){log('big',`💔 ${N(n)} e ${N(p)} se separaram.`,[n.id,p.id]);n.partner=p.partner=null;n.ex=p.id;p.ex=n.id;[n,p].forEach(x=>{shape(x,'confianca',-6,'separação');remember(x,`me separei de ${(x===n?p:n).name}`,9,(x===n?p:n).id);});weekNote('separacao',`${n.name} e ${p.name} se separaram`);[n,p].forEach(x=>x.kids.map(byId).filter(k=>k&&!k.isChild&&k!==n&&k!==p).forEach(k=>{think(k,'Meus pais se separaram...','💔');remember(k,`meus pais ${n.name} e ${p.name} se separaram`,7);}));return;}
   if(n.expecting){n.expecting--;if(n.expecting===0)birth(n,p);}
 }
 function birth(mom,dad){
