@@ -2878,6 +2878,7 @@ function fabulaResolve(n){
     default:if(ok){shape(n,'confianca',4,'fez o que queria');res=`${n.name} fez o que foi pedido: “${cmd.text}”. E deu certo.`;pos(`fiz: ${cmd.text}`);}else{shape(n,'confianca',-3,'não conseguiu');res=`${n.name} tentou: “${cmd.text}”. Não saiu como esperado.`;neg(`tentei: ${cmd.text}`,6);}
   }
   const val=n.lastCmd&&n.lastCmd.ok;
+  if(!cmd.auto)try{say(n,val?R(['Consegui! 🎉','Missão cumprida! ✨','Deu certo!! 😄','Fácil! 😎']):R(['Ai... não deu 😓','Droga... 😖','Foi mal, falhei 🙈','Não saiu como eu queria 💦']));if(t&&val&&A.target)setTimeout(()=>{try{say(t,R(['😮','Uau!','Hm... 🤔']));}catch(e){}},900/speed);}catch(e){}
   if(val)shape(n,'confianca',2,'um comando que marcou bem');else shape(n,'confianca',-2,'um comando que marcou mal');
   if(n.meta)n.meta.prog+=val?35:10;
   const entry={type:'fabula',text:`✨ ${val?'🌞':'🌧️'} <b>${N(n)}</b>: ${res} <span class="hint">(${Math.round(cmd.chance*100)}% de chance · marcado como ${val?'positivo':'negativo'} na memória)</span>`,who:[n.id].concat(t?[t.id]:[]),time:clockStr()};
