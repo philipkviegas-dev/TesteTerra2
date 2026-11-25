@@ -2214,7 +2214,7 @@ const COLLECTIVE=[
  {id:'torneio',era:[1,9],w:0,drama:.1,cond:()=>true,fn(){let n=0;occupied().forEach(r=>{const i=MAP.regions.indexOf(r);if(i<0)return;(world.torneios=world.torneios||{})[i]=day-5;try{torneioRegiao(i);n++;}catch(e){}});if(!n)log('big','🏅 Deuz chamou os atletas, mas ninguém estava preparado para competir.');}},
  {id:'greve',era:[7,9],w:1,drama:.5,cond:()=>has('vapor'),fn(){const ws=adults().filter(n=>n.role==='operario');if(!ws.length)return;ws.forEach(n=>{n.workedToday=true;shape(n,'coragem',3,'fez greve');});log('big',`✊ Greve! ${ws.map(N).join(', ')} pararam a fábrica pedindo melhores condições.`,ws.map(n=>n.id));const l=byId(world.gov.leader);if(l)ws.forEach(w=>relate(w,l,-5));}},
  {id:'inovacao',era:[5,9],w:1,drama:.2,fn(){world.kp+=30;log('big','📰 Chegaram notícias de inventos de outras terras. O povo aprendeu muito de uma vez.');}},
- {id:'pandemia',era:[8,9],w:.6,drama:.9,fn(){const vs=adults().filter(()=>Math.random()<.4);vs.forEach(v=>v.hurt=has('medicina')?1:3);log('big',`😷 Uma epidemia atingiu ${vs.length} pessoas. ${has('medicina')?'Os médicos conseguiram controlar.':''}`,vs.map(v=>v.id));adults().filter(n=>n.role==='medico').forEach(m=>{NPCS.forEach(o=>relate(o,m,8));});}},
+ {id:'pandemia',era:[8,9],w:.6,drama:.9,fn(){const vs=adults().filter(()=>Math.random()<.4);vs.forEach(v=>v.hurt=has('medicina')?1:3);log('big',`😷 Uma epidemia atingiu ${vs.length} pessoas. ${has('medicina')?'Os médicos conseguiram controlar.':''}`,vs.map(v=>v.id));weekNote('peste',`uma epidemia atingiu ${vs.length} pessoas`);adults().filter(n=>n.role==='medico').forEach(m=>{NPCS.forEach(o=>relate(o,m,8));});}},
  {id:'apagao',era:[8,9],w:1,drama:.3,cond:()=>has('eletricidade'),fn(){log('big','🔌 Apagão na região inteira! A noite voltou a ser como antigamente.');NPCS.forEach(n=>n.needs.diversao=clamp(n.needs.diversao-15));}},
 ];
 const PERSONAL=[
@@ -3672,6 +3672,7 @@ function chronicle(){
   const fe=by('festa');if(fe.length)parts.push(fe[fe.length-1].text);
   const cm=by('cometa');if(cm.length)parts.push(cm[cm.length-1].text);const cl=by('clima');if(cl.length)parts.push(`${cl.length} pessoa(s) adoeceram por causa do clima (${[...new Set(cl.map(x=>x.text))].join(', ')})`);
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
+  const pe=by('peste');if(pe.length)parts.push(pe[pe.length-1].text);
   const es=by('esporte');if(es.length)parts.push(es.slice(-2).map(x=>x.text).join('; '));
   const bk=by('bank');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
   const gov=by('gov');if(gov.length)parts.push(gov[gov.length-1].text);
@@ -4009,7 +4010,9 @@ function justica(n,tipo,v,grave,visto,op,reg){
 function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.ate){log('',`🔓 ${N(n)} cumpriu a pena e foi solto(a).`,[n.id]);remember(n,'saí da prisão',8);n.preso=null;}return;}if(n._dead||n.isChild||n.ageDays<18||n.hurt)return;const rancor=n.rancor&&byId(n.rancor)&&!byId(n.rancor)._dead?byId(n.rancor):null;
   const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'));
   if(Math.random()>p)return;const m=members(n.region).filter(x=>x!==n&&!x._dead),r=regionOf(n);if(!m.length||!r)return;
-  const v=rancor&&m.includes(rancor)?rancor:R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
+  let v=rancor&&m.includes(rancor)?rancor:null;
+  if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
+  if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
   const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
@@ -5258,7 +5261,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',bank:'economia',esporte:'esporte'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',bank:'economia',esporte:'esporte',peste:'catastrofe'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
