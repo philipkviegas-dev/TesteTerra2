@@ -2749,8 +2749,9 @@ function launch(n,cmd){
   const why=cmd.parts.map(([k,v])=>`${k} ${v>=0?'+':''}${Math.round(v*100)}%`).join(', ');
   const msg=`${A.label}${alvo?' → '+alvo.name:''} · chance <b>${Math.round(cmd.chance*100)}%</b>${why?` <span class="hint">(${why})</span>`:''} · leva ~${A.h}h${cmd.ia?' · interpretado pela IA':''}`;
   log('fabula',`✨ <b>Fábula</b> · ${cmd.auto?'meta de ':'comando para '}${N(n)}: “${cmd.text}” → ${msg}`,[n.id].concat(alvo?[alvo.id]:[]));
-  if(!cmd.auto)setFabOut(`✨ ${n.name}: ${msg}`);
+  if(!cmd.auto)setFabOut(`✨ ${n.name}: ${msg} <button class="sug" onclick="fabCancelar('${n.id}')">✖ Cancelar</button>`);
 }
+function fabCancelar(id){const n=byId(id);if(!n||!n.cmd)return;const c=n.cmd;n.cmd=null;n.cmdQueue=[];n.task=null;think(n,'Ah, então deixa pra lá.','🤷');log('',`✖ O comando “${c.text}” para ${N(n)} foi cancelado.`,[n.id]);setFabOut(`✖ Comando cancelado. ${n.name} voltou à vida normal.`);decide(n);}
 function fabulaResolve(n){
   const cmd=n.cmd;n.cmd=null;const A=FAB[cmd.acao],t=byId(cmd.alvo);
   const ok=Math.random()<cmd.chance;let res='';
@@ -3823,6 +3824,7 @@ function setFacLeader(f,n){
   if(n&&n.role!=='governante'){n.prevRole=n.role;n.role='governante';}
   g.leader=n?n.id:null;g.since=day;g.leaderName=n?fullName(n):null;
   try{dinastiaRegistra(f,n);}catch(e){console.error(e);}
+  if(n&&f.humor!=null&&f.humor<=-30){f.humor=Math.min(100,f.humor+25);thinkOnce(n,'O povo espera de mim o que o governo anterior não deu.');remember(n,'assumi o governo com o povo descontente',5);}
 }
 // facções escolhem seus líderes (a facção do jogador usa as conversas da tribo)
 function facLeaders(){
