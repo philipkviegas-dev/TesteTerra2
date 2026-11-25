@@ -5732,6 +5732,8 @@ function opiniaoGov(n){ // -100..100 + motivos; suavizada em n.opin
   if(rg==='ditadura'){v-=10+20*lib;m.push('vive sob ditadura');}
   else if(rg==='democracia'||rg==='republica'){v+=6+(cu.liberdade>20?6:0);if(cu.liberdade>20)m.push('liberdade');}
   if(has('moeda')&&hasLaw(f,'imposto')){const pt=patrimonio(n);if(pt>25){v-=7;m.push('paga tributo pesado');}}
+  if(hasLaw(f,'partilha')&&n.needs&&(n.needs.fome<55||(has('moeda')&&patrimonio(n)<4))){v+=6;m.push('conta com o celeiro comum');}
+  if(hasLaw(f,'castigo')&&(T(n,'coragem')>.6||(n.crimes||0)>0)){v-=6;m.push('teme os castigos duros');}
   const fe=(f.laws||[]).length;if(fe>=3&&T(n,'ambicao')>.6){v-=6;m.push('leis demais');}
   v=clamp(Math.round(v),-100,100);
   n.opin=Math.round((n.opin==null?v:n.opin*.6+v*.4));
