@@ -27,7 +27,8 @@
   .avatars{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;max-height:110px;overflow-y:auto}
   .avatars:empty{display:none}
   .av{display:flex;align-items:center;gap:4px;font-size:13px;padding:2px 8px 2px 4px}
-  .av i{width:12px;height:12px;border-radius:50%;display:inline-block}
+  .av i{width:12px;height:12px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1.5px #0004,inset 0 2px 2px #fff6}
+  .av.on i{box-shadow:0 0 0 2px var(--gold,#ffcf5c),0 0 6px #ffcf5c}
   .av.on{background:#3b2f2a;color:#fff;border-color:#3b2f2a}
   .tabs{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0 8px}
   .tabs button{font-size:13px;padding:2px 8px}
@@ -5697,7 +5698,7 @@ function opinioesYear(){
     else if(o.v>=50){if(L&&L!==n)relate(n,L,1);if(Math.random()<.03){think(n,`Vivo bem sob este governo. Tenho muito a perder.`,'🥳');}}
   }
   // o humor do povo pesa no mundo: muita gente revoltada esquenta a tensão, muita satisfeita acalma
-  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=(MAP.factions||[])[k]||(typeof FACTIONS!=='undefined'?FACTIONS[k]:null);if(F&&reg[k].c>=3)F.humor=Math.round(reg[k].s/reg[k].c);}
+  let S=0,C=0;for(const k in reg){S+=reg[k].s;C+=reg[k].c;const F=facs().find(x=>x.id==k);if(F&&reg[k].c>=3)F.humor=Math.round(reg[k].s/reg[k].c);}
   if(C>=5){const med=S/C;if(med<-25)world.tension=clamp(world.tension+2);else if(med>25)world.tension=clamp(world.tension-2);world.humorPovo=Math.round(med);}}
 function fichaSentimentos(n){
   let pares=[];try{const pop={};
