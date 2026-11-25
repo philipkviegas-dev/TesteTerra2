@@ -1924,6 +1924,9 @@ function die(n,cause,where){
     const ad=members(k.region).filter(o=>!o.isChild&&!o._dead&&o!==n&&!k.parents.includes(o.id));const tio=ad.sort((x,y)=>(y.rel[k.id]||0)-(x.rel[k.id]||0)||(y.bondade||0)-(x.bondade||0))[0];
     if(tio){relate(tio,k,25);relate(k,tio,20);if(tio.home)k.home=tio.home;shape(k,'confianca',3,'foi acolhido(a)');think(tio,`${k.name} ficou sozinho(a). Vou cuidar dele(a).`,'🤲');remember(tio,`acolhi ${k.name}, que ficou órfão(a)`,9,k.id);weekNote('couple',`${tio.name} acolheu ${k.name}, órfão(a)`);}
   });}catch(e){}
+  try{const fam=(n.kids||[]).map(byId).find(k=>k&&!k._dead&&!k.isChild)||byId(n.partner);
+    const vel=members(n.region).filter(o=>o&&!o._dead&&!o.isChild&&o!==n&&o!==fam&&(o.rel[n.id]||0)>20).slice(0,6);
+    if(fam&&!fam._dead&&vel.length>=2){vel.forEach(o=>{relate(o,fam,3);relate(fam,o,2);remember(o,`fui ao velório de ${n.name}`,4,n.id);});remember(fam,`${vel.length} pessoas vieram ao velório de ${n.name}`,6,vel[0].id);log('dna',`🕯️ ${vel.length} pessoas foram ao velório de ${n.name}, ao lado de ${N(fam)}.`,[fam.id,...vel.map(o=>o.id)]);}}catch(e){}
   world.lastDeath={name:n.name,day,age:n.ageDays};
   members(n.region).filter(o=>!o.isChild&&!o._dead).forEach(o=>{if(!o.deathAware){o.deathAware=true;if((o.rel[n.id]||0)>-20&&Math.random()<.5)think(o,'Então é assim... um dia eu também vou partir. Não sei quando, nem onde.','🕯️');}
     o.family=clamp(o.family+(n.ageDays<30?8:3));
