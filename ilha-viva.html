@@ -77,6 +77,7 @@
   button{font-family:'Baloo 2',sans-serif;font-weight:700;color:#3b2406;background:linear-gradient(#ffe9a8,#f2c94c 55%,#e0a92d);border:2px solid #1b110a;border-bottom-width:4px;border-radius:11px;box-shadow:inset 0 2px 0 #fff9,0 2px 0 #0004;transition:transform .06s,filter .12s}
   button:hover{filter:brightness(1.1) saturate(1.1);transform:translateY(-1px)}
   button:active{transform:translateY(2px);border-bottom-width:2px;margin-bottom:2px}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #8ab4ff;outline-offset:2px}
   button.on{background:linear-gradient(#ff9b7d,#ff7a59 55%,#e0553a);color:#fff;text-shadow:0 1px 0 #7a2410;box-shadow:inset 0 2px 0 #fff6,0 0 10px #ff7a5977}
   button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #7cf;outline-offset:1px}
   .pill{font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;letter-spacing:.5px;background:linear-gradient(#27406b,#1d2a44);color:#e8f1ff;border:2px solid #0b1220;box-shadow:inset 0 2px 0 #fff2,0 2px 0 #0006}
@@ -115,7 +116,8 @@
   .livroCorpo h4{font-family:'Lilita One','Baloo 2',sans-serif;font-weight:400;font-size:17px;color:#5a3a20;border-bottom:2px solid var(--gold2);padding-bottom:2px}
   .tl{border-bottom:1px dashed #cdb27a}
   ::-webkit-scrollbar{width:12px;height:12px}::-webkit-scrollbar-track{background:#e9d9b4;border-radius:8px}::-webkit-scrollbar-thumb{background:linear-gradient(#c9962b,#8a6420);border:2px solid #e9d9b4;border-radius:8px}
-  @media(max-width:700px){header{position:static}.hg[data-t]:before{display:none}}
+  .mbtn{display:none}
+  @media(max-width:700px){header{position:static}.hg[data-t]:before{display:none}.mbtn{display:inline-flex}header:not(.open) .hg:not(.keep){display:none}}
   @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
   .stage{position:relative}
   @media(max-width:700px){header{position:static}.hg{flex-wrap:wrap;max-width:100%}.deuzbox{flex:1 1 100%;min-width:0}.deuzbox input{width:auto;flex:1;min-width:0}}
@@ -141,7 +143,8 @@
   <h1>🏝️ Ilha Viva</h1>
   <span class="pill era" id="era"></span>
   <span class="pill" id="clock"></span>
-  <span class="hg" data-t="Tempo"><button id="pause" title="Pausar ou retomar o tempo">⏸ Pausar</button>
+  <button id="menuBtn" class="mbtn" title="Mostrar ou esconder os outros botões" onclick="document.querySelector('header').classList.toggle('open')">☰ Menu</button>
+  <span class="hg keep" data-t="Tempo"><button id="pause" title="Pausar ou retomar o tempo">⏸ Pausar</button>
   <button title="Velocidade normal" data-speed="1" class="on">1×</button><button title="Velocidade 3× (1 dia = 1 ano)" data-speed="3">3×</button><button title="Velocidade 8× (1 dia = 1 ano)" data-speed="8">8×</button><button title="Velocidade 20× (1 dia = 1 ano)" data-speed="20">20×</button><button title="Velocidade 50× (1 dia = 1 ano)" data-speed="50">50×</button></span>
   <span class="hg" data-t="Visão"><button id="viewMapa" class="on">🗺️ Mapa</button><button id="viewRegiao">🔍 Região</button><button id="zIn" title="Aproximar o mapa" onclick="mzZoom(1.5)">➕</button><button id="zOut" title="Afastar o mapa" onclick="mzZoom(1/1.5)">➖</button><button id="zRst" title="Mapa inteiro" onclick="mzReset()">⌖</button></span>
   <span class="hg" data-t="Camadas"><button class="on" id="lyFac" title="Mostrar/ocultar as cores dos países" onclick="toggleLayer('fac')">🏳️</button><button class="on" id="lyWar" title="Mostrar/ocultar guerras e catástrofes" onclick="toggleLayer('war')">⚔️</button><button class="on" id="lyNom" title="Mostrar/ocultar os nomes" onclick="toggleLayer('nom')">🔤</button><button class="on" id="lyDec" title="Mostrar/ocultar construções e decoração" onclick="toggleLayer('dec')">🏰</button><button class="on" id="lyRot" title="Mostrar/ocultar rotas comerciais" onclick="toggleLayer('rot')">🚚</button><button id="somBtn" title="Ligar/desligar os sons de conquistas e eras" onclick="toggleSom()">🔇</button></span>
