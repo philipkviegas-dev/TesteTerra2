@@ -344,6 +344,7 @@ function addLugar(r,label,e,why,autor,m){if(!r)return null;r.novos=r.novos||[];i
   const o={id:'n_'+(r.novoSeq=(r.novoSeq||0)+1),slot,x:LUG_SLOTS[slot][0],y:LUG_SLOTS[slot][1],c:LUG_COR[(Math.random()*LUG_COR.length)|0],label,e,m:m||null,day};r.novos.push(o);
   if(r.id===world.active){syncPlaces();log('big',`🆕 Surgiu um lugar novo em ${r.name}: <b>${e} ${label}</b>${why?` — ${why}`:''}.`,autor?[autor.id]:[]);}
   weekNote('lugar',`${label} surgiu em ${r.name}`);
+  try{const nb=obraByName(label);if(nb)LEARN.teach('ARQ',label,nb.id,0.3);}catch(e){}
   if(autor){remember(autor,`${why||('descobri '+label)}`,7);shape(autor,'curiosidade',2,'achou um lugar novo');}
   return o;}
 // põe no PLACES os lugares novos da região ativa (e tira os da região anterior)
@@ -3990,7 +3991,8 @@ function crime(n,tipo,v,txt,grave,op){world.crimes=world.crimes||[];world.crimes
   n.crimes=(n.crimes||0)+1;shape(n,'bondade',-2,'cometeu '+tipo);if(n.crimes>=3&&!n.fame)n.fame='criminoso(a) conhecido(a)';
   if(v){relate(v,n,grave?-60:-30);shape(v,'confianca',-3,'foi vítima de '+tipo);v.rancor=n.id;remember(v,`${n.name} ${txt}`,9,n.id);}
   if(visto&&grave&&canKill()&&Math.random()<0.3&&!n.hurt)hurt(n,12,'foi espancado(a) pelo povo revoltado');
-  if(T(n,'bondade')>.4&&Math.random()<.5){thinkOnce(n,v?`Fiz mal a ${v.name}. Me arrependo.`:'Fiz uma coisa errada. Me arrependo.','😔');remember(n,v?`me arrependo do que fiz a ${v.name}`:'me arrependo de um crime',7,v?v.id:undefined);n.needs.diversao=clamp(n.needs.diversao-5);if(v&&v.rel&&(n.rel[v.id]||0)>-60)relate(n,v,4);}
+  if(T(n,'bondade')>.4&&Math.random()<.5){thinkOnce(n,v?`Fiz mal a ${v.name}. Me arrependo.`:'Fiz uma coisa errada. Me arrependo.','😔');remember(n,v?`me arrependo do que fiz a ${v.name}`:'me arrependo de um crime',7,v?v.id:undefined);n.needs.diversao=clamp(n.needs.diversao-5);if(v&&v.rel&&(n.rel[v.id]||0)>-60)relate(n,v,4);
+    if(v&&!v._dead&&T(v,'bondade')>.6&&Math.random()<.3){v.rancor=null;relate(v,n,35);remember(v,`perdoei ${n.name}, que se arrependeu`,7,n.id);remember(n,`${v.name} me perdoou`,7,v.id);log('dna',`🕊️ ${N(v)} perdoou ${N(n)}, que se arrependeu.`,[v.id,n.id]);}}
   weekNote('crime',`${n.name} ${txt}`);if(grave||visto)log(grave?'big':'',`😈 ${N(n)} ${txt}${visto?' — e o povo viu':''}.`,[n.id].concat(v?[v.id]:[]));
   try{justica(n,tipo,v,grave,visto,op||{},world.crimes[world.crimes.length-1]);}catch(e){console.error(e);}}
 // ---------- justiça: quem desobedece à lei sofre a pena da lei ou a que o líder decidir, mesmo a pedido do jogador ----------
