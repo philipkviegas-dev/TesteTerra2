@@ -4011,12 +4011,12 @@ function justica(n,tipo,v,grave,visto,op,reg){
   if(sev===5)die(n,`executado(a) ${lei}`,(regionOf(n)||{}).name);
 }
 function maldadeYear(){NPCS.forEach(n=>{if(n.preso&&!n._dead){if(day>=n.preso.ate){log('',`🔓 ${N(n)} cumpriu a pena e foi solto(a).`,[n.id]);remember(n,'saí da prisão',8);n.preso=null;}return;}if(n._dead||n.isChild||n.ageDays<18||n.hurt)return;const rancor=n.rancor&&byId(n.rancor)&&!byId(n.rancor)._dead?byId(n.rancor):null;
-  const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'))+((n.opin||0)<-40?0.04:0);
+  const p=0.012+0.09*Math.max(0,-T(n,'bondade'))+0.03*Math.max(0,T(n,'ambicao'))+0.015*Math.max(0,T(n,'coragem'))+(rancor?0.22:0)-0.01*Math.max(0,T(n,'confianca'))+((n.opin||0)<-40?0.01:0);
   if(Math.random()>p)return;const m=members(n.region).filter(x=>x!==n&&!x._dead),r=regionOf(n);if(!m.length||!r)return;
   let v=rancor&&m.includes(rancor)?rancor:null;
   if(!v){for(let i=0;i<6&&!v;i++){const c=R(m);if(!c.isChild){const s=sentimento(n,c);if(s&&(s.k==='inveja'||s.k==='ciúme'||s.k==='ódio'||s.k==='desprezo'))v=c;}}} // o alvo costuma ser quem a pessoa inveja, despreza ou odeia
   if(!v)v=R(m);const ruim=-T(n,'bondade'),ousado=T(n,'coragem')>0.1,amb=T(n,'ambicao');
-  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40)op.push('rebeliao','rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
+  const op=[];op.push('roubo','fofoca');if(ousado)op.push('briga','incendio');if(ruim>0.2||rancor)op.push('agressao');if(n.partner&&byId(n.partner))op.push('traicao');if(amb>0.2)op.push('rebeliao','sabotagem');if((n.opin||0)<-40)op.push('rebeliao');op.push('heresia');if((n.poderes||[]).length&&ruim>0.1)op.push('feitico');
   if((ruim>0.45||(rancor&&ruim>0.1))&&canKill())op.push('assassinato');
   switch(R(op)){
    case 'roubo':if(v.food>0){v.food--;n.food++;}else world.reserva=Math.max(0,world.reserva-2);crime(n,'roubo',v,`roubou comida de ${v.name}`);break;
