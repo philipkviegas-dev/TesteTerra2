@@ -3990,6 +3990,7 @@ function crime(n,tipo,v,txt,grave,op){world.crimes=world.crimes||[];world.crimes
   n.crimes=(n.crimes||0)+1;shape(n,'bondade',-2,'cometeu '+tipo);if(n.crimes>=3&&!n.fame)n.fame='criminoso(a) conhecido(a)';
   if(v){relate(v,n,grave?-60:-30);shape(v,'confianca',-3,'foi vítima de '+tipo);v.rancor=n.id;remember(v,`${n.name} ${txt}`,9,n.id);}
   if(visto&&grave&&canKill()&&Math.random()<0.3&&!n.hurt)hurt(n,12,'foi espancado(a) pelo povo revoltado');
+  if(T(n,'bondade')>.4&&Math.random()<.5){thinkOnce(n,v?`Fiz mal a ${v.name}. Me arrependo.`:'Fiz uma coisa errada. Me arrependo.','😔');remember(n,v?`me arrependo do que fiz a ${v.name}`:'me arrependo de um crime',7,v?v.id:undefined);n.needs.diversao=clamp(n.needs.diversao-5);if(v&&v.rel&&(n.rel[v.id]||0)>-60)relate(n,v,4);}
   weekNote('crime',`${n.name} ${txt}`);if(grave||visto)log(grave?'big':'',`😈 ${N(n)} ${txt}${visto?' — e o povo viu':''}.`,[n.id].concat(v?[v.id]:[]));
   try{justica(n,tipo,v,grave,visto,op||{},world.crimes[world.crimes.length-1]);}catch(e){console.error(e);}}
 // ---------- justiça: quem desobedece à lei sofre a pena da lei ou a que o líder decidir, mesmo a pedido do jogador ----------
@@ -5000,6 +5001,7 @@ function sevWord(s,fem){return s>=3?(fem?'devastadora':'devastador'):s>=2?'forte
 // ---- início de cada catástrofe
 function startDisaster(type,target,sev,byCommand){sev=sev||((Math.random()<.2)?3:(Math.random()<.5?2:1));world.disasters=world.disasters||[];world.lastCatastrophe=day;
   const R0=target||popRegion(r=>r.insect);if(!R0)return null;const src=byCommand?'(a pedido do jogador)':'';
+  if(!byCommand){try{const F={meteoro:'uma pedra de fogo cai do ceu e destroi tudo',peste:'uma doenca terrivel se espalha pela gente',praga:'uma praga seca as plantacoes e a comida acaba',insetos:'uma nuvem de insetos devora a floresta'}[type];if(F)LEARN.teach('DEUZ',F,type,0.2);}catch(e){}}
   curAI='deuz';try{
   try{const L={meteoro:[['centro','devastado'],['floresta','devastado'],['colina','devastado'],['casaA','devastado'],['casaB','devastado']].slice(0,1+sev*1),insetos:[['floresta','devastado'],['campo','devastado']],praga:[['campo','seco'],['floresta','seco']]}[type];
     if(L)L.forEach(([id,es])=>setLugar(R0,id,es,{meteoro:'o meteoro destruiu o lugar',insetos:'os insetos devoraram tudo',praga:'a praga secou tudo'}[type]));}catch(e){console.error(e);}
