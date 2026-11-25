@@ -1092,7 +1092,7 @@ function novoBanco(n){
   world.bancos[rid]={dono:n.id,cash:f,dep:0,emp:0,conf:70,taxa:Math.round((.12+.08*Math.max(0,T(n,'ambicao')))*100)/100,fund:day,quebras:0};
   n.fame=n.fame||'quem fundou um banco';shape(n,'ambicao',3,'fundou um banco');remember(n,`fundei um banco em ${regNome(rid)}`,8);
   log('big',`🏦 ${N(n)} fundou um <b>banco</b> em ${regNome(rid)}: guarda o dinheiro dos outros e empresta a juros de ${Math.round(world.bancos[rid].taxa*100)}% ao ano.`,[n.id]);
-  weekNote('bank',`${n.name} fundou um banco em ${regNome(rid)}`);}
+  weekNote('economia',`${n.name} fundou um banco em ${regNome(rid)}`);}
 function fechaBanco(rid,b,why){
   for(const n of NPCS)if(n.bk===rid){if(n.dep>0&&b.cash>0){const x=Math.min(n.dep,b.cash);b.cash-=x;n.coins+=x;}n.dep=0;delete n.emp;n.bk=null;}
   delete world.bancos[rid];log('',`🏦 O banco de ${regNome(rid)} fechou as portas (${why}).`,[]);}
@@ -1104,7 +1104,7 @@ function quebraBanco(rid,b){
       remember(n,`o banco quebrou e perdi ${Math.round(n.dep-rec)} do que tinha guardado`,9,b.dono);think(n,'Perdi o que guardei no banco...','😱');n.dep=0;}
     if(n.emp){delete n.emp;} n.bk=null;}
   const d=byId(b.dono);if(d){remember(d,'meu banco quebrou',9);shape(d,'ambicao',-2,'o banco quebrou');relate(d,d,0);NPCS.forEach(o=>{if(o.bk==null&&(o.dep||0)===0)return;});}
-  weekNote('bank',`o banco de ${regNome(rid)} quebrou e ${n_} pessoa(s) perderam economias`);
+  weekNote('economia',`o banco de ${regNome(rid)} quebrou e ${n_} pessoa(s) perderam economias`);
   for(const k in world.bancos)if(+k!==+rid)world.bancos[k].conf=Math.max(0,world.bancos[k].conf-12);
   delete world.bancos[rid];world.quebras=(world.quebras||0)+1;
   log('big',`💥 O banco de ${regNome(rid)} <b>quebrou</b>! ${n_} pessoa(s) perderam ${Math.round(perdas)} do que tinham guardado${seguro?' (o seguro do banco central cobriu quase tudo)':''}.`,d?[d.id]:[]);
@@ -2212,7 +2212,7 @@ const COLLECTIVE=[
  {id:'crise',era:[3,9],w:1,drama:.6,cond:()=>has('moeda'),fn(){NPCS.forEach(n=>n.coins=Math.floor(n.coins*0.6));try{finAbala(25);}catch(e){}log('big','📉 Uma crise econômica! O dinheiro passou a valer muito menos.');NPCS.forEach(n=>{if(T(n,'ambicao')>0.2)shape(n,'confianca',-3,'crise');});}},
  {id:'prosperidade',era:[3,9],w:0,drama:.1,cond:()=>has('moeda'),fn(){NPCS.forEach(n=>{n.coins=Math.ceil((n.coins||0)*1.4+2);});try{finAbala(-15);}catch(e){}log('big','📈 Uma era de prosperidade! O comércio floresce e os bolsos se enchem.');NPCS.forEach(n=>{if(T(n,'ambicao')>0.2)shape(n,'confianca',2,'prosperidade');});}},
  {id:'torneio',era:[1,9],w:0,drama:.1,cond:()=>true,fn(){let n=0;occupied().forEach(r=>{const i=MAP.regions.indexOf(r);if(i<0)return;(world.torneios=world.torneios||{})[i]=day-5;try{torneioRegiao(i);n++;}catch(e){}});if(!n)log('big','🏅 Deuz chamou os atletas, mas ninguém estava preparado para competir.');}},
- {id:'greve',era:[7,9],w:1,drama:.5,cond:()=>has('vapor'),fn(){const ws=adults().filter(n=>n.role==='operario');if(!ws.length)return;ws.forEach(n=>{n.workedToday=true;shape(n,'coragem',3,'fez greve');});log('big',`✊ Greve! ${ws.map(N).join(', ')} pararam a fábrica pedindo melhores condições.`,ws.map(n=>n.id));weekNote('bank',`${ws.length} operário(s) fizeram greve na fábrica`);const l=byId(world.gov.leader);if(l)ws.forEach(w=>relate(w,l,-5));}},
+ {id:'greve',era:[7,9],w:1,drama:.5,cond:()=>has('vapor'),fn(){const ws=adults().filter(n=>n.role==='operario');if(!ws.length)return;ws.forEach(n=>{n.workedToday=true;shape(n,'coragem',3,'fez greve');});log('big',`✊ Greve! ${ws.map(N).join(', ')} pararam a fábrica pedindo melhores condições.`,ws.map(n=>n.id));weekNote('economia',`${ws.length} operário(s) fizeram greve na fábrica`);const l=byId(world.gov.leader);if(l)ws.forEach(w=>relate(w,l,-5));}},
  {id:'inovacao',era:[5,9],w:1,drama:.2,fn(){world.kp+=30;log('big','📰 Chegaram notícias de inventos de outras terras. O povo aprendeu muito de uma vez.');}},
  {id:'pandemia',era:[8,9],w:.6,drama:.9,fn(){const vs=adults().filter(()=>Math.random()<.4);vs.forEach(v=>v.hurt=has('medicina')?1:3);log('big',`😷 Uma epidemia atingiu ${vs.length} pessoas. ${has('medicina')?'Os médicos conseguiram controlar.':''}`,vs.map(v=>v.id));weekNote('peste',`uma epidemia atingiu ${vs.length} pessoas`);adults().filter(n=>n.role==='medico').forEach(m=>{NPCS.forEach(o=>relate(o,m,8));});}},
  {id:'apagao',era:[8,9],w:1,drama:.3,cond:()=>has('eletricidade'),fn(){log('big','🔌 Apagão na região inteira! A noite voltou a ser como antigamente.');NPCS.forEach(n=>n.needs.diversao=clamp(n.needs.diversao-15));}},
@@ -3674,7 +3674,7 @@ function chronicle(){
   const th=by('theft');if(th.length)parts.push(`${th.length} roubo(s) de comida foram descobertos`);
   const pe=by('peste');if(pe.length)parts.push(pe[pe.length-1].text);
   const es=by('esporte');if(es.length)parts.push(es.slice(-2).map(x=>x.text).join('; '));
-  const bk=by('bank');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
+  const bk=by('economia');if(bk.length)parts.push(bk.slice(-2).map(x=>x.text).join('; '));
   const gov=by('gov');if(gov.length)parts.push(gov[gov.length-1].text);
   const occ=MAP?occupied().length:1;
   const ML={guerra:'pela guerra',catastrofe:'por uma tragédia',politica:'pela política',descoberta:'por descobertas',cultura:'por mudanças na cultura',obra:'por grandes obras',migracao:'por migrações',morte:'por perdas',nascimento:'por nascimentos',amor:'por romances'};
@@ -4465,7 +4465,7 @@ function mPred(x,y,w,h,c){mBox(x,y,w,h,c);for(let j=0;j<Math.floor((h-6)/9);j++)
 function mTorre(x,y,w,h,c){mBox(x,y,w,h,c||MK.ped);ctx.fillStyle=c||MK.ped;for(let i=0;i<3;i++)ctx.fillRect(x-w/2+i*(w/3)+1,y-h-5,w/3-2,6);mR(x-2.5,y-h*.62,5,9,'#3b3a45',2);mPorta(x,y,w*.3,h*.3,MK.mad2);}
 function mMuro(x1,x2,y,h,c){mR(x1,y-h,x2-x1,h,c||MK.ped,2);ctx.fillStyle=c||MK.ped;for(let x=x1;x<x2-5;x+=9)ctx.fillRect(x+1,y-h-4,6,5);ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(x1,y-4,x2-x1,4);}
 function mCerca(x1,x2,y,h){h=h||9;ctx.strokeStyle=MK.mad;ctx.lineWidth=2;ctx.lineCap='round';for(let x=x1;x<=x2;x+=7){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-h);ctx.stroke();}ctx.beginPath();ctx.moveTo(x1,y-h*.7);ctx.lineTo(x2,y-h*.7);ctx.moveTo(x1,y-h*.3);ctx.lineTo(x2,y-h*.3);ctx.stroke();}
-function mAgua(x,y,rx,ry,t){ctx.fillStyle=MK.agua2;ctx.beginPath();ctx.ellipse(x,y,rx+2,ry+2,0,0,7);ctx.fill();ctx.fillStyle=MK.agua;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;const k=(t/800)%1;ctx.beginPath();ctx.ellipse(x-rx*.15,y,rx*.5*k,ry*.5*k,0,0,7);ctx.stroke();}
+function mAgua(x,y,rx,ry,t){ctx.fillStyle=MK.agua2;ctx.beginPath();ctx.ellipse(x,y,rx+2,ry+2,0,0,7);ctx.fill();ctx.fillStyle=MK.agua;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,7);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;const k=(t/800)%1;ctx.beginPath();ctx.ellipse(x-rx*.15,y,rx*.5*k,ry*.5*k,0,0,7);ctx.stroke();ctx.fillStyle='#fff';for(let i=0;i<3;i++){const q=Math.sin(t/500+i*2.1+x);if(q>.6){ctx.globalAlpha=(q-.6)*2.2;const a=i*2.4+x,sx=x+Math.cos(a)*rx*.55,sy=y+Math.sin(a)*ry*.5,r=1+q*1.6;ctx.beginPath();ctx.moveTo(sx-r*2,sy);ctx.lineTo(sx,sy-r);ctx.lineTo(sx+r*2,sy);ctx.lineTo(sx,sy+r);ctx.closePath();ctx.fill();}}ctx.globalAlpha=1;}
 function mPas(x,y,r,t,c){ctx.strokeStyle=c||MK.mad2;ctx.lineWidth=2.4;ctx.lineCap='round';for(let i=0;i<4;i++){const a=t/700+i*Math.PI/2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.stroke();ctx.fillStyle='#fff';ctx.save();ctx.translate(x+Math.cos(a)*r*.6,y+Math.sin(a)*r*.6);ctx.rotate(a);ctx.fillRect(0,-3,r*.4,6);ctx.restore();}ctx.fillStyle=MK.mad2;ctx.beginPath();ctx.arc(x,y,2.6,0,7);ctx.fill();}
 function mColunas(x,y,w,h,n,c){for(let i=0;i<n;i++){const cx=x-w/2+3+i*((w-6)/(n-1));mR(cx-2.2,y-h,4.4,h,c||'#f6f1e3',1.2);ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(cx+.4,y-h,1.6,h);}}
 function mTemplo(x,y,w,h,c){c=c||'#f1ebd9';mR(x-w/2-3,y-3,w+6,4,'#d9d2bd',1);mR(x-w/2,y-4,w,3,'#e6dfc9',1);mColunas(x,y-4,w-4,h-10,5,c);mTel(x,y-h+6,w+4,12,'#d9cfa8');}
@@ -5262,7 +5262,7 @@ const LEARN=(()=>{
       for(let c=0;c<pc.length;c++)if(c!==y&&pc[c]>0.05)e[c]=Math.max(-3,Math.min(3,(e[c]||0)-lr*pc[c]));});}catch(e){}}
   function gasta(k,max){budget[k]=(budget[k]||0)+1;return budget[k]<=max;}
   function teachE(txt,cls){if(gasta('EST',60))teach('EST',txt,cls);}
-  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',bank:'economia',esporte:'esporte',peste:'catastrofe'};
+  const CAT={war:'guerra',death:'morte',birth:'nascimento',couple:'amor',migr:'migracao',disc:'descoberta',gov:'politica',lei:'politica',lugar:'obra',clima:'catastrofe',cometa:'catastrofe',crime:'crime',theft:'crime',festa:'cultura',economia:'economia',esporte:'esporte',peste:'catastrofe'};
   function chr(kind,text){const c=CAT[kind];if(c&&gasta('CHR',40))teach('CHR',String(text).replace(/<[^>]+>/g,''),c);}
   // Mente dos habitantes
   const ML=new WeakMap(),avgNeeds=n=>(n.needs.fome+n.needs.energia+n.needs.social+n.needs.diversao)/400,sumSk=n=>{let t=0;for(const k in n.skill)t+=n.skill[k];return t;};
